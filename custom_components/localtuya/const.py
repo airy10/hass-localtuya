@@ -15,6 +15,7 @@ from homeassistant.const import (
 
 DOMAIN = "localtuya"
 DATA_DISCOVERY = "discovery"
+DATA_PENDING_BLE = "pending_ble"
 
 # Order on priority
 SUPPORTED_PROTOCOL_VERSIONS = ["3.3", "3.1", "3.2", "3.4", "3.5"]

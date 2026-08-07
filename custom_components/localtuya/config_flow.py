@@ -22,7 +22,13 @@ from homeassistant.helpers.selector import (
 import voluptuous as vol
 from homeassistant import exceptions
 from homeassistant.core import callback, HomeAssistant
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
+    FlowResult,
+)
 from homeassistant.const import (
     CONF_CLIENT_ID,
     CONF_CLIENT_SECRET,
@@ -46,6 +52,7 @@ from .coordinator import HassLocalTuyaData
 from .core import pytuya
 from .core.cloud_api import TUYA_ENDPOINTS, TuyaCloudApi
 from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_entities
+from .core.tuya_ble_lib import SERVICE_UUID
 from .const import (
     ATTR_UPDATED_AT,
     CONF_ADD_DEVICE,
@@ -71,6 +78,7 @@ from .const import (
     CONF_TRANSPORT,
     CONF_USER_ID,
     DATA_DISCOVERY,
+    DATA_PENDING_BLE,
     DEFAULT_CATEGORIES,
     DOMAIN,
     ENTITY_CATEGORY,
@@ -97,7 +105,7 @@ TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
 
 # Using list method so we can translate options.
-CONFIGURE_MENU = [CONF_ADD_DEVICE, CONF_EDIT_DEVICE, CONF_CONFIGURE_CLOUD]
+CONFIGURE_MENU = [CONF_ADD_DEVICE, "add_ble_device", CONF_EDIT_DEVICE, CONF_CONFIGURE_CLOUD]
 
 
 def col_to_select(
@@ -222,6 +230,31 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders,
         )
 
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> FlowResult:
+        """Handle a flow initialized by Bluetooth discovery."""
+        # No hub yet -> fall through to initial hub setup (unique_id will be
+        # set to the User ID by _create_entry, so don't set it here).
+        if not self._async_current_entries():
+            return await self.async_step_user()
+
+        await self.async_set_unique_id(discovery_info.address)
+        # Abort if this BLE MAC is already a configured device in any hub.
+        for entry in self._async_current_entries():
+            for dev in entry.data.get(CONF_DEVICES, {}).values():
+                if (
+                    str(dev.get(CONF_BLE_ADDRESS, "")).upper()
+                    == discovery_info.address.upper()
+                ):
+                    return self.async_abort(reason="already_configured")
+        # Hub exists: remember the discovered MAC so Options can pre-select it,
+        # then direct the user to the Options flow.
+        self.hass.data.setdefault(DOMAIN, {})[DATA_PENDING_BLE] = (
+            discovery_info.address
+        )
+        return self.async_abort(reason="ble_discovery")
+
     async def _create_entry(self, user_input):
         """Register new entry."""
         # if self._async_current_entries():
@@ -277,6 +310,10 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         # Remove Reconfigure existing device option if there is no existed devices.
         if not self.config_entry.data[CONF_DEVICES]:
             configure_menu.pop(configure_menu.index(CONF_EDIT_DEVICE))
+
+        # BLE requires cloud API (Q2 decision): hide BLE add if no cloud.
+        if self.config_entry.data.get(CONF_NO_CLOUD, True):
+            configure_menu.pop(configure_menu.index("add_ble_device"))
 
         if not self.config_entry.data.get(CONF_NO_CLOUD, True):
             self.hass.async_create_task(self.cloud_data.async_get_devices_list())
@@ -397,6 +434,61 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             step_id="add_device",
             data_schema=devices_schema(devices, self.cloud_data.device_list),
             errors=errors,
+        )
+
+    async def _async_scan_ble_devices(self) -> dict:
+        """Return {display_name: address} for discovered Tuya BLE devices."""
+        from homeassistant.components import bluetooth
+
+        found = {}
+        for info in bluetooth.async_discovered_service_info(
+            self.hass, connectable=True
+        ):
+            if SERVICE_UUID in (info.service_data or {}):
+                found[info.name or info.address] = info.address
+        return found
+
+    async def async_step_add_ble_device(self, user_input=None):
+        """Pick a discovered BLE device to add."""
+        self.editing_device = False
+        self.selected_device = None
+        if user_input is not None:
+            self._ble_address = user_input[SELECTED_DEVICE]
+            return await self.async_step_ble_cloud()
+        ble = await self._async_scan_ble_devices()
+        if not ble:
+            return self.async_abort(reason="no_ble_devices")
+        return self.async_show_form(
+            step_id="add_ble_device",
+            data_schema=vol.Schema(
+                {vol.Required(SELECTED_DEVICE): col_to_select(ble)}
+            ),
+        )
+
+    async def async_step_ble_cloud(self, user_input=None):
+        """Pick the cloud device this BLE MAC maps to (prefill device_id/local_key)."""
+        if user_input is not None:
+            dev_id = user_input[SELECTED_DEVICE]
+            dev = self.cloud_data.device_list[dev_id]
+            self.selected_device = dev_id
+            self.device_data = {
+                CONF_DEVICE_ID: dev_id,
+                CONF_LOCAL_KEY: dev.get(CONF_LOCAL_KEY),
+                CONF_FRIENDLY_NAME: dev.get(CONF_NAME),
+                CONF_TRANSPORT: TRANSPORT_BLE,
+                CONF_BLE_ADDRESS: self._ble_address,
+            }
+            return await self.async_step_configure_device()
+        if not self.cloud_data.device_list:
+            return self.async_abort(reason="cloud_not_configured")
+        cloud = {
+            v.get(CONF_NAME, d): d for d, v in self.cloud_data.device_list.items()
+        }
+        return self.async_show_form(
+            step_id="ble_cloud",
+            data_schema=vol.Schema(
+                {vol.Required(SELECTED_DEVICE): col_to_select(cloud)}
+            ),
         )
 
     async def async_step_edit_device(self, user_input=None):
@@ -588,6 +680,17 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             defaults[CONF_LOCAL_KEY] = user_in.get(CONF_LOCAL_KEY, "")
             defaults[CONF_FRIENDLY_NAME] = user_in.get(CONF_FRIENDLY_NAME, "")
             defaults[CONF_NODE_ID] = user_in.get(CONF_NODE_ID, "")
+
+            if self.device_data:
+                defaults[CONF_TRANSPORT] = self.device_data.get(
+                    CONF_TRANSPORT, TRANSPORT_ETHERNET
+                )
+                defaults[CONF_BLE_ADDRESS] = self.device_data.get(
+                    CONF_BLE_ADDRESS, ""
+                )
+                defaults.setdefault(CONF_DEVICE_ID, self.device_data.get(CONF_DEVICE_ID, ""))
+                defaults.setdefault(CONF_LOCAL_KEY, self.device_data.get(CONF_LOCAL_KEY, ""))
+                defaults.setdefault(CONF_FRIENDLY_NAME, self.device_data.get(CONF_FRIENDLY_NAME, ""))
 
             if defaults[CONF_DEVICE_ID] in [cloud_devs, self.selected_device]:
                 dev_id = defaults[CONF_DEVICE_ID]

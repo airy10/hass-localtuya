@@ -2,6 +2,9 @@
     "config": {
         "abort": {
             "already_configured": "This Account ID has already been configured.",
+            "ble_discovery": "A Tuya BLE device was found. Open the LocalTuya integration → Options → Add BLE Device to add it.",
+            "no_ble_devices": "No Tuya BLE devices were found in range. Make sure the device is powered on and near the Home Assistant host.",
+            "cloud_not_configured": "Cloud API must be configured to add a BLE device.",
             "unsupported_device_type": "Unsupported device type!"
         },
         "error": {
@@ -43,6 +46,7 @@
                 "description": "Please select the desired actionSSSS.",
                 "data": {
                     "add_device": "Add a new device",
+                    "add_ble_device": "Add a BLE device",
                     "edit_device": "Edit a device",
                     "delete_device": "Delete a device",
                     "setup_cloud": "Reconfigure Cloud API account"
