@@ -67,6 +67,11 @@ CONF_PRODUCT_KEY = "product_key"
 CONF_PRODUCT_NAME = "product_name"
 CONF_USER_ID = "user_id"
 CONF_ENABLE_ADD_ENTITIES = "add_entities"
+CONF_TRANSPORT = "transport"
+CONF_BLE_ADDRESS = "ble_address"
+
+TRANSPORT_ETHERNET = "ethernet"
+TRANSPORT_BLE = "ble"
 
 
 CONF_ADD_DEVICE = "add_device"
@@ -278,7 +283,7 @@ class DeviceConfig:
 
     def __post_init__(self) -> None:
         self.id: str = self.device_config[CONF_DEVICE_ID]
-        self.host: str = self.device_config[CONF_HOST]
+        self.host: str = self.device_config.get(CONF_HOST, "")
         self.local_key: str = self.device_config[CONF_LOCAL_KEY]
         self.entities: list = self.device_config[CONF_ENTITIES]
         self.protocol_version: str = self.device_config[CONF_PROTOCOL_VERSION]
@@ -291,6 +296,8 @@ class DeviceConfig:
         self.reset_dps: str = self.device_config.get(CONF_RESET_DPIDS, "")
         self.manual_dps: str = self.device_config.get(CONF_MANUAL_DPS, "")
         self.dps_strings: list = self.device_config.get(CONF_DPS_STRINGS, [])
+        self.transport: str = self.device_config.get(CONF_TRANSPORT, TRANSPORT_ETHERNET)
+        self.ble_address: str | None = self.device_config.get(CONF_BLE_ADDRESS)
 
     def as_dict(self):
         return self.device_config

@@ -29,6 +29,7 @@ from .core.pytuya import (
     connect as pytuya_connect,
 )
 from .core.pytuya.parser import DecodeError
+from .core.transport import create_transport
 
 from .const import (
     ATTR_UPDATED_AT,
@@ -41,6 +42,7 @@ from .const import (
     DOMAIN,
     DeviceConfig,
     RESTORE_STATES,
+    TRANSPORT_BLE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -204,6 +206,14 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                         break
                     if self._device_config.enable_debug:
                         self._interface.enable_debug(True, gateway.friendly_name)
+                elif self._device_config.transport == TRANSPORT_BLE:
+                    # BLE transport is not wired yet (pass 1). The
+                    # BluetoothTransport adapter is skeletal and raises
+                    # NotImplementedError on connect.
+                    self._interface = create_transport("ble", device=None)
+                    self._interface.enable_debug(
+                        self._device_config.enable_debug, self.friendly_name
+                    )
                 else:
                     self._interface = await pytuya_connect(
                         self._device_config.host,
@@ -535,11 +545,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     self.info(f"Gateway ID has been updated to: {new_gw.id}")
                     new_data[CONF_DEVICES][dev_id][CONF_GATEWAY_ID] = new_gw.id
 
-                    discovery = self.hass.data[DOMAIN].get(DATA_DISCOVERY)
-                    if discovery and (local_gw := discovery.devices.get(new_gw.id)):
-                        new_ip = local_gw.get(CONF_TUYA_IP, self._device_config.host)
-                        new_data[CONF_DEVICES][dev_id][CONF_HOST] = new_ip
-                        self.info(f"IP has been updated to: {new_ip}")
+                    if self._device_config.transport != TRANSPORT_BLE:
+                        discovery = self.hass.data[DOMAIN].get(DATA_DISCOVERY)
+                        if discovery and (local_gw := discovery.devices.get(new_gw.id)):
+                            new_ip = local_gw.get(CONF_TUYA_IP, self._device_config.host)
+                            new_data[CONF_DEVICES][dev_id][CONF_HOST] = new_ip
+                            self.info(f"IP has been updated to: {new_ip}")
 
             new_data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = self.local_key
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))

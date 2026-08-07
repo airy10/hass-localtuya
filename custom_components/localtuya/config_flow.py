@@ -49,6 +49,7 @@ from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_enti
 from .const import (
     ATTR_UPDATED_AT,
     CONF_ADD_DEVICE,
+    CONF_BLE_ADDRESS,
     CONF_CONFIGURE_CLOUD,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
@@ -67,6 +68,7 @@ from .const import (
     CONF_TUYA_GWID,
     CONF_TUYA_IP,
     CONF_TUYA_VERSION,
+    CONF_TRANSPORT,
     CONF_USER_ID,
     DATA_DISCOVERY,
     DEFAULT_CATEGORIES,
@@ -74,6 +76,8 @@ from .const import (
     ENTITY_CATEGORY,
     PLATFORMS,
     SUPPORTED_PROTOCOL_VERSIONS,
+    TRANSPORT_BLE,
+    TRANSPORT_ETHERNET,
     CONF_DEVICE_SLEEP_TIME,
 )
 from .discovery import discover
@@ -143,7 +147,7 @@ CLOUD_CONFIGURE_SCHEMA = vol.Schema(
 DEVICE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
-        vol.Required(CONF_HOST): cv.string,
+        vol.Optional(CONF_HOST): cv.string,
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_LOCAL_KEY): cv.string,
         vol.Required(CONF_PROTOCOL_VERSION, default="auto"): col_to_select(
@@ -155,6 +159,10 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Optional(CONF_RESET_DPIDS): str,
         vol.Optional(CONF_DEVICE_SLEEP_TIME): int,
         vol.Optional(CONF_NODE_ID, default=None): vol.Any(None, cv.string),
+        vol.Optional(CONF_TRANSPORT, default=TRANSPORT_ETHERNET): col_to_select(
+            [TRANSPORT_ETHERNET, TRANSPORT_BLE]
+        ),
+        vol.Optional(CONF_BLE_ADDRESS): cv.string,
     }
 )
 
@@ -1045,7 +1053,7 @@ def options_schema(entities):
     return vol.Schema(
         {
             vol.Required(CONF_FRIENDLY_NAME): cv.string,
-            vol.Required(CONF_HOST): cv.string,
+            vol.Optional(CONF_HOST): cv.string,
             vol.Required(CONF_LOCAL_KEY): cv.string,
             vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): col_to_select(
                 sorted(SUPPORTED_PROTOCOL_VERSIONS)
@@ -1055,6 +1063,10 @@ def options_schema(entities):
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
             vol.Optional(CONF_DEVICE_SLEEP_TIME): int,
+            vol.Optional(CONF_TRANSPORT, default=TRANSPORT_ETHERNET): col_to_select(
+                [TRANSPORT_ETHERNET, TRANSPORT_BLE]
+            ),
+            vol.Optional(CONF_BLE_ADDRESS): cv.string,
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
@@ -1190,7 +1202,14 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
         conf_protocol = data[CONF_PROTOCOL_VERSION]
         auto_protocol = conf_protocol == "auto"
         # If sub device we will search if gateway is existed if not create new connection.
-        if (
+        if data.get(CONF_TRANSPORT) == TRANSPORT_BLE:
+            # BLE devices cannot connect via the gateway. Bypass the
+            # connection loop and rely on cloud DP details for detected_dps
+            # (cloud is required for BLE).
+            interface = None
+            close = False
+            bypass_handshake = True
+        elif (
             cid
             and (existed_interface := localtuya_devices.get(data[CONF_HOST]))
             and existed_interface.connected
@@ -1248,25 +1267,26 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
             reset_ids_str = conf_reset_dpids.split(",")
             reset_ids = [int(reset_id.strip()) for reset_id in reset_ids_str]
             logger.info("Reset DPIDs configured: %s (%s)", conf_reset_dpids, reset_ids)
-        try:
-            # If reset dpids set - then assume reset is needed before status.
-            if (reset_ids is not None) and (len(reset_ids) > 0):
-                logger.debug("Resetting command for DP IDs: %s", reset_ids)
-                # Assume we want to request status updated for the same set of DP_IDs as the reset ones.
-                interface.set_updatedps_list(reset_ids)
+        if interface is not None:
+            try:
+                # If reset dpids set - then assume reset is needed before status.
+                if (reset_ids is not None) and (len(reset_ids) > 0):
+                    logger.debug("Resetting command for DP IDs: %s", reset_ids)
+                    # Assume we want to request status updated for the same set of DP_IDs as the reset ones.
+                    interface.set_updatedps_list(reset_ids)
 
-                # Reset the interface
-                await interface.reset(reset_ids, cid=cid)
+                    # Reset the interface
+                    await interface.reset(reset_ids, cid=cid)
 
-            # Detect any other non-manual DPS strings
-            if not detected_dps:
-                detected_dps = await interface.detect_available_dps(cid=cid)
+                # Detect any other non-manual DPS strings
+                if not detected_dps:
+                    detected_dps = await interface.detect_available_dps(cid=cid)
 
-        except (ValueError, pytuya.parser.DecodeError) as ex:
-            error = ex
-        except Exception as ex:
-            logger.info(f"No DPS able to be detected {ex}")
-            detected_dps = {}
+            except (ValueError, pytuya.parser.DecodeError) as ex:
+                error = ex
+            except Exception as ex:
+                logger.info(f"No DPS able to be detected {ex}")
+                detected_dps = {}
 
         # if manual DPs are set, merge these.
         # detected_dps_device used to prevent user from bypass handshake manual dps.
