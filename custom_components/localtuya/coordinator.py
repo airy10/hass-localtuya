@@ -12,12 +12,16 @@ from typing import Any, NamedTuple
 from homeassistant.core import HomeAssistant, CALLBACK_TYPE, callback, State
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, CONF_DEVICES, CONF_HOST, CONF_DEVICE_ID
+from homeassistant.components import bluetooth
 from homeassistant.helpers.event import async_track_time_interval, async_call_later
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     dispatcher_send,
 )
 
+from bleak_retry_connector import get_device
+
+from .core.ble_manager import TuyaBLEDeviceManager
 from .core.cloud_api import TuyaCloudApi
 from .core.pytuya import (
     ContextualLogger,
@@ -30,6 +34,7 @@ from .core.pytuya import (
 )
 from .core.pytuya.parser import DecodeError
 from .core.transport import create_transport
+from .core.tuya_ble_lib import TuyaBLEDevice
 
 from .const import (
     ATTR_UPDATED_AT,
@@ -207,13 +212,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     if self._device_config.enable_debug:
                         self._interface.enable_debug(True, gateway.friendly_name)
                 elif self._device_config.transport == TRANSPORT_BLE:
-                    # BLE transport is not wired yet (pass 1). The
-                    # BluetoothTransport adapter is skeletal and raises
-                    # NotImplementedError on connect.
-                    self._interface = create_transport("ble", device=None)
-                    self._interface.enable_debug(
-                        self._device_config.enable_debug, self.friendly_name
-                    )
+                    self._interface = await self._make_ble_connection()
+                    if self._interface is not None:
+                        self._interface.enable_debug(
+                            self._device_config.enable_debug, self.friendly_name
+                        )
                 else:
                     self._interface = await pytuya_connect(
                         self._device_config.host,
@@ -226,7 +229,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     self._interface.enable_debug(
                         self._device_config.enable_debug, self.friendly_name
                     )
-                self._interface.add_dps_to_request(self.dps_to_request)
+                if self._interface is not None:
+                    self._interface.add_dps_to_request(self.dps_to_request)
                 break  # Succeed break while loop
             except asyncio.CancelledError:
                 await self.abort_connect()
@@ -341,6 +345,39 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 self._task_reconnect = asyncio.create_task(self._async_reconnect())
 
         self._task_connect = None
+
+    async def _make_ble_connection(self):
+        """Build a BLE transport wrapping a real TuyaBLEDevice.
+
+        Returns the transport, or ``None`` on any failure so the caller keeps
+        ``self._interface`` falsy (the coordinator treats a falsy interface as
+        "not connected" and schedules a reconnect).
+        """
+        try:
+            address = self._device_config.ble_address
+            if not address:
+                self.warning("BLE device has no ble_address configured")
+                return None
+
+            ble_device = bluetooth.async_ble_device_from_address(
+                self.hass, address.upper(), True
+            ) or await get_device(address)
+            if not ble_device:
+                self.warning(f"Could not find BLE device with address {address}")
+                return None
+
+            manager = TuyaBLEDeviceManager(
+                self.hass,
+                self._hass_entry.cloud_data,
+                self._device_config.id,
+                self.local_key,
+            )
+            device = TuyaBLEDevice(manager, ble_device)
+            await device.initialize()
+            return create_transport("ble", device=device)
+        except Exception as ex:  # pylint: disable=broad-except
+            self.warning(f"Failed to set up BLE device: {str(ex)}")
+            return None
 
     async def abort_connect(self):
         """Abort the connect process to the interface[device]"""

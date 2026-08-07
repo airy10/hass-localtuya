@@ -423,6 +423,15 @@ class TuyaBLEDevice:
         return self._ble_device.address
 
     @property
+    def is_connected(self) -> bool:
+        """Return whether the device is connected and paired."""
+        return (
+            self._is_paired
+            and self._client is not None
+            and self._client.is_connected
+        )
+
+    @property
     def name(self) -> str:
         """Get the name of the device."""
         if self._device_info:

@@ -11,11 +11,26 @@ objects and delegate to them; for pass 1 the BLE adapter is skeletal.
 
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
+from ..ha_entities.base import DPType
 from ..pytuya import TuyaProtocol
 from ..tuya_ble_lib import TuyaBLEDevice
+from ..tuya_ble_lib.const import TuyaBLEDataPointType
+
+_LOGGER = logging.getLogger(__name__)
+
+# Map localtuya's DPType (cloud spec) to the BLE datapoint wire type.
+_DPTYPE_TO_BLE: dict[DPType, TuyaBLEDataPointType] = {
+    DPType.BOOLEAN: TuyaBLEDataPointType.DT_BOOL,
+    DPType.ENUM: TuyaBLEDataPointType.DT_ENUM,
+    DPType.INTEGER: TuyaBLEDataPointType.DT_VALUE,
+    DPType.JSON: TuyaBLEDataPointType.DT_RAW,
+    DPType.RAW: TuyaBLEDataPointType.DT_RAW,
+    DPType.STRING: TuyaBLEDataPointType.DT_STRING,
+}
 
 
 class Transport(ABC):
@@ -131,59 +146,104 @@ class EthernetTransport(Transport):
 class BluetoothTransport(Transport):
     """Thin adapter around a ``TuyaBLEDevice``.
 
-    Pass 1: the BLE adapter is skeletal. The wrapped device is held for later
-    wiring; methods that are not yet implemented raise ``NotImplementedError``.
+    Delegates to the wrapped ``TuyaBLEDevice`` (held as ``self._device``). BLE
+    devices have no ``cid``; the argument is accepted for interface parity and
+    ignored. Runtime DP keys are ``int dp_id`` (Q1), so the dpcode-keyed
+    ``TuyaBLEDevice.status`` is re-keyed to dp_id via the function/status_range
+    mapping.
     """
 
     def __init__(self, device: TuyaBLEDevice) -> None:
         """Initialize the adapter around a TuyaBLEDevice."""
         self._device = device
         self.dispatched_dps: dict[str, Any] = {}
+        self._requested_dps: list | None = None
+        # Keep dispatched_dps fresh from device-initiated datapoint updates.
+        self._unregister_callback = device.register_callback(self._handle_datapoints)
+
+    def _handle_datapoints(self, datapoints) -> None:
+        """Store the latest datapoints into dispatched_dps."""
+        self.dispatched_dps = self._status_by_dp_id()
+
+    def _dp_id_for_code(self, dpcode: str) -> int | None:
+        """Resolve a dpcode to its dp_id via the cloud function/status mapping."""
+        f = self._device.function.get(dpcode)
+        if f is None:
+            f = self._device.status_range.get(dpcode)
+        return f.dp_id if f else None
+
+    def _status_by_dp_id(self) -> dict[str, Any]:
+        """Return the device status keyed by dp_id (Q1 runtime key)."""
+        result: dict[str, Any] = {}
+        for dpcode, value in self._device.status.items():
+            dp_id = self._dp_id_for_code(dpcode)
+            if dp_id is not None:
+                result[dp_id] = value
+        return result
+
+    def _datapoint_type_for_id(self, dp_id: int) -> TuyaBLEDataPointType | None:
+        """Map a dp_id to its BLE datapoint type via the cloud mapping."""
+        for funcs in (self._device.function, self._device.status_range):
+            for f in funcs.values():
+                if f.dp_id == dp_id:
+                    return _DPTYPE_TO_BLE.get(f.type)
+        return None
 
     @property
     def is_connected(self) -> bool:
         """Return whether the BLE device is connected."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        return self._device.is_connected
 
     def add_dps_to_request(self, dp_indicies) -> None:
-        """BLE devices do not use a request list; no-op for now."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """Store the requested dps so ``status()`` can filter (BLE has no request list)."""
+        self._requested_dps = list(dp_indicies)
 
     async def status(self, cid: str | None = None) -> dict:
-        """Return the current datapoint values."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """Return the current datapoint values keyed by dp_id."""
+        await self._device.update()
+        self.dispatched_dps = self._status_by_dp_id()
+        return self.dispatched_dps
 
     async def reset(self, dp_id=None, cid: str | None = None) -> Any:
-        """Reset the device."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """Reset is not applicable to BLE; no-op."""
+        return None
 
     async def set_dps(self, dps: dict, cid: str | None = None) -> Any:
         """Set values for a set of datapoints."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        for dp_id, value in dps.items():
+            dp_id = int(dp_id)
+            dp = self._device.datapoints.get_or_create(
+                dp_id, self._datapoint_type_for_id(dp_id), value
+            )
+            await dp.set_value(value)
 
     async def update_dps(self, dps=None, cid: str | None = None) -> bool:
         """Request the device to update dps."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        await self._device.update()
+        self.dispatched_dps = self._status_by_dp_id()
+        return True
 
     async def keep_alive(self, is_gateway: bool = False) -> None:
-        """Start the keep-alive loop."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """BLE manages its own connection lifecycle; no-op heartbeat."""
+        _LOGGER.debug("BLE transport keep_alive: no-op (device manages reconnect)")
 
     async def close(self) -> None:
         """Close the connection."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        if self._unregister_callback is not None:
+            self._unregister_callback()
+            self._unregister_callback = None
+        await self._device.stop()
 
     async def detect_available_dps(self, cid: str | None = None) -> dict:
-        """Detect available datapoints."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """Return the datapoint ids currently known from the device."""
+        return self._status_by_dp_id()
 
     def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
-        """Enable debug logging."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """Enable debug logging (BLE lib logs already; no-op)."""
+        _LOGGER.debug("BLE enable_debug(%s) for %s", enable, friendly_name)
 
     def set_updatedps_list(self, update_list) -> None:
-        """Set the DPS to be requested with the update command."""
-        raise NotImplementedError("BLE transport is not wired yet")
+        """BLE has no such concept; no-op."""
 
 
 def create_transport(transport_type: str, **kwargs: Any) -> Transport:
