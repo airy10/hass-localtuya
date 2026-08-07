@@ -17,6 +17,9 @@ The direction is confirmed: **fork `hass-localtuya`** and extend it to natively 
 2. **Add a BLE transport**, with device discovery, data formatting, reading and writing that is **local-adapted from the `ha_tuya_ble` project** (vendored protocol library + adapted discovery).
 3. **Unified entities** (`light`, `climate`, `switch`, …) that work for **both** BLE and Ethernet — the same entity class drives a device regardless of the physical link.
 4. Cloud DP metadata (`code↔dp_id`) is shared via localtuya's existing `TuyaCloudApi` — both transports already draw from the same Tuya specs source (§2.3), so no new cloud layer.
+5. **Guiding principle:** keep the diff from the original upstream (`xZetsubou`/`airy10` hass-localtuya) as **small as possible**, so the branch is easy to follow and easy to merge back upstream later. This is a **two-pass** strategy:
+   - **First pass** = minimal changes to the original so it supports BLE transport, with high-level/device-type class changes kept as small as possible, and **no duplication of device-type classes** — one `Light`/`Climate`/`Switch`/… shared by both BLE and Ethernet.
+   - **Second pass** = anything ha_tuya_ble does better (richer entities, auto-config, extra platforms like `text`) is deferred and used to **improve the original itself**.
 
 The rest of this document details how to implement that. Sections 3–9 are the "how".
 
@@ -330,9 +333,9 @@ Phase 0–3 are independent and safe; Phases 4–5 are the entity-unification wo
 
 ## 8. Open questions / decisions
 
-1. **DP identifier type** (resolved): the runtime key is **`int dp_id`** for both transports. Verified: ha_tuya_ble entities carry `dp_id: int` fields and only use cloud `code` during discovery (`find_dpcode`/`find_dpid`); localtuya entities already use `int dp_id`. The BLE adapter resolves `code→dp_id` from cloud metadata (§2.3) once at setup. Entities stay numeric-DP-configured for both. No divergence.
+1. **DP identifier type** (CONFIRMED): the runtime key is **`int dp_id`** for both transports. Verified: ha_tuya_ble entities carry `dp_id: int` fields and only use cloud `code` during discovery (`find_dpcode`/`find_dpid`); localtuya entities already use `int dp_id`. The BLE adapter resolves `code→dp_id` from cloud metadata (§2.3) once at setup. Entities stay numeric-DP-configured for both. No divergence.
 
-2. **Cloud requirement**: `ha_tuya_ble` requires cloud to map BLE MAC → credentials/function specs; BLE devices aren't self-describing over GATT for entity mapping. hass-localtuya already has this exact cloud layer (`TuyaCloudApi.async_get_device_functions`), so:
+2. **Cloud requirement** (CONFIRMED): BLE requires cloud, reusing localtuya's existing `TuyaCloudApi`; manual no-cloud entry is advanced/optional only. `ha_tuya_ble` requires cloud to map BLE MAC → credentials/function specs; BLE devices aren't self-describing over GATT for entity mapping. hass-localtuya already has this exact cloud layer (`TuyaCloudApi.async_get_device_functions`), so:
    - (recommended) BLE transport reuses localtuya's existing cloud + `DEVICE_CLOUD_DATA`; no new cloud code needed.
    - (advanced, no-cloud) manual entry of BLE address + copy of specs/local_key for devices with a few numeric DPs.
    Recommend the first as first-class, the second as advanced. `CONF_NO_CLOUD` already exists (True at runtime by default, toggled in the flow), so BLE should simply require cloud enabled or the manual fallback.
@@ -342,6 +345,13 @@ Phase 0–3 are independent and safe; Phases 4–5 are the entity-unification wo
 4. **Naming/namespace**: module names `tuya_ble` and `pytuya` differ; ensure `manifest.json` only pulls BLE deps when used — with a lazy import of the adapter.
 
 5. **Style**: `DeviceConfig` dataclass (`const.py` `DeviceConfig`) currently hard-requires `CONF_HOST`. It must be extended to tolerate a `CONF_TRANSPORT=bluetooth` + address (no `host`) — a small coordinated change in `const.py`, `coordinator`, `config_flow`.
+
+6. **Minimal-diff guiding principle** (CONFIRMED): keep the diff from the original upstream (xZetsubou/airy10 hass-localtuya) as small as possible, so the branch is easy to follow and easy to merge back upstream later. This is a **two-pass** strategy: **first pass** = minimal changes to the original so it supports BLE transport, with high-level/device-type class changes kept as small as possible and **no duplication of device-type classes** (one `Light`/`Climate`/`Switch`/… shared by both BLE and Ethernet); **second pass** = anything ha_tuya_ble does better (richer entities, auto-config, extra platforms like `text`) is deferred and improves the original itself. Implications:
+   - Prefer **additive** new files over rewrites; don't restructure existing files wholesale.
+   - Start from localtuya's existing platform files and **ADD BLE handling** rather than replacing them with ha_tuya_ble's files.
+   - Vendor only the BLE protocol core as a new module `core/tuya_ble_lib/`; keep HA-facing code on localtuya's model.
+   - Keep localtuya's manual numeric-DP config schema; BLE auto-fills from cloud.
+   - **First-pass coverage** = localtuya's existing platforms only; BLE-only platforms (e.g. `text`) are deferred to the second pass.
 
 ---
 
