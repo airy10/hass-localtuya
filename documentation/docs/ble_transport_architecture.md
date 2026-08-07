@@ -344,7 +344,7 @@ Phase 0–3 are independent and safe; Phases 4–5 are the entity-unification wo
 
 4. **Naming/namespace**: module names `tuya_ble` and `pytuya` differ; ensure `manifest.json` only pulls BLE deps when used — with a lazy import of the adapter.
 
-5. **Style**: `DeviceConfig` dataclass (`const.py` `DeviceConfig`) currently hard-requires `CONF_HOST`. It must be extended to tolerate a `CONF_TRANSPORT=bluetooth` + address (no `host`) — a small coordinated change in `const.py`, `coordinator`, `config_flow`.
+5. **Style** (CONFIRMED): `DeviceConfig` dataclass (`const.py` `DeviceConfig`) currently hard-requires `CONF_HOST`. It must be extended to tolerate a `CONF_TRANSPORT=bluetooth` + address (no `host`) — a small coordinated change in `const.py`, `coordinator`, `config_flow`.
 
 6. **Minimal-diff guiding principle** (CONFIRMED): keep the diff from the original upstream (xZetsubou/airy10 hass-localtuya) as small as possible, so the branch is easy to follow and easy to merge back upstream later. This is a **two-pass** strategy: **first pass** = minimal changes to the original so it supports BLE transport, with high-level/device-type class changes kept as small as possible and **no duplication of device-type classes** (one `Light`/`Climate`/`Switch`/… shared by both BLE and Ethernet); **second pass** = anything ha_tuya_ble does better (richer entities, auto-config, extra platforms like `text`) is deferred and improves the original itself. Implications:
    - Prefer **additive** new files over rewrites; don't restructure existing files wholesale.
@@ -352,6 +352,31 @@ Phase 0–3 are independent and safe; Phases 4–5 are the entity-unification wo
    - Vendor only the BLE protocol core as a new module `core/tuya_ble_lib/`; keep HA-facing code on localtuya's model.
    - Keep localtuya's manual numeric-DP config schema; BLE auto-fills from cloud.
    - **First-pass coverage** = localtuya's existing platforms only; BLE-only platforms (e.g. `text`) are deferred to the second pass.
+
+7. **Q6 — BLE MAC ↔ cloud device linkage** (CONFIRMED, Option A): keep localtuya's UUID-based identity. Pass 1 = user manually links a discovered BLE MAC to a cloud device via a new `CONF_BLE_ADDRESS` field; **no new cloud API** (no factory-info). Pass 2 = adopt ha_tuya_ble's factory-info MAC map (`/v1.0/iot-03/devices/factory-infos`) to auto-fill the MAC. Rationale: zero new cloud code, zero new failure modes, minimal diff; manual MAC entry is the only friction.
+
+8. **Q7 — Vendoring scope** (CONFIRMED): vendor only the BLE protocol core as `core/tuya_ble_lib/` (`const.py`, `manager.py`, `exceptions.py`, `tuya_ble.py`, `__init__.py`). Re-implement HA-facing parts on localtuya's model. Add `bleak`, `bleak-retry-connector`, `pycryptodome` to manifest requirements. Sever the `from ..const import (DPCode, DPType)` coupling (`tuya_ble.py:39`) by supplying `DPCode`/`DPType` from localtuya's const.
+
+---
+
+## 8.5 Pass-2 improvements (deferred from ha_tuya_ble)
+
+Features ha_tuya_ble does better than localtuya, deliberately **not** implemented in pass 1 (minimal BLE support). Deferred to pass 2, which improves the original itself. Ranked by effort (S = small, M = medium, L = large). Full catalog: `.sisyphus/notepads/localtuya-unified/pass2_improvements.md`.
+
+1. Factory-info MAC mapping (`/v1.0/iot-03/devices/factory-infos`) to auto-fill the BLE MAC (M).
+2. Device-spec (functions/status_range) fetch + credential cache (M).
+3. `IntegerTypeData`/`EnumTypeData` + `find_dpcode`/`find_dpid`/`remap_value` type helpers (M).
+4. Per-product entity mapping tables + auto entity generation (L).
+5. `text` platform (BLE fingerbot program editor) (M).
+6. `translation_key` + `has_entity_name` (S).
+7. Per-enum icons + `entity_registry_enabled_default` (S).
+8. RSSI / diagnostic sensors (S).
+9. Getter/setter + `is_available` mapping callbacks (M).
+10. Bitmap-mask switches (S).
+11. Typed datapoints (`TuyaBLEDataPoint`, `has_id`, `get_or_create`) (M).
+12. Fingerbot button event on the HA bus (S).
+13. Climate presets + `hvac_action` heuristic (M).
+14. Light `color_type_data` + RGB-encoded color (M).
 
 ---
 
