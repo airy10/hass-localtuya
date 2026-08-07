@@ -31,6 +31,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core import pytuya
+from .core.helpers import get_device_key
 from .coordinator import HassLocalTuyaData, TuyaDevice
 from .const import (
     ATTR_STATE,
@@ -69,7 +70,7 @@ async def async_setup_entry(
     for dev_id in config_entry.data[CONF_DEVICES]:
         dev_entry: dict = config_entry.data[CONF_DEVICES][dev_id]
 
-        host = dev_entry.get(CONF_HOST)
+        host = get_device_key(dev_entry)
         node_id = dev_entry.get(CONF_NODE_ID)
         device_key = f"{host}_{node_id}" if node_id else host
 

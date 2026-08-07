@@ -20,7 +20,7 @@ DEVICE_CLOUD_INFO = "device_cloud_info"
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_OBFUSCATE = {"ip": 1, "uid": 3, CONF_LOCAL_KEY: 3, "lat": 0, "lon": 0}
+DATA_OBFUSCATE = {"ip": 1, "uid": 3, CONF_LOCAL_KEY: 3, "lat": 0, "lon": 0, "ble_address": 1}
 
 
 async def async_get_config_entry_diagnostics(

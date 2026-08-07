@@ -43,6 +43,7 @@ from .const import (
     PLATFORMS,
 )
 
+from .core.helpers import get_device_key
 from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if not entry or not entry.entry_id:
             raise HomeAssistantError("unknown device id")
 
-        host = entry.data[CONF_DEVICES][dev_id].get(CONF_HOST)
+        host = get_device_key(entry.data[CONF_DEVICES][dev_id])
         if node_id := entry.data[CONF_DEVICES][dev_id].get(CONF_NODE_ID):
             host = f"{host}_{node_id}"
         device: TuyaDevice = hass.data[DOMAIN][entry.entry_id].devices[host]
@@ -113,7 +114,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if not entry or not entry.entry_id:
             raise HomeAssistantError("unknown device id")
 
-        host = entry.data[CONF_DEVICES][dev_id].get(CONF_HOST)
+        host = get_device_key(entry.data[CONF_DEVICES][dev_id])
         if node_id := entry.data[CONF_DEVICES][dev_id].get(CONF_NODE_ID):
             host = f"{host}_{node_id}"
         device: TuyaDevice = hass.data[DOMAIN][entry.entry_id].devices[host]
@@ -370,7 +371,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             if check_if_device_disabled(hass, entry, dev_id):
                 continue
 
-            host = config.get(CONF_HOST)
+            host = get_device_key(config)
 
             # Parent Devices.
             if not (node_id := config.get(CONF_NODE_ID)):
@@ -511,7 +512,7 @@ def _run_async_listen(hass: HomeAssistant, entry: ConfigEntry):
         hass_localtuya: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
 
         dev_id = _device_id_by_identifiers(device_registry.identifiers)
-        host_ip = entry.data[CONF_DEVICES][dev_id][CONF_HOST]
+        host_ip = get_device_key(entry.data[CONF_DEVICES][dev_id])
 
         if cid := entry.data[CONF_DEVICES][dev_id].get(CONF_NODE_ID):
             host_ip = f"{host_ip}_{cid}"
