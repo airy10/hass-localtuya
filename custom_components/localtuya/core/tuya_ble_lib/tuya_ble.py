@@ -540,7 +540,8 @@ class TuyaBLEDevice:
         type: TuyaBLEDataPointType,
         value: bytes | bool | int | str | None = None,
     ) -> TuyaBLEDataPoint:
-        """Get datapoints exposed by device."""
+        """Get or create a datapoint exposed by device."""
+        return self._datapoints.get_or_create(id, type, value)
 
     def _fire_connected_callbacks(self) -> None:
         """Fire the callbacks."""
