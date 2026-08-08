@@ -84,6 +84,11 @@ class Transport(ABC):
     def set_updatedps_list(self, update_list) -> None:
         """Set the DPS to be requested with the update command."""
 
+    @property
+    def rssi(self) -> int | None:
+        """Return the received signal strength indicator, if available."""
+        return None
+
 
 class EthernetTransport(Transport):
     """Thin adapter wrapping a ``pytuya.TuyaProtocol`` connection."""
@@ -193,6 +198,11 @@ class BluetoothTransport(Transport):
     def is_connected(self) -> bool:
         """Return whether the BLE device is connected."""
         return self._device.is_connected
+
+    @property
+    def rssi(self) -> int | None:
+        """Return the BLE signal strength."""
+        return self._device.rssi
 
     def add_dps_to_request(self, dp_indicies) -> None:
         """Store the requested dps so ``status()`` can filter (BLE has no request list)."""

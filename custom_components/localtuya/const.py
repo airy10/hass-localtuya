@@ -135,6 +135,7 @@ CONF_FAN_DPS_TYPE = "fan_dps_type"
 CONF_SCALING = "scaling"
 CONF_OFFSET = "offset"
 CONF_STATE_CLASS = "state_class"
+CONF_ICONS = "icons"
 
 # climate
 CONF_TARGET_TEMPERATURE_DP = "target_temperature_dp"
@@ -217,6 +218,9 @@ ENTITY_CATEGORY = {
     "Configuration": EntityCategory.CONFIG,
     "Diagnostic": EntityCategory.DIAGNOSTIC,
 }
+
+# Entity registry
+CONF_ENTITY_ENABLED_DEFAULT = "entity_enabled_default"
 
 # Default Categories
 DEFAULT_CATEGORIES = {

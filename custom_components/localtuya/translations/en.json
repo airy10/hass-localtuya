@@ -270,5 +270,58 @@
             }
         }
     },
+    "entity": {
+        "alarm_control_panel": {
+            "alarm_control_panel_1": {"name": "Alarm Control Panel"}
+        },
+        "binary_sensor": {
+            "binary_sensor_1": {"name": "Binary Sensor"}
+        },
+        "button": {
+            "button_1": {"name": "Button"}
+        },
+        "climate": {
+            "climate_1": {"name": "Climate"}
+        },
+        "cover": {
+            "cover_1": {"name": "Cover"}
+        },
+        "fan": {
+            "fan_1": {"name": "Fan"}
+        },
+        "humidifier": {
+            "humidifier_1": {"name": "Humidifier"}
+        },
+        "light": {
+            "light_1": {"name": "Light"}
+        },
+        "lock": {
+            "lock_1": {"name": "Lock"}
+        },
+        "number": {
+            "number_1": {"name": "Number"}
+        },
+        "remote": {
+            "remote_1": {"name": "Remote"}
+        },
+        "select": {
+            "select_1": {"name": "Select"}
+        },
+        "sensor": {
+            "sensor_1": {"name": "Sensor"}
+        },
+        "siren": {
+            "siren_1": {"name": "Siren"}
+        },
+        "switch": {
+            "switch_1": {"name": "Switch"}
+        },
+        "vacuum": {
+            "vacuum_1": {"name": "Vacuum"}
+        },
+        "water_heater": {
+            "water_heater_1": {"name": "Water Heater"}
+        }
+    },
     "title": "LocalTuya"
 }

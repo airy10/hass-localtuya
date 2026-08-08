@@ -131,6 +131,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return self._interface and self._interface.is_connected
 
     @property
+    def rssi(self) -> int | None:
+        """Return the signal strength of the device, if available."""
+        return self._interface.rssi if self._interface else None
+
+    @property
     def is_connecting(self):
         """Return whether device is currently connecting."""
         return self._task_connect is not None

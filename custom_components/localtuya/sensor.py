@@ -2,7 +2,6 @@
 
 import logging
 import base64
-from functools import partial
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -16,6 +15,11 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     CONF_DEVICE_CLASS,
+    CONF_DEVICES,
+    CONF_ENTITIES,
+    CONF_ENTITY_CATEGORY,
+    CONF_FRIENDLY_NAME,
+    CONF_ID,
     CONF_UNIT_OF_MEASUREMENT,
     Platform,
     STATE_UNKNOWN,
@@ -25,8 +29,17 @@ from homeassistant.const import (
 )
 from homeassistant.helpers import entity_registry as er
 
-from .entity import LocalTuyaEntity, async_setup_entry
-from .const import CONF_SCALING, CONF_OFFSET, CONF_STATE_CLASS
+from .entity import LocalTuyaEntity, async_setup_entry as _setup_entry
+from .const import (
+    CONF_ENTITY_ENABLED_DEFAULT,
+    CONF_ICONS,
+    CONF_NODE_ID,
+    CONF_SCALING,
+    CONF_OFFSET,
+    CONF_STATE_CLASS,
+    TRANSPORT_BLE,
+    get_device_key,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +69,8 @@ def flow_schema(dps):
         vol.Optional(CONF_OFFSET): vol.All(
             vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
         ),
+        vol.Optional(CONF_ICONS): [str],
+        vol.Optional(CONF_ENTITY_ENABLED_DEFAULT, default=True): bool,
     }
 
 
@@ -116,6 +131,12 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         else:
             self._state = self.scale(state)
 
+        icons = self._config.get(CONF_ICONS)
+        if icons and isinstance(self._state, int) and 0 <= self._state < len(icons):
+            self._attr_icon = icons[self._state]
+        else:
+            self._attr_icon = None
+
     def status_restored(self, stored_state) -> None:
         super().status_restored(stored_state)
 
@@ -169,4 +190,45 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             )
 
 
-async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaSensor, flow_schema)
+class LocalTuyaRSSISensor(LocalTuyaSensor):
+    """Diagnostic sensor exposing the BLE signal strength."""
+
+    def __init__(self, device, device_config):
+        """Initialize the RSSI sensor."""
+        rssi_config = {
+            CONF_ID: "rssi",
+            CONF_PLATFORM: DOMAIN,
+            CONF_FRIENDLY_NAME: "Signal Strength",
+            CONF_DEVICE_CLASS: SensorDeviceClass.SIGNAL_STRENGTH,
+            CONF_ENTITY_CATEGORY: "diagnostic",
+            CONF_ENTITY_ENABLED_DEFAULT: False,
+        }
+        synthetic = {**device_config, CONF_ENTITIES: [rssi_config]}
+        super().__init__(device, synthetic, "rssi")
+        self._attr_native_unit_of_measurement = "dBm"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def native_value(self):
+        """Return the signal strength."""
+        return self._device.rssi
+
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up Tuya sensors, adding a BLE RSSI diagnostic sensor."""
+    await _setup_entry(hass, config_entry, async_add_entities)
+
+    hass_entry_data = hass.data[DOMAIN][config_entry.entry_id]
+    for dev_id in config_entry.data[CONF_DEVICES]:
+        dev_entry = config_entry.data[CONF_DEVICES][dev_id]
+        host = get_device_key(dev_entry)
+        node_id = dev_entry.get(CONF_NODE_ID)
+        device_key = f"{host}_{node_id}" if node_id else host
+        if device_key not in hass_entry_data.devices:
+            continue
+        device = hass_entry_data.devices[device_key]
+        if device._device_config.transport != TRANSPORT_BLE:
+            continue
+        rssi_entities = [LocalTuyaRSSISensor(device, dev_entry)]
+        device.add_entities(rssi_entities)
+        async_add_entities(rssi_entities)

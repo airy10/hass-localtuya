@@ -36,7 +36,9 @@ from .coordinator import HassLocalTuyaData, TuyaDevice
 from .const import (
     ATTR_STATE,
     CONF_DEFAULT_VALUE,
+    CONF_ENTITY_ENABLED_DEFAULT,
     CONF_ID,
+    CONF_ICONS,
     CONF_NODE_ID,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
@@ -142,6 +144,11 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         self._device_config = DeviceConfig(device_config)
         self._config = get_entity_config(device_config, dp_id)
         self._dp_id = dp_id
+        # Keep subclass-set keys (e.g. BLE dpcode keys); derive platform_dp_id otherwise.
+        if getattr(self, "_attr_translation_key", None) is None:
+            self._attr_translation_key = (
+                f"{self._config.get(CONF_PLATFORM)}_{self._dp_id}"
+            )
         self._status = {}
         self._state = None
         self._last_state = None
@@ -237,6 +244,11 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def icon(self) -> str | None:
         """Icon of the entity."""
+        if getattr(self, "_attr_icon", None) is not None:
+            return self._attr_icon
+        if icons := self._config.get(CONF_ICONS):
+            if isinstance(self._state, int) and 0 <= self._state < len(icons):
+                return icons[self._state]
         return self._config.get(CONF_ICON, None)
 
     @property
@@ -267,6 +279,11 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
                 return default_category(platform)
         return None
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Return if the entity should be enabled when first added."""
+        return self._config.get(CONF_ENTITY_ENABLED_DEFAULT, True)
 
     @property
     def device_class(self):
