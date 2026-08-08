@@ -111,6 +111,7 @@ class TuyaCloudApi:
 
         self.device_list = {}
         self.cached_device_list = {}
+        self._device_specifications_cache: dict[str, dict] = {}
 
         self._last_devices_update = int(time.time())
 
@@ -239,8 +240,11 @@ class TuyaCloudApi:
         )
         return "ok"
 
-    async def async_get_device_specifications(self, device_id) -> dict[str, dict]:
+    async def async_get_device_specifications(self, device_id, force_update=False) -> dict[str, dict]:
         """Obtain the DP ID mappings for a device."""
+
+        if not force_update and device_id in self._device_specifications_cache:
+            return self._device_specifications_cache[device_id], "ok"
 
         if not (
             resp := await self.async_make_request(
@@ -252,7 +256,30 @@ class TuyaCloudApi:
         if not resp["success"]:
             return {}, f"Error {resp['code']}: {resp['msg']}"
 
+        self._device_specifications_cache[device_id] = resp["result"]
         return resp["result"], "ok"
+
+    async def async_get_device_factory_infos(self, device_id) -> tuple[str, str] | tuple[dict, str]:
+        """Obtain the factory info (MAC) for a device."""
+
+        if not (
+            resp := await self.async_make_request(
+                "GET", url=f"/v1.0/iot-03/devices/factory-infos?device_ids={device_id}"
+            )
+        ):
+            return self._logger.debug(f"Failed to retrieve a device factory info")
+
+        if not resp["success"]:
+            return {}, f"Error {resp['code']}: {resp['msg']}"
+
+        result = resp.get("result") or []
+        if not result:
+            return {}, "Error: no factory info for device"
+
+        mac = result[0].get("mac", "")
+        if mac:
+            mac = ":".join(mac[i : i + 2] for i in range(0, 12, 2)).upper()
+        return mac, "ok"
 
     async def async_get_device_query_properties(self, device_id) -> dict[dict, str]:
         """Obtain the DP ID mappings for a device correctly! Note: This won't works if the subscription expired."""

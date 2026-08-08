@@ -5,11 +5,12 @@ This implements the abstract ``AbstaractTuyaBLEDeviceManager`` contract (see
 (``core/cloud_api.py``) instead of the reference project's ``tuya_iot`` /
 ``TuyaOpenAPI`` stack.
 
-Credential resolution (Q6 - Option A): pass 1 does NOT use the factory-info MAC
-map API. The user manually enters ``ble_address`` in the config, and the config
-already holds the cloud ``device_id`` + ``local_key``. So credentials are
-resolved via the configured ``device_id`` against the cloud device list, rather
-than scanning factory-info per MAC address.
+Credential resolution (Q6 - Option A): the configured cloud ``device_id`` +
+``local_key`` resolve the BLE credentials against the cloud device list. When a
+BLE ``address`` (MAC) is provided it is verified against the device's
+factory-info MAC, falling back to the configured ``device_id`` on mismatch.
+Resolved credentials are cached per device so reconnects make no repeated cloud
+calls.
 """
 
 from __future__ import annotations
@@ -32,8 +33,8 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
     """Cloud connected manager of the Tuya BLE devices credentials.
 
     Built on localtuya's ``TuyaCloudApi``. The configured cloud ``device_id``
-    (and ``local_key``) are used to resolve the BLE credentials, since pass 1
-    does not implement the factory-info MAC map (Q6 Option A).
+    (and ``local_key``) resolve the BLE credentials; the runtime BLE MAC
+    (``address``) is verified against the factory-info MAC when available.
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
         self._device_id = device_id
         self._local_key = local_key
         self._data: dict[str, Any] = {}
+        self._credentials_cache: dict[str, dict[str, Any]] = {}
 
     async def get_device_credentials(
         self,
@@ -63,43 +65,18 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
     ) -> TuyaBLEDeviceCredentials | None:
         """Get credentials of the Tuya BLE device.
 
-        The ``address`` argument is ignored for resolution (pass 1 resolves via
-        the configured ``device_id``); it is kept to satisfy the abstract
-        interface signature.
+        Resolved credentials are cached per device, so a second call without
+        ``force_update`` is a cache hit (no repeated cloud calls).
         """
-        # Ensure the cloud device list is loaded (and refresh if forced).
-        if not self._cloud_api.device_list or force_update:
-            await self._cloud_api.async_get_devices_list(force_update=force_update)
+        if not force_update and self._device_id in self._credentials_cache:
+            credentials = self._credentials_cache[self._device_id]
+        else:
+            credentials = await self._resolve_credentials(address, force_update)
+            if credentials:
+                self._credentials_cache[self._device_id] = credentials
 
-        dev = self._cloud_api.device_list.get(self._device_id)
-        if not dev:
-            _LOGGER.debug(
-                "BLE device %s: cloud device %s not found in device list",
-                address,
-                self._device_id,
-            )
+        if not credentials:
             return None
-
-        # Pull functions/status_range from the device specifications.
-        functions: list = []
-        status_range: list = []
-        spec = await self._cloud_api.async_get_device_specifications(self._device_id)
-        if isinstance(spec, tuple) and len(spec) == 2 and spec[1] == "ok":
-            functions = spec[0].get("functions", []) or []
-            status_range = spec[0].get("status", []) or []
-
-        credentials = {
-            "uuid": dev.get("uuid"),
-            "local_key": dev.get("local_key") or self._local_key,
-            "device_id": dev.get("id") or self._device_id,
-            "category": dev.get("category"),
-            "product_id": dev.get("product_id"),
-            "device_name": dev.get("name"),
-            "product_model": dev.get("model"),
-            "product_name": dev.get("product_name"),
-            "functions": functions,
-            "status_range": status_range,
-        }
 
         result = self.check_and_create_device_credentials(
             credentials["uuid"],
@@ -124,6 +101,61 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
             self._data = credentials
 
         return result
+
+    async def _resolve_credentials(
+        self, address: str, force_update: bool
+    ) -> dict[str, Any] | None:
+        """Resolve the device credentials from the cloud."""
+        # Ensure the cloud device list is loaded (and refresh if forced).
+        if not self._cloud_api.device_list or force_update:
+            await self._cloud_api.async_get_devices_list(force_update=force_update)
+
+        dev = self._cloud_api.device_list.get(self._device_id)
+        if not dev:
+            _LOGGER.debug(
+                "BLE device %s: cloud device %s not found in device list",
+                address,
+                self._device_id,
+            )
+            return None
+
+        # Resolve the MAC from factory-info when an address is provided.
+        if address:
+            mac = await self._cloud_api.async_get_device_factory_infos(
+                self._device_id
+            )
+            if isinstance(mac, tuple) and len(mac) == 2 and mac[1] == "ok":
+                if mac[0] and mac[0] != address.upper():
+                    _LOGGER.debug(
+                        "BLE device %s: factory-info MAC %s does not match, "
+                        "falling back to configured device_id %s",
+                        address,
+                        mac[0],
+                        self._device_id,
+                    )
+
+        # Pull functions/status_range from the device specifications.
+        functions: list = []
+        status_range: list = []
+        spec = await self._cloud_api.async_get_device_specifications(
+            self._device_id, force_update=force_update
+        )
+        if isinstance(spec, tuple) and len(spec) == 2 and spec[1] == "ok":
+            functions = spec[0].get("functions", []) or []
+            status_range = spec[0].get("status", []) or []
+
+        return {
+            "uuid": dev.get("uuid"),
+            "local_key": dev.get("local_key") or self._local_key,
+            "device_id": dev.get("id") or self._device_id,
+            "category": dev.get("category"),
+            "product_id": dev.get("product_id"),
+            "device_name": dev.get("name"),
+            "product_model": dev.get("model"),
+            "product_name": dev.get("product_name"),
+            "functions": functions,
+            "status_range": status_range,
+        }
 
     @property
     def data(self) -> dict[str, Any]:

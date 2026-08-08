@@ -470,12 +470,17 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             dev_id = user_input[SELECTED_DEVICE]
             dev = self.cloud_data.device_list[dev_id]
             self.selected_device = dev_id
+            ble_address = getattr(self, "_ble_address", None)
+            if not ble_address:
+                mac = await self.cloud_data.async_get_device_factory_infos(dev_id)
+                if isinstance(mac, tuple) and len(mac) == 2 and mac[1] == "ok":
+                    ble_address = mac[0]
             self.device_data = {
                 CONF_DEVICE_ID: dev_id,
                 CONF_LOCAL_KEY: dev.get(CONF_LOCAL_KEY),
                 CONF_FRIENDLY_NAME: dev.get(CONF_NAME),
                 CONF_TRANSPORT: TRANSPORT_BLE,
-                CONF_BLE_ADDRESS: self._ble_address,
+                CONF_BLE_ADDRESS: ble_address,
             }
             return await self.async_step_configure_device()
         if not self.cloud_data.device_list:
