@@ -15,7 +15,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..ha_entities.base import DPType
+from ...const import DPType
 from ..pytuya import TuyaProtocol
 from ..tuya_ble_lib import TuyaBLEDevice
 from ..tuya_ble_lib.const import TuyaBLEDataPointType

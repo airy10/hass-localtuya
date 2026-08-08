@@ -10,7 +10,12 @@ from homeassistant.const import (
     Platform,
     EntityCategory,
 )
-from ...const import CONF_CLEAN_AREA_DP, CONF_DPS_STRINGS, CONF_STATE_CLASS
+from ...const import (
+    CONF_CLEAN_AREA_DP,
+    CONF_DPS_STRINGS,
+    CONF_STATE_CLASS,
+    DPType,
+)
 
 
 # Obtain values from cloud data.
@@ -83,17 +88,6 @@ class LocalTuyaEntity:
         # e.g.e CONF_ID etc..
 
         self.localtuya_conf = kwargs
-
-
-class DPType(StrEnum):
-    """Data point types."""
-
-    BOOLEAN = "Boolean"
-    ENUM = "Enum"
-    INTEGER = "Integer"
-    JSON = "Json"
-    RAW = "Raw"
-    STRING = "String"
 
 
 class DPCode(StrEnum):

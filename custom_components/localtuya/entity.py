@@ -31,7 +31,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core import pytuya
-from .core.helpers import get_device_key
+from .const import get_device_key
 from .coordinator import HassLocalTuyaData, TuyaDevice
 from .const import (
     ATTR_STATE,

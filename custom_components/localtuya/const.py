@@ -1,6 +1,7 @@
 """Constants for localtuya integration."""
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 from homeassistant.const import (
     CONF_DEVICE_ID,
@@ -302,3 +303,27 @@ class DeviceConfig:
 
     def as_dict(self):
         return self.device_config
+
+
+def get_device_key(dev_config: dict) -> str:
+    """Return the device-cache key for a device config.
+
+    Ethernet devices key on host/IP; BLE devices have no host so they
+    key on ble_address (falling back to device_id).
+    """
+    return (
+        dev_config.get(CONF_HOST)
+        or dev_config.get(CONF_BLE_ADDRESS)
+        or dev_config.get(CONF_DEVICE_ID)
+    )
+
+
+class DPType(StrEnum):
+    """Data point types."""
+
+    BOOLEAN = "Boolean"
+    ENUM = "Enum"
+    INTEGER = "Integer"
+    JSON = "Json"
+    RAW = "Raw"
+    STRING = "String"

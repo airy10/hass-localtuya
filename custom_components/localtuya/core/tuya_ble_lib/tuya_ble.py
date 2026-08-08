@@ -36,10 +36,7 @@ from .const import (
     TuyaBLEDataPointType,
 )
 
-from ..ha_entities.base import (
-    DPCode,
-    DPType,
-)
+from ...const import DPType
 
 from .exceptions import (
     TuyaBLEDataCRCError,

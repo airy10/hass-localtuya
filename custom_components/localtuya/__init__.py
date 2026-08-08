@@ -43,7 +43,7 @@ from .const import (
     PLATFORMS,
 )
 
-from .core.helpers import get_device_key
+from .const import get_device_key
 from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
