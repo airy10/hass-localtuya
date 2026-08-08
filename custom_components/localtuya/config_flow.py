@@ -234,11 +234,6 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> FlowResult:
         """Handle a flow initialized by Bluetooth discovery."""
-        # No hub yet -> fall through to initial hub setup (unique_id will be
-        # set to the User ID by _create_entry, so don't set it here).
-        if not self._async_current_entries():
-            return await self.async_step_user()
-
         await self.async_set_unique_id(discovery_info.address)
         # Abort if this BLE MAC is already a configured device in any hub.
         for entry in self._async_current_entries():
@@ -248,6 +243,10 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
                     == discovery_info.address.upper()
                 ):
                     return self.async_abort(reason="already_configured")
+        # No hub yet -> fall through to initial hub setup (unique_id will be
+        # set to the User ID by _create_entry).
+        if not self._async_current_entries():
+            return await self.async_step_user()
         # Hub exists: remember the discovered MAC so Options can pre-select it,
         # then direct the user to the Options flow.
         self.hass.data.setdefault(DOMAIN, {})[DATA_PENDING_BLE] = (
