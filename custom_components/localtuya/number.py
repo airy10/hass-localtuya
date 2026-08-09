@@ -116,6 +116,9 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
+        if self._setter:
+            await self._async_call_setter(value)
+            return
         offset = self._config.get(CONF_OFFSET)
         if offset is not None:
             value = value - offset

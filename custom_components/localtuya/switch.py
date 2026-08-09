@@ -64,6 +64,8 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
     @property
     def is_on(self):
         """Check if Tuya switch is on."""
+        if self._getter:
+            return self._getter()
         return self._state
 
     @property
@@ -88,10 +90,16 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn Tuya switch on."""
+        if self._setter:
+            await self._async_call_setter(True)
+            return
         await self._device.set_dp(True, self._dp_id)
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya switch off."""
+        if self._setter:
+            await self._async_call_setter(False)
+            return
         await self._device.set_dp(False, self._dp_id)
 
     # Default value is the "OFF" state

@@ -222,6 +222,11 @@ ENTITY_CATEGORY = {
 # Entity registry
 CONF_ENTITY_ENABLED_DEFAULT = "entity_enabled_default"
 
+# Entity callbacks
+CONF_GETTER = "getter"
+CONF_SETTER = "setter"
+CONF_IS_AVAILABLE = "is_available"
+
 # Default Categories
 DEFAULT_CATEGORIES = {
     "CONTROL": ["switch", "climate", "fan", "vacuum", "light"],

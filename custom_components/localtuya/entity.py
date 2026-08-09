@@ -1,5 +1,6 @@
 """Code shared between all platforms."""
 
+import inspect
 import logging
 from typing import Any, Coroutine, Callable
 
@@ -37,12 +38,15 @@ from .const import (
     ATTR_STATE,
     CONF_DEFAULT_VALUE,
     CONF_ENTITY_ENABLED_DEFAULT,
+    CONF_GETTER,
     CONF_ID,
     CONF_ICONS,
+    CONF_IS_AVAILABLE,
     CONF_NODE_ID,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
+    CONF_SETTER,
     CONF_OFFSET,
     DOMAIN,
     RESTORE_STATES,
@@ -162,6 +166,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         # Default value is available to be provided by Platform entities if required
         self._default_value = self._config.get(CONF_DEFAULT_VALUE)
 
+        # Optional per-DP callbacks, passed as kwargs at construction or via the
+        # entity config dict (e.g. synthetic configs). When set, the getter
+        # computes the entity state, the setter writes the DP and is_available
+        # gates availability on top of the connection status.
+        self._getter = kwargs.get("getter") or self._config.get(CONF_GETTER)
+        self._setter = kwargs.get("setter") or self._config.get(CONF_SETTER)
+        self._is_available = kwargs.get("is_available") or self._config.get(
+            CONF_IS_AVAILABLE
+        )
+
         """ Restore on connect setting is available to be provided by Platform entities
         if required"""
         dev = self._device_config
@@ -262,7 +276,10 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def available(self) -> bool:
         """Return if device is available or not."""
-        return (len(self._status) > 0) or self._device.connected
+        result = (len(self._status) > 0) or self._device.connected
+        if result and self._is_available:
+            result = self._is_available()
+        return result
 
     @property
     def entity_category(self) -> str:
@@ -319,13 +336,22 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         Override in subclasses and update entity specific state.
         """
-        state = self.dp_value(self._dp_id)
+        if self._getter:
+            state = self._getter()
+        else:
+            state = self.dp_value(self._dp_id)
         self._state = state
 
         # Keep record in last_state as long as not during connection/re-connection,
         # as last state will be used to restore the previous state
         if (state is not None) and (not self._device.is_connecting):
             self._last_state = state
+
+    async def _async_call_setter(self, value) -> None:
+        """Invoke the configured setter callback, awaiting it if it returns an awaitable."""
+        result = self._setter(value)
+        if inspect.isawaitable(result):
+            await result
 
     def status_restored(self, stored_state: State) -> None:
         """Device status was restored.
