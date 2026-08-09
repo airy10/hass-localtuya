@@ -19,6 +19,7 @@ from .const import (
     ATTR_CURRENT_CONSUMPTION,
     ATTR_STATE,
     ATTR_VOLTAGE,
+    CONF_BITMAP_MASK,
     CONF_CURRENT,
     CONF_CURRENT_CONSUMPTION,
     CONF_DEFAULT_VALUE,
@@ -39,6 +40,7 @@ def flow_schema(dps):
         vol.Required(CONF_RESTORE_ON_RECONNECT): bool,
         vol.Required(CONF_PASSIVE_ENTITY): bool,
         vol.Optional(CONF_DEFAULT_VALUE): str,
+        vol.Optional(CONF_BITMAP_MASK): str,
         vol.Optional(CONF_DEVICE_CLASS): col_to_select(
             [sc.value for sc in SwitchDeviceClass]
         ),
@@ -60,12 +62,39 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         """Initialize the Tuya switch."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
+        self._bitmap_mask = self._parse_bitmap_mask()
+
+    def _parse_bitmap_mask(self) -> bytes | None:
+        """Parse the configured bitmap mask (hex string) into bytes."""
+        mask = self._config.get(CONF_BITMAP_MASK)
+        if not mask:
+            return None
+        try:
+            return bytes.fromhex(mask)
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid bitmap_mask %r for %s, ignoring", mask, self.name
+            )
+            return None
+
+    def _bitmap_value(self) -> bytes:
+        """Return the current DP value as bytes, zero-padded to the mask length."""
+        value = self.dp_value(self._dp_id)
+        if not isinstance(value, bytes):
+            value = b""
+        mask_len = len(self._bitmap_mask)
+        return value.ljust(mask_len, b"\x00")[:mask_len]
 
     @property
     def is_on(self):
         """Check if Tuya switch is on."""
         if self._getter:
             return self._getter()
+        if self._bitmap_mask:
+            return any(
+                v & m
+                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
+            )
         return self._state
 
     @property
@@ -93,12 +122,26 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         if self._setter:
             await self._async_call_setter(True)
             return
+        if self._bitmap_mask:
+            new_value = bytes(
+                v | m
+                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
+            )
+            await self._device.set_dp(new_value, self._dp_id)
+            return
         await self._device.set_dp(True, self._dp_id)
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya switch off."""
         if self._setter:
             await self._async_call_setter(False)
+            return
+        if self._bitmap_mask:
+            new_value = bytes(
+                v & ~m
+                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
+            )
+            await self._device.set_dp(new_value, self._dp_id)
             return
         await self._device.set_dp(False, self._dp_id)
 

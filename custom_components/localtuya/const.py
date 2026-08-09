@@ -227,6 +227,9 @@ CONF_GETTER = "getter"
 CONF_SETTER = "setter"
 CONF_IS_AVAILABLE = "is_available"
 
+# Bitmap-mask switch (bit-packed DP, e.g. CO2 detector alarm bits)
+CONF_BITMAP_MASK = "bitmap_mask"
+
 # Default Categories
 DEFAULT_CATEGORIES = {
     "CONTROL": ["switch", "climate", "fan", "vacuum", "light"],
