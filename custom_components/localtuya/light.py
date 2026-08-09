@@ -33,6 +33,7 @@ from .const import (
     CONF_COLOR_TEMP_MAX_KELVIN,
     CONF_COLOR_TEMP_MIN_KELVIN,
     CONF_COLOR_TEMP_REVERSE,
+    CONF_COLOR_TYPE_DATA,
     CONF_MUSIC_MODE,
     CONF_SCENE_VALUES,
     DictSelector,
@@ -175,6 +176,53 @@ def map_range(
     return min(max(round(mapped_value), to_min), to_max)
 
 
+@dataclass
+class ColorTypeData:
+    """HSV color type data with per-channel min/max/scale/step."""
+
+    h_min: int = 1
+    h_max: int = 360
+    s_min: int = 1
+    s_max: int = 255
+    v_min: int = 1
+    v_max: int = 255
+
+    @classmethod
+    def from_config(cls, config: dict | None) -> "ColorTypeData | None":
+        """Build from a config dict (e.g. {"h": {"min":..,"max":..}, ...})."""
+        if not config:
+            return None
+        h = config.get("h", {})
+        s = config.get("s", {})
+        v = config.get("v", {})
+        return cls(
+            h_min=int(h.get("min", 1)),
+            h_max=int(h.get("max", 360)),
+            s_min=int(s.get("min", 1)),
+            s_max=int(s.get("max", 255)),
+            v_min=int(v.get("min", 1)),
+            v_max=int(v.get("max", 255)),
+        )
+
+    def remap_h_to(self, value: float) -> float:
+        return map_range(value, self.h_min, self.h_max, 0, 360)
+
+    def remap_h_from(self, value: float) -> int:
+        return map_range(value, 0, 360, self.h_min, self.h_max)
+
+    def remap_s_to(self, value: float) -> float:
+        return map_range(value, self.s_min, self.s_max, 0, 100)
+
+    def remap_s_from(self, value: float) -> int:
+        return map_range(value, 0, 100, self.s_min, self.s_max)
+
+    def remap_v_to(self, value: float) -> int:
+        return map_range(value, self.v_min, self.v_max, 0, 255)
+
+    def remap_v_from(self, value: float) -> int:
+        return map_range(value, 0, 255, self.v_min, self.v_max)
+
+
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
@@ -196,6 +244,7 @@ def flow_schema(dps):
             vol.Coerce(int), vol.Range(min=1500, max=8000)
         ),
         vol.Optional(CONF_COLOR_TEMP_REVERSE, default=DEFAULT_COLOR_TEMP_REVERSE): bool,
+        vol.Optional(CONF_COLOR_TYPE_DATA): selector.ObjectSelector(),
         vol.Optional(CONF_SCENE): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_SCENE_VALUES, default={}): selector.ObjectSelector(),
         vol.Optional(CONF_MUSIC_MODE, default=False): selector.BooleanSelector(),
@@ -230,6 +279,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._upper_color_temp = self._upper_brightness
 
         self._color_temp_reverse = self._config.get(CONF_COLOR_TEMP_REVERSE, False)
+        self._color_type_data = ColorTypeData.from_config(
+            self._config.get(CONF_COLOR_TYPE_DATA)
+        )
         self._modes = MAP_MODE_SET[int(self._config.get(CONF_COLOR_MODE_SET, 0))]
         self._hs = None
         self._effect = None
@@ -485,11 +537,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             rgb = color_util.color_hsv_to_RGB(
                 hs[0], hs[1], int(brightness * 100 / self._upper_brightness)
             )
+            if self._color_type_data:
+                h = self._color_type_data.remap_h_from(hs[0])
+            else:
+                h = round(hs[0])
             return "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
                 round(rgb[0]),
                 round(rgb[1]),
                 round(rgb[2]),
-                round(hs[0]),
+                h,
                 round(hs[1] * 255 / 100),
                 brightness,
             )
@@ -523,7 +579,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             hue = int(color[6:10], 16)
             sat = int(color[10:12], 16)
             value = int(color[12:14], 16)
-            self._hs = [hue, (sat * 100 / 255)]
+            if self._color_type_data:
+                self._hs = [
+                    self._color_type_data.remap_h_to(hue),
+                    (sat * 100 / 255),
+                ]
+            else:
+                self._hs = [hue, (sat * 100 / 255)]
             self._brightness = value
         else:
             self.__from_color_v2(color)
