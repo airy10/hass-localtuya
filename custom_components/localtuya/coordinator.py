@@ -136,6 +136,13 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return self._interface.rssi if self._interface else None
 
     @property
+    def ble_device(self):
+        """Return the wrapped TuyaBLEDevice for BLE transports, else None."""
+        if self._interface is not None and self._device_config.transport == TRANSPORT_BLE:
+            return self._interface.ble_device
+        return None
+
+    @property
     def is_connecting(self):
         """Return whether device is currently connecting."""
         return self._task_connect is not None
@@ -178,6 +185,19 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_connect = asyncio.create_task(self._make_connection())
         if not self.is_sleep:
             await self._task_connect
+
+    async def async_prepare_ble(self) -> None:
+        """Pre-create the BLE transport before platform setup.
+
+        Runs the same connection path as ``async_connect`` so that
+        ``self.ble_device`` is available (with cloud-fetched category and
+        product_id) when platforms are set up, enabling auto-configuration.
+        """
+        if self._device_config.transport != TRANSPORT_BLE:
+            return
+        if self._interface is not None:
+            return
+        self._interface = await self._make_ble_connection()
 
     async def _connect_subdevices(self):
         """Gateway: connect to sub-devices one by one."""
@@ -357,7 +377,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         Returns the transport, or ``None`` on any failure so the caller keeps
         ``self._interface`` falsy (the coordinator treats a falsy interface as
         "not connected" and schedules a reconnect).
+
+        Idempotent: if a transport was already created (e.g. by
+        ``async_prepare_ble`` during setup), it is returned as-is.
         """
+        if self._interface is not None:
+            return self._interface
         try:
             address = self._device_config.ble_address
             if not address:

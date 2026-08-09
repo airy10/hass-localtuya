@@ -166,6 +166,11 @@ class BluetoothTransport(Transport):
         # Keep dispatched_dps fresh from device-initiated datapoint updates.
         self._unregister_callback = device.register_callback(self._handle_datapoints)
 
+    @property
+    def ble_device(self) -> TuyaBLEDevice:
+        """Return the wrapped TuyaBLEDevice (for auto-config mapping lookup)."""
+        return self._device
+
     def _handle_datapoints(self, datapoints) -> None:
         """Store the latest datapoints into dispatched_dps."""
         self.dispatched_dps = self._status_by_dp_id()

@@ -32,6 +32,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .core import pytuya
+from .core.mappings import get_mapping_by_device
 from .const import get_device_key
 from .coordinator import HassLocalTuyaData, TuyaDevice
 from .const import (
@@ -50,6 +51,7 @@ from .const import (
     CONF_OFFSET,
     DOMAIN,
     RESTORE_STATES,
+    TRANSPORT_BLE,
     DeviceConfig,
 )
 
@@ -89,6 +91,13 @@ async def async_setup_entry(
             if entity[CONF_PLATFORM] == domain
         ]
 
+        if not entities_to_setup:
+            device: TuyaDevice = hass_entry_data.devices[device_key]
+            if device.ble_device is not None:
+                entities_to_setup = _auto_entities_for_device(
+                    device, domain, dev_entry
+                )
+
         if entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
             dps_config_fields = list(get_dps_for_platform(flow_schema))
@@ -122,6 +131,37 @@ def get_dps_for_platform(flow_schema):
     for key, value in flow_schema(None).items():
         if hasattr(value, "container") and value.container is None:
             yield key.schema
+
+
+def _auto_entities_for_device(
+    device: TuyaDevice, domain: str, dev_entry: dict
+) -> list[dict]:
+    """Auto-generate entity configs for a BLE device from its product mapping.
+
+    Only entities whose datapoint exists on the device (or that are marked
+    ``force_add``) are returned. Generated configs are injected into
+    ``dev_entry[CONF_ENTITIES]`` so ``get_entity_config`` can resolve them.
+    """
+    ble_device = device.ble_device
+    if ble_device is None:
+        return []
+
+    generated = []
+    for mapping in get_mapping_by_device(ble_device):
+        if mapping.platform.value != domain:
+            continue
+        if not mapping.force_add and not ble_device.datapoints.has_id(
+            mapping.dp_id, mapping.dp_type
+        ):
+            continue
+        config = dict(mapping.config)
+        config[CONF_ID] = str(mapping.dp_id)
+        config[CONF_PLATFORM] = domain
+        generated.append(config)
+
+    if generated:
+        dev_entry.setdefault(CONF_ENTITIES, []).extend(generated)
+    return generated
 
 
 def get_entity_config(config_entry, dp_id) -> dict:
