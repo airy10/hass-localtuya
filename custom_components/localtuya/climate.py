@@ -34,23 +34,27 @@ from homeassistant.const import (
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import (
+    CONF_CURRENT_HUMIDITY_DP,
     CONF_CURRENT_TEMPERATURE_DP,
     CONF_ECO_DP,
     CONF_ECO_VALUE,
     CONF_HEURISTIC_ACTION,
+    CONF_HUMIDITY_COEFFICIENT,
     CONF_HVAC_ACTION_DP,
     CONF_HVAC_ACTION_SET,
+    CONF_HVAC_ADD_OFF,
     CONF_HVAC_MODE_DP,
     CONF_HVAC_MODE_SET,
+    CONF_HVAC_SWITCH_DP,
     CONF_PRECISION,
     CONF_PRESET_DP,
     CONF_PRESET_SET,
+    CONF_TARGET_HUMIDITY_DP,
     CONF_TARGET_PRECISION,
     CONF_TARGET_TEMPERATURE_DP,
     CONF_TEMPERATURE_STEP,
     CONF_MIN_TEMP,
     CONF_MAX_TEMP,
-    CONF_HVAC_ADD_OFF,
     CONF_FAN_SPEED_DP,
     CONF_FAN_SPEED_LIST,
     CONF_SWING_MODE_DP,
@@ -147,8 +151,12 @@ def flow_schema(dps):
         ): col_to_select(SUPPORTED_PRECISIONS),
         vol.Optional(CONF_HVAC_MODE_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_HVAC_MODE_SET, default=HVAC_MODE_SETS): ObjectSelector(),
+        vol.Optional(CONF_HVAC_SWITCH_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_HVAC_ACTION_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_HVAC_ACTION_SET, default=HVAC_ACTION_SETS): ObjectSelector(),
+        vol.Optional(CONF_CURRENT_HUMIDITY_DP): col_to_select(dps, is_dps=True),
+        vol.Optional(CONF_TARGET_HUMIDITY_DP): col_to_select(dps, is_dps=True),
+        vol.Optional(CONF_HUMIDITY_COEFFICIENT, default=1.0): vol.Coerce(float),
         vol.Optional(CONF_ECO_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_ECO_VALUE): str,
         vol.Optional(CONF_PRESET_DP): col_to_select(dps, is_dps=True),
@@ -199,6 +207,8 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         self._target_temperature = None
         self._target_temp_forced_to_celsius = None
         self._current_temperature = None
+        self._current_humidity = None
+        self._target_humidity = None
         self._hvac_mode: HVACMode | None = None
         self._hvac_action: HVACAction | None = None
         self._preset_mode: str | None = None
@@ -208,6 +218,10 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         self._precision_target = float(
             self._config.get(CONF_TARGET_PRECISION, DEFAULT_PRECISION)
         )
+        self._humidity_coefficient = float(
+            self._config.get(CONF_HUMIDITY_COEFFICIENT, 1.0)
+        )
+        self._hvac_switch_dp = self._config.get(CONF_HVAC_SWITCH_DP)
 
         # HVAC Modes
         self._hvac_mode_dp = self._config.get(CONF_HVAC_MODE_DP)
@@ -269,6 +283,8 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def _is_on(self):
         """Return if the device is on."""
+        if self._hvac_switch_dp:
+            return self.dp_value(self._hvac_switch_dp) == self._state_on
         return self._state and self._state != self._state_off
 
     @property
@@ -277,6 +293,8 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         supported_features = ClimateEntityFeature(0)
         if self.has_config(CONF_TARGET_TEMPERATURE_DP):
             supported_features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        if self.has_config(CONF_TARGET_HUMIDITY_DP):
+            supported_features |= ClimateEntityFeature.TARGET_HUMIDITY
         if self._has_presets:
             supported_features |= ClimateEntityFeature.PRESET_MODE
         if self._fan_speed_dp and self._fan_speeds:
@@ -412,6 +430,26 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         return self._target_temperature
 
     @property
+    def current_humidity(self):
+        """Return the current humidity."""
+        return self._current_humidity
+
+    @property
+    def target_humidity(self):
+        """Return the humidity we try to reach."""
+        return self._target_humidity
+
+    @property
+    def min_humidity(self):
+        """Return the minimum humidity."""
+        return 0
+
+    @property
+    def max_humidity(self):
+        """Return the maximum humidity."""
+        return 100
+
+    @property
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
         target_step = self._config.get(CONF_TEMPERATURE_STEP, DEFAULT_TEMPERATURE_STEP)
@@ -475,6 +513,12 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
                 temperature, self._config[CONF_TARGET_TEMPERATURE_DP]
             )
 
+    async def async_set_humidity(self, humidity):
+        """Set new target humidity."""
+        if self.has_config(CONF_TARGET_HUMIDITY_DP):
+            humidity = round(humidity * self._humidity_coefficient)
+            await self._device.set_dp(humidity, self._config[CONF_TARGET_HUMIDITY_DP])
+
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
         if not self._is_on:
@@ -488,22 +532,22 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Set new target operation mode."""
         new_states = {}
         if not self._is_on:
-            new_states[self._dp_id] = self._state_on
+            new_states[self._hvac_switch_dp or self._dp_id] = self._state_on
 
         if hvac_mode in self._hvac_mode_set.names:
             new_states[self._hvac_mode_dp] = self._hvac_mode_set.to_tuya(hvac_mode)
         elif hvac_mode == HVACMode.OFF:
-            new_states[self._dp_id] = self._state_off
+            new_states[self._hvac_switch_dp or self._dp_id] = self._state_off
 
         await self._device.set_dps(new_states)
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
-        await self._device.set_dp(self._state_on, self._dp_id)
+        await self._device.set_dp(self._state_on, self._hvac_switch_dp or self._dp_id)
 
     async def async_turn_off(self) -> None:
         """Turn the entity off."""
-        await self._device.set_dp(self._state_off, self._dp_id)
+        await self._device.set_dp(self._state_off, self._hvac_switch_dp or self._dp_id)
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
@@ -541,6 +585,18 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             current_dp_temp := self.dp_value(CONF_CURRENT_TEMPERATURE_DP)
         ):
             self._current_temperature = current_dp_temp * self._precision
+
+        # Update current humidity
+        if self.has_config(CONF_CURRENT_HUMIDITY_DP) and (
+            current_dp_humidity := self.dp_value(CONF_CURRENT_HUMIDITY_DP)
+        ):
+            self._current_humidity = current_dp_humidity / self._humidity_coefficient
+
+        # Update target humidity
+        if self.has_config(CONF_TARGET_HUMIDITY_DP) and (
+            target_dp_humidity := self.dp_value(CONF_TARGET_HUMIDITY_DP)
+        ):
+            self._target_humidity = target_dp_humidity / self._humidity_coefficient
 
         # Force the Current temperature and Target temperature to matching the unit.
         if self._target_temp_forced_to_celsius:
