@@ -393,6 +393,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     connect_to_devices = _setup_devices(entry.data[CONF_DEVICES])
 
+    # Pre-initialize BLE transports so auto-config can resolve device
+    # category/product_id (fetched from the cloud during initialize()) at
+    # platform setup time, without requiring a live BLE connection.
+    for dev in connect_to_devices:
+        await dev.async_prepare_ble()
+
     await async_remove_orphan_entities(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS.values())
 
