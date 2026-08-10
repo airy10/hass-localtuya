@@ -46,6 +46,7 @@ from .selects import SELECTS
 from .sensors import SENSORS
 from .sirens import SIRENS
 from .switches import SWITCHES
+from .texts import TEXTS
 from .vacuums import VACUUMS
 from .locks import LOCKS
 from .water_heaters import WATER_HEATERS
@@ -67,6 +68,7 @@ DATA_PLATFORMS = {
     Platform.SENSOR: SENSORS,
     Platform.SIREN: SIRENS,
     Platform.SWITCH: SWITCHES,
+    Platform.TEXT: TEXTS,
     Platform.VACUUM: VACUUMS,
     Platform.WATER_HEATER: WATER_HEATERS,
 }

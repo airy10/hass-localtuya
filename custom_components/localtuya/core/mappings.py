@@ -38,6 +38,7 @@ from ..const import (
     CONF_IS_AVAILABLE,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
+    CONF_PATTERN,
     CONF_PRECISION,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
@@ -155,6 +156,33 @@ def _switch(
     )
 
 
+def _text(
+    dp_id: int,
+    name: str,
+    *,
+    pattern: str | None = None,
+    enabled_default: bool = True,
+    force_add: bool = True,
+    dp_type: TuyaBLEDataPointType | None = None,
+    is_available: Callable[..., bool] | None = None,
+) -> TuyaEntityMapping:
+    """Build a text mapping."""
+    config: dict[str, Any] = {
+        CONF_FRIENDLY_NAME: name,
+        CONF_ENTITY_ENABLED_DEFAULT: enabled_default,
+    }
+    if pattern is not None:
+        config[CONF_PATTERN] = pattern
+    return TuyaEntityMapping(
+        dp_id=dp_id,
+        platform=Platform.TEXT,
+        config=config,
+        force_add=force_add,
+        dp_type=dp_type,
+        is_available=is_available,
+    )
+
+
 def _climate(
     dp_id: int,
     name: str,
@@ -204,6 +232,10 @@ def _climate(
 # ---------------------------------------------------------------------------
 # Mapping registry
 # ---------------------------------------------------------------------------
+
+# Fingerbot program text pattern: position[/delay] steps separated by ';'
+# (e.g. "50/1000;100/500"), position/delay in 0-100 / 0-99 range.
+FINGERBOT_PROGRAM_PATTERN = r"^((\d{1,2}|100)(/\d{1,2})?)(;((\d{1,2}|100)(/\d{1,2})?))+$"
 
 MAPPINGS: dict[str, TuyaCategoryMapping] = {
     # CO2 Detector
@@ -313,7 +345,7 @@ MAPPINGS: dict[str, TuyaCategoryMapping] = {
             ],
         },
     ),
-    # Fingerbot (CubeTouch 1s and II)
+    # Fingerbot (CubeTouch 1s and II, Fingerbot Plus, Fingerbot)
     "szjqr": TuyaCategoryMapping(
         products={
             "3yqdo5yt": [
@@ -324,6 +356,39 @@ MAPPINGS: dict[str, TuyaCategoryMapping] = {
                 _switch(1, "Fingerbot"),
                 _switch(4, "Reverse positions", enabled_default=False),
             ],
+            **dict.fromkeys(
+                [
+                    "blliqpsj",
+                    "ndvkgsrm",
+                    "yiihr7zh",
+                    "neq16kgd",
+                ],  # Fingerbot Plus
+                [
+                    _text(
+                        121,
+                        "Fingerbot Program",
+                        pattern=FINGERBOT_PROGRAM_PATTERN,
+                    ),
+                ],
+            ),
+            **dict.fromkeys(
+                [
+                    "ltak7e1p",
+                    "y6kttvd6",
+                    "yrnk7mnn",
+                    "nvr2rocq",
+                    "bnt7wajf",
+                    "rvdceqjh",
+                    "5xhbk964",
+                ],  # Fingerbot
+                [
+                    _text(
+                        121,
+                        "Fingerbot Program",
+                        pattern=FINGERBOT_PROGRAM_PATTERN,
+                    ),
+                ],
+            ),
         },
     ),
 }

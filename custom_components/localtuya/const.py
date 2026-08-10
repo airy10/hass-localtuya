@@ -39,6 +39,7 @@ PLATFORMS = {
     "Sensor": Platform.SENSOR,
     "Siren": Platform.SIREN,
     "Switch": Platform.SWITCH,
+    "Text": Platform.TEXT,
     "Vacuum": Platform.VACUUM,
     "Water Heater": Platform.WATER_HEATER,
 }
@@ -194,6 +195,9 @@ CONF_STEPSIZE = "step_size"
 # select
 CONF_OPTIONS = "select_options"
 CONF_OPTIONS_FRIENDLY = "select_options_friendly"
+
+# text
+CONF_PATTERN = "pattern"
 
 # Remote
 CONF_RECEIVE_DP = "receive_dp"
