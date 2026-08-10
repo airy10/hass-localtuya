@@ -44,6 +44,26 @@ PLATFORMS = {
     "Water Heater": Platform.WATER_HEATER,
 }
 
+# BLE fingerbot button event (fired on HA bus when physical button pressed)
+FINGERBOT_BUTTON_EVENT = "localtuya_fingerbot_button_pressed"
+
+# Fingerbot product IDs and their switch datapoint ids
+FINGERBOT_SWITCH_DP: dict[str, int] = {
+    "3yqdo5yt": 1,  # CUBETOUCH 1s
+    "xhf790if": 1,  # CUBETOUCH II
+    "blliqpsj": 2,  # Fingerbot Plus
+    "ndvkgsrm": 2,
+    "yiihr7zh": 2,
+    "neq16kgd": 2,
+    "ltak7e1p": 2,  # Fingerbot
+    "y6kttvd6": 2,
+    "yrnk7mnn": 2,
+    "nvr2rocq": 2,
+    "bnt7wajf": 2,
+    "rvdceqjh": 2,
+    "5xhbk964": 2,
+}
+
 ATTR_CURRENT = "current"
 ATTR_CURRENT_CONSUMPTION = "current_consumption"
 ATTR_VOLTAGE = "voltage"

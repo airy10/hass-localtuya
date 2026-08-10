@@ -46,6 +46,8 @@ from .const import (
     DATA_DISCOVERY,
     DOMAIN,
     DeviceConfig,
+    FINGERBOT_BUTTON_EVENT,
+    FINGERBOT_SWITCH_DP,
     RESTORE_STATES,
     TRANSPORT_BLE,
 )
@@ -104,6 +106,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_shutdown_entities: asyncio.Task | None = None
         self._unsub_refresh: CALLBACK_TYPE | None = None
         self._unsub_new_entity: CALLBACK_TYPE | None = None
+        self._unsub_fingerbot: CALLBACK_TYPE | None = None
 
         self._entities = []
 
@@ -404,16 +407,41 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             )
             device = TuyaBLEDevice(manager, ble_device)
             await device.initialize()
-            return create_transport("ble", device=device)
+            transport = create_transport("ble", device=device)
+            self._unsub_fingerbot = device.register_callback(
+                self._handle_fingerbot_button
+            )
+            return transport
         except Exception as ex:  # pylint: disable=broad-except
             self.warning(f"Failed to set up BLE device: {str(ex)}")
             return None
+
+    @callback
+    def _handle_fingerbot_button(self, datapoints) -> None:
+        """Fire fingerbot_button_pressed event on physical button press."""
+        ble = self.ble_device
+        if ble is None:
+            return
+        switch_dp = FINGERBOT_SWITCH_DP.get(ble.product_id)
+        if switch_dp is None:
+            return
+        for dp in datapoints:
+            if dp.id == switch_dp and dp.changed_by_device:
+                self.hass.bus.async_fire(
+                    FINGERBOT_BUTTON_EVENT,
+                    {CONF_DEVICE_ID: self.id},
+                )
+                break
 
     async def abort_connect(self):
         """Abort the connect process to the interface[device]"""
         if self.is_subdevice:
             self._interface = None
             self._task_connect = None
+
+        if self._unsub_fingerbot is not None:
+            self._unsub_fingerbot()
+            self._unsub_fingerbot = None
 
         if self._interface is not None:
             await self._interface.close()
