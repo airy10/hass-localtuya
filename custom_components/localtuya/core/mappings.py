@@ -23,6 +23,7 @@ from homeassistant.const import (
     CONF_PLATFORM,
     CONF_UNIT_OF_MEASUREMENT,
     Platform,
+    UnitOfRatio,
 )
 
 from ..const import (
@@ -252,7 +253,7 @@ MAPPINGS: dict[str, TuyaCategoryMapping] = {
                     2,
                     "Carbon dioxide",
                     device_class="carbon_dioxide",
-                    unit="ppm",
+                    unit=UnitOfRatio.PARTS_PER_MILLION,
                     state_class="measurement",
                 ),
                 _sensor(
