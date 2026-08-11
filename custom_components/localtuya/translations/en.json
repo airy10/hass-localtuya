@@ -2,7 +2,8 @@
     "config": {
         "abort": {
             "already_configured": "This account has already been configured.",
-            "device_updated": "Device configuration has been updated."
+            "device_updated": "Device configuration has been updated.",
+            "invalid_sharing_session": "The Smart Life sharing session could not be restored. Please scan the QR code again."
         },
         "error": {
             "authentication_failed": "Failed to authenticate.\n{msg}",
@@ -13,10 +14,21 @@
             "entity_already_configured": "This entity has already been configured.",
             "address_in_use": "TCP port 6668 (used for discovery) is already in use. Check no other integration is using it.",
             "discovery_failed": "Something failed when discovering devices. See log for details. If problem persists, create a new issue (including debug logs).",
-            "empty_dps": "Connection to device succeeded but no datapoints could be found. Please try set-up again. If problem persists, create a new issue (including debug logs)."
+            "empty_dps": "Connection to device succeeded but no datapoints could be found. Please try set-up again. If problem persists, create a new issue (including debug logs).",
+            "user_code_required": "The Smart Life user code is required.",
+            "qr_request_failed": "Could not request a QR code from Tuya. Check the user code and try again.",
+            "qr_not_scanned": "The QR code has not been scanned and authorized yet. Scan it with the Smart Life app and submit again."
         },
         "step": {
             "user": {
+                "title": "Cloud API account configuration",
+                "description": "Choose how to connect to the Tuya cloud.",
+                "menu_options": {
+                    "qr_login": "Scan a QR code with the Smart Life app (Recommended)",
+                    "login": "Log in with Tuya IoT Platform credentials (Legacy)"
+                }
+            },
+            "login": {
                 "title": "Cloud API account configuration",
                 "description": "Configure the credentials used to connect to the Tuya Cloud API.",
                 "data": {
@@ -27,6 +39,17 @@
                     "username": "Username",
                     "no_cloud": "Disable Cloud API?"
                 }
+            },
+            "qr_login": {
+                "title": "Smart Life QR Login",
+                "description": "Enter the user code shown in the Smart Life app (Profile → User Code), then submit to request a QR code.",
+                "data": {
+                    "user_code": "Smart Life user code"
+                }
+            },
+            "qr_scan": {
+                "title": "Smart Life Authorization",
+                "description": "Scan the QR code with the Smart Life app (Profile → Add Device/Scan) and authorize access, then submit to finish."
             }
         }
     },
@@ -78,6 +101,14 @@
             },
             "configure_cloud": {
                 "title": "Manage Cloud API account",
+                "description": "This entry uses the Smart Life QR sharing session.",
+                "menu_options": {
+                    "qr_login": "Re-scan QR code with the Smart Life app",
+                    "configure_cloud_iot": "Switch to Tuya IoT Platform credentials"
+                }
+            },
+            "configure_cloud_iot": {
+                "title": "Manage Cloud API account",
                 "description": "Configure the credentials used to connect to the Tuya Cloud API.",
                 "data": {
                     "region": "Data Center Region",
@@ -87,6 +118,17 @@
                     "username": "Username",
                     "no_cloud": "Disable Cloud API?"
                 }
+            },
+            "qr_login": {
+                "title": "Smart Life QR Login",
+                "description": "Enter the user code shown in the Smart Life app (Profile → User Code), then submit to request a QR code.",
+                "data": {
+                    "user_code": "Smart Life user code"
+                }
+            },
+            "qr_scan": {
+                "title": "Smart Life Authorization",
+                "description": "Scan the QR code with the Smart Life app (Profile → Add Device/Scan) and authorize access, then submit to finish."
             },
             "confirm": {
                 "title": "Confirmation",

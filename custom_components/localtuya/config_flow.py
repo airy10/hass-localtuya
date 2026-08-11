@@ -14,6 +14,9 @@ from typing import Any
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_registry as er
 from homeassistant.helpers.selector import (
+    QrCodeSelector,
+    QrCodeSelectorConfig,
+    QrErrorCorrectionLevel,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -55,7 +58,10 @@ from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_enti
 from .core.tuya_ble_lib import SERVICE_UUID
 from .const import (
     ATTR_UPDATED_AT,
+    AUTH_METHOD_IOT,
+    AUTH_METHOD_SHARING,
     CONF_ADD_DEVICE,
+    CONF_AUTH_METHOD,
     CONF_BLE_ADDRESS,
     CONF_CONFIGURE_CLOUD,
     CONF_DPS_STRINGS,
@@ -72,10 +78,12 @@ from .const import (
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
     CONF_RESET_DPIDS,
+    CONF_SHARING_DATA,
     CONF_TUYA_GWID,
     CONF_TUYA_IP,
     CONF_TUYA_VERSION,
     CONF_TRANSPORT,
+    CONF_USER_CODE,
     CONF_USER_ID,
     DATA_DISCOVERY,
     DATA_PENDING_BLE,
@@ -88,6 +96,7 @@ from .const import (
     TRANSPORT_ETHERNET,
     CONF_DEVICE_SLEEP_TIME,
 )
+from .core.sharing_cloud import SharingCloud
 from .discovery import discover
 
 _LOGGER = logging.getLogger(__name__)
@@ -152,6 +161,27 @@ CLOUD_CONFIGURE_SCHEMA = vol.Schema(
     }
 )
 
+USER_CODE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USER_CODE): cv.string,
+    }
+)
+
+
+def qr_code_schema(sharing: SharingCloud) -> vol.Schema:
+    """Return a form schema embedding the Smart Life pairing QR code."""
+    return vol.Schema(
+        {
+            vol.Optional("qr"): QrCodeSelector(
+                QrCodeSelectorConfig(
+                    data=f"tuyaSmart--qrLogin?token={sharing.qr_code or ''}",
+                    scale=5,
+                    error_correction_level=QrErrorCorrectionLevel.QUARTILE,
+                )
+            )
+        }
+    )
+
 DEVICE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
@@ -199,7 +229,20 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize a new LocaltuyaConfigFlow."""
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
+        """Handle the initial step: choose cloud authentication method."""
+        # Reuse a previously authorized sharing session instead of asking
+        # for credentials again.
+        self._sharing = SharingCloud(self.hass)
+        if await self._sharing.async_restore():
+            return await self._create_sharing_entry()
+
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["qr_login", "login"],
+        )
+
+    async def async_step_login(self, user_input=None):
+        """Handle the legacy IoT Platform login."""
         errors = {}
         placeholders = {}
         if user_input is not None:
@@ -224,10 +267,66 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         defaults.update(user_input or {})
 
         return self.async_show_form(
-            step_id="user",
+            step_id="login",
             data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
             errors=errors,
             description_placeholders=placeholders,
+        )
+
+    async def async_step_qr_login(self, user_input=None):
+        """Ask for the Smart Life user code to request a pairing QR code."""
+        errors = {}
+        if user_input is not None:
+            user_code = user_input.get(CONF_USER_CODE)
+            if not user_code:
+                errors["base"] = "user_code_required"
+            else:
+                self._sharing = SharingCloud(self.hass)
+                if await self._sharing.async_get_qr_code(user_code) is None:
+                    errors["base"] = "qr_request_failed"
+                else:
+                    return await self.async_step_qr_scan()
+
+        return self.async_show_form(
+            step_id="qr_login",
+            data_schema=USER_CODE_SCHEMA,
+            errors=errors,
+        )
+
+    async def async_step_qr_scan(self, user_input=None):
+        """Display the QR code and wait for it to be scanned and authorized."""
+        if user_input is not None:
+            if await self._sharing.async_login():
+                return await self._create_sharing_entry()
+            # Not authorized yet: request a fresh QR code and show it again.
+            await self._sharing.async_get_qr_code(self._sharing.user_code)
+
+        return self.async_show_form(
+            step_id="qr_scan",
+            data_schema=qr_code_schema(self._sharing),
+            errors={"base": "qr_not_scanned"} if user_input is not None else {},
+        )
+
+    async def _create_sharing_entry(self):
+        """Register a new entry for a QR-authorized sharing session."""
+        auth = self._sharing.auth_blob or {}
+        uid = self._sharing.uid
+        if not uid:
+            return self.async_abort(reason="invalid_sharing_session")
+
+        await self.async_set_unique_id(uid)
+        self._abort_if_unique_id_configured()
+
+        return self.async_create_entry(
+            title=auth.get("username") or "Smart Life",
+            data={
+                CONF_AUTH_METHOD: AUTH_METHOD_SHARING,
+                CONF_USER_ID: uid,
+                CONF_USERNAME: auth.get("username") or "Smart Life",
+                CONF_SHARING_DATA: auth,
+                CONF_NO_CLOUD: False,
+                CONF_DEVICES: {},
+            },
         )
 
     async def async_step_bluetooth(
@@ -320,6 +419,66 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         return self.async_show_menu(step_id="init", menu_options=configure_menu)
 
     async def async_step_configure_cloud(self, user_input=None):
+        """Reconfigure the cloud account (QR sharing re-scan or legacy IoT)."""
+        if self.config_entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING:
+            return self.async_show_menu(
+                step_id="configure_cloud",
+                menu_options=["qr_login", "configure_cloud_iot"],
+            )
+        return await self.async_step_configure_cloud_iot(user_input=user_input)
+
+    async def async_step_qr_login(self, user_input=None):
+        """Ask for the Smart Life user code to request a pairing QR code."""
+        errors = {}
+        if user_input is not None:
+            user_code = user_input.get(CONF_USER_CODE)
+            if not user_code:
+                errors["base"] = "user_code_required"
+            else:
+                self._sharing = SharingCloud(self.hass)
+                if await self._sharing.async_get_qr_code(user_code) is None:
+                    errors["base"] = "qr_request_failed"
+                else:
+                    return await self.async_step_qr_scan()
+
+        return self.async_show_form(
+            step_id="qr_login",
+            data_schema=USER_CODE_SCHEMA,
+            errors=errors,
+        )
+
+    async def async_step_qr_scan(self, user_input=None):
+        """Display the QR code and wait for it to be scanned and authorized."""
+        if user_input is not None:
+            if await self._sharing.async_login():
+                return await self._update_sharing_entry()
+            # Not authorized yet: request a fresh QR code and show it again.
+            await self._sharing.async_get_qr_code(self._sharing.user_code)
+
+        return self.async_show_form(
+            step_id="qr_scan",
+            data_schema=qr_code_schema(self._sharing),
+            errors={"base": "qr_not_scanned"} if user_input is not None else {},
+        )
+
+    def _update_sharing_entry(self):
+        """Persist a (re-)authorized sharing session into the entry."""
+        auth = self._sharing.auth_blob or {}
+        uid = self._sharing.uid
+        if not uid:
+            return self.async_abort(reason="invalid_sharing_session")
+        return self._update_entry(
+            {
+                CONF_AUTH_METHOD: AUTH_METHOD_SHARING,
+                CONF_SHARING_DATA: auth,
+                CONF_USER_ID: uid,
+                CONF_USERNAME: auth.get("username") or "Smart Life",
+                CONF_NO_CLOUD: False,
+            },
+            new_title=auth.get("username") or "Smart Life",
+        )
+
+    async def async_step_configure_cloud_iot(self, user_input=None):
         """Handle the initial step."""
         errors = {}
         placeholders = {}
@@ -338,6 +497,8 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             if not res:
                 new_data = self.config_entry.data.copy()
                 new_data.update(user_input)
+                new_data[CONF_AUTH_METHOD] = AUTH_METHOD_IOT
+                new_data.pop(CONF_SHARING_DATA, None)
                 cloud_devs = cloud_api.device_list
                 for dev_id, dev in new_data[CONF_DEVICES].items():
                     if CONF_MODEL not in dev and dev_id in cloud_devs:
@@ -354,7 +515,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         defaults[CONF_NO_CLOUD] = False
 
         return self.async_show_form(
-            step_id="configure_cloud",
+            step_id="configure_cloud_iot",
             data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
             errors=errors,
             description_placeholders=placeholders,

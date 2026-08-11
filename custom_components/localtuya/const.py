@@ -107,6 +107,17 @@ CONF_RESET_DPIDS = "reset_dpids"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 CONF_DEVICE_SLEEP_TIME = "device_sleep_time"
 
+# Cloud auth method (Smart Life QR sharing SDK vs. legacy IoT Platform login)
+AUTH_METHOD_SHARING = "sharing"
+AUTH_METHOD_IOT = "iot"
+CONF_AUTH_METHOD = "auth_method"
+CONF_SHARING_DATA = "sharing_data"
+CONF_USER_CODE = "user_code"
+
+# Shared Store where the sharing-session token is persisted (one-time QR scan)
+STORAGE_VERSION = 1
+STORAGE_KEY = f"{DOMAIN}.sharing_token"
+
 # ALARM
 CONF_ALARM_SUPPORTED_STATES = "alarm_supported_states"
 

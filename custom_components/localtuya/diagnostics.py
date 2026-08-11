@@ -12,7 +12,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from . import HassLocalTuyaData
-from .const import CONF_LOCAL_KEY, CONF_USER_ID, DOMAIN, CONF_NO_CLOUD, DATA_DISCOVERY
+from .const import (
+    CONF_LOCAL_KEY,
+    CONF_SHARING_DATA,
+    CONF_USER_ID,
+    DOMAIN,
+    CONF_NO_CLOUD,
+    DATA_DISCOVERY,
+)
 
 CLOUD_DEVICES = "cloud_devices"
 DEVICE_CONFIG = "device_config"
@@ -35,7 +42,10 @@ async def async_get_config_entry_diagnostics(
         await hass.async_create_task(tuya_api.async_get_devices_dps_query())
     # censoring private information on integration diagnostic data
     for field in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
-        data[field] = obfuscate(data[field])
+        if value := data.get(field):
+            data[field] = obfuscate(value)
+    # The sharing session blob carries OAuth tokens; never leak them.
+    data.pop(CONF_SHARING_DATA, None)
     data[CONF_DEVICES] = copy.deepcopy(entry.data[CONF_DEVICES])
     for dev_id, dev in data[CONF_DEVICES].items():
         local_key = dev[CONF_LOCAL_KEY]

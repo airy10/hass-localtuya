@@ -33,15 +33,19 @@ from .coordinator import TuyaDevice, HassLocalTuyaData, TuyaCloudApi
 from .config_flow import ENTRIES_VERSION
 from .const import (
     ATTR_UPDATED_AT,
+    AUTH_METHOD_SHARING,
+    CONF_AUTH_METHOD,
     CONF_GATEWAY_ID,
     CONF_NODE_ID,
     CONF_NO_CLOUD,
     CONF_PRODUCT_KEY,
+    CONF_SHARING_DATA,
     CONF_USER_ID,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
 )
+from .core.sharing_cloud import SharingCloud
 
 from .const import get_device_key
 from .discovery import TuyaDiscovery
@@ -338,12 +342,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
         return
 
-    region = entry.data[CONF_REGION]
-    client_id = entry.data[CONF_CLIENT_ID]
-    secret = entry.data[CONF_CLIENT_SECRET]
-    user_id = entry.data[CONF_USER_ID]
-    tuya_api = TuyaCloudApi(region, client_id, secret, user_id)
-    no_cloud = entry.data.get(CONF_NO_CLOUD, True)
+    if entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING:
+        tuya_api = SharingCloud(hass, entry.data.get(CONF_SHARING_DATA))
+        no_cloud = False
+    else:
+        region = entry.data[CONF_REGION]
+        client_id = entry.data[CONF_CLIENT_ID]
+        secret = entry.data[CONF_CLIENT_SECRET]
+        user_id = entry.data[CONF_USER_ID]
+        tuya_api = TuyaCloudApi(region, client_id, secret, user_id)
+        no_cloud = entry.data.get(CONF_NO_CLOUD, True)
 
     if no_cloud:
         _LOGGER.info(f"Cloud API account not configured.")
