@@ -2,6 +2,7 @@
 
 import logging
 import base64
+from functools import partial
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -212,6 +213,9 @@ class LocalTuyaRSSISensor(LocalTuyaSensor):
     def native_value(self):
         """Return the signal strength."""
         return self._device.rssi
+
+
+_setup_entry = partial(_setup_entry, DOMAIN, LocalTuyaSensor, flow_schema)
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
