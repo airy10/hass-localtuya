@@ -96,7 +96,7 @@ from .const import (
     TRANSPORT_ETHERNET,
     CONF_DEVICE_SLEEP_TIME,
 )
-from .core.sharing_cloud import SharingCloud
+from .core.sharing_cloud import SharingCloud, decode_uuid_from_advertisement
 from .discovery import discover
 
 _LOGGER = logging.getLogger(__name__)
@@ -601,11 +601,14 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         from homeassistant.components import bluetooth
 
         found = {}
+        self._ble_uuids = {}
         for info in bluetooth.async_discovered_service_info(
             self.hass, connectable=True
         ):
             if SERVICE_UUID in (info.service_data or {}):
                 found[info.name or info.address] = info.address
+                if uuid := decode_uuid_from_advertisement(info):
+                    self._ble_uuids[info.address] = uuid
         return found
 
     async def async_step_add_ble_device(self, user_input=None):
@@ -646,6 +649,29 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             return await self.async_step_configure_device()
         if not self.cloud_data.device_list:
             return self.async_abort(reason="cloud_not_configured")
+
+        # Sharing cloud: match the advertisement uuid against the account
+        # devices so the device is auto-selected (factory-info MAC is
+        # unavailable for sharing sessions).
+        ble_address = getattr(self, "_ble_address", None)
+        adv_uuid = (
+            getattr(self, "_ble_uuids", {}).get(ble_address)
+            if ble_address
+            else None
+        )
+        if isinstance(self.cloud_data, SharingCloud) and adv_uuid:
+            for dev_id, dev in self.cloud_data.device_list.items():
+                if dev.get("uuid") == adv_uuid:
+                    self.selected_device = dev_id
+                    self.device_data = {
+                        CONF_DEVICE_ID: dev_id,
+                        CONF_LOCAL_KEY: dev.get(CONF_LOCAL_KEY),
+                        CONF_FRIENDLY_NAME: dev.get(CONF_NAME),
+                        CONF_TRANSPORT: TRANSPORT_BLE,
+                        CONF_BLE_ADDRESS: ble_address,
+                    }
+                    return await self.async_step_configure_device()
+
         cloud = {
             v.get(CONF_NAME, d): d for d, v in self.cloud_data.device_list.items()
         }
