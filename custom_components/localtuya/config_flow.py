@@ -31,6 +31,7 @@ from homeassistant.config_entries import (
     ConfigFlow,
     OptionsFlow,
     FlowResult,
+    SOURCE_REAUTH,
 )
 from homeassistant.const import (
     CONF_CLIENT_ID,
@@ -297,6 +298,8 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Display the QR code and wait for it to be scanned and authorized."""
         if user_input is not None:
             if await self._sharing.async_login():
+                if self.source == SOURCE_REAUTH:
+                    return await self._finish_sharing_reauth()
                 return await self._create_sharing_entry()
             # Not authorized yet: request a fresh QR code and show it again.
             await self._sharing.async_get_qr_code(self._sharing.user_code)
@@ -306,6 +309,35 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=qr_code_schema(self._sharing),
             errors={"base": "qr_not_scanned"} if user_input is not None else {},
         )
+
+    async def async_step_reauth(self, entry_data=None):
+        """Handle re-authentication when the Smart Life sharing session expires."""
+        sharing = (entry_data or {}).get(CONF_SHARING_DATA) or {}
+        user_code = sharing.get(CONF_USER_CODE) or (entry_data or {}).get(
+            CONF_USER_CODE
+        )
+        self._sharing = SharingCloud(self.hass)
+        if user_code and await self._sharing.async_get_qr_code(user_code):
+            return await self.async_step_qr_scan()
+        return await self.async_step_qr_login()
+
+    async def _finish_sharing_reauth(self):
+        """Store the renewed sharing session on the existing config entry."""
+        auth = self._sharing.auth_blob or {}
+        uid = self._sharing.uid
+        if not uid:
+            return self.async_abort(reason="invalid_sharing_session")
+
+        entry = self._get_reauth_entry()
+        data = {
+            **entry.data,
+            CONF_AUTH_METHOD: AUTH_METHOD_SHARING,
+            CONF_USER_ID: uid,
+            CONF_USERNAME: auth.get("username") or "Smart Life",
+            CONF_SHARING_DATA: auth,
+            CONF_NO_CLOUD: False,
+        }
+        return self.async_update_reload_and_abort(entry, data=data)
 
     async def _create_sharing_entry(self):
         """Register a new entry for a QR-authorized sharing session."""

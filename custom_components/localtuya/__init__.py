@@ -357,7 +357,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         _LOGGER.info(f"Cloud API account not configured.")
     else:
         entry.async_create_background_task(
-            hass, tuya_api.async_connect(), "localtuya-cloudAPI"
+            hass,
+            _async_connect_cloud(hass, entry, tuya_api),
+            "localtuya-cloudAPI",
         )
 
     hass_localtuya = HassLocalTuyaData(tuya_api, {})
@@ -430,6 +432,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     entry.async_on_unload(_run_async_listen(hass, entry))
     _LOGGER.info(f"{entry.title}: Setup completed")
     return True
+
+
+async def _async_connect_cloud(
+    hass: HomeAssistant, entry: ConfigEntry, tuya_api: Any
+) -> None:
+    """Connect to the cloud API and start a reauth flow on session expiry."""
+    result = await tuya_api.async_connect()
+    if (
+        result[0] == "device_list_failed"
+        and entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING
+        and any(word in str(result[1]) for word in ("sign invalid", "token is expired"))
+    ):
+        _LOGGER.warning(
+            "%s: Smart Life sharing session expired, re-authentication required",
+            entry.title,
+        )
+        entry.async_start_reauth(hass)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

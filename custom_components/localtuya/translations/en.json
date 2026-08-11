@@ -3,7 +3,8 @@
         "abort": {
             "already_configured": "This account has already been configured.",
             "device_updated": "Device configuration has been updated.",
-            "invalid_sharing_session": "The Smart Life sharing session could not be restored. Please scan the QR code again."
+            "invalid_sharing_session": "The Smart Life sharing session could not be restored. Please scan the QR code again.",
+            "reauth_successful": "Re-authentication with Smart Life was successful."
         },
         "error": {
             "authentication_failed": "Failed to authenticate.\n{msg}",
