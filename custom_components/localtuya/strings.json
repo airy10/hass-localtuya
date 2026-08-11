@@ -66,13 +66,12 @@
         "step": {
             "init": {
                 "title": "LocalTuya Configuration",
-                "description": "Please select the desired actionSSSS.",
-                "data": {
-                    "add_device": "Add a new device",
+                "description": "Please select the desired action.",
+                "menu_options": {
+                    "add_device": "Add new device",
                     "add_ble_device": "Add a BLE device",
-                    "edit_device": "Edit a device",
-                    "delete_device": "Delete a device",
-                    "setup_cloud": "Reconfigure Cloud API account"
+                    "edit_device": "Reconfigure existing device",
+                    "configure_cloud": "Manage Cloud API account"
                 }
             },
             "entity": {
