@@ -38,6 +38,7 @@ from .const import (
     CONF_SCALING,
     CONF_OFFSET,
     CONF_STATE_CLASS,
+    DOMAIN as LOCALTUYA_DOMAIN,
     TRANSPORT_BLE,
     get_device_key,
 )
@@ -222,7 +223,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up Tuya sensors, adding a BLE RSSI diagnostic sensor."""
     await _setup_entry(hass, config_entry, async_add_entities)
 
-    hass_entry_data = hass.data[DOMAIN][config_entry.entry_id]
+    hass_entry_data = hass.data[LOCALTUYA_DOMAIN][config_entry.entry_id]
     for dev_id in config_entry.data[CONF_DEVICES]:
         dev_entry = config_entry.data[CONF_DEVICES][dev_id]
         host = get_device_key(dev_entry)

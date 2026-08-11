@@ -22,6 +22,7 @@ import logging
 from typing import Any
 
 from Crypto.Cipher import AES
+from tuya_sharing import LoginControl, Manager
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -123,15 +124,11 @@ class SharingCloud:
 
     async def _get_login_control(self):
         if self._login_control is None:
-            from tuya_sharing import LoginControl
-
             self._login_control = LoginControl()
         return self._login_control
 
     async def _get_manager(self):
         if self._manager is None and self._auth:
-            from tuya_sharing import Manager
-
             self._manager = Manager(
                 TUYA_CLIENT_ID,
                 self._auth[CONF_USER_CODE],

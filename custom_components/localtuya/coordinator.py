@@ -129,6 +129,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return name if not self._fake_gateway else (name + "/G")
 
     @property
+    def config_entry(self) -> ConfigEntry:
+        """Return the config entry this device belongs to."""
+        return self._entry
+
+    @property
     def connected(self):
         """Return if connected to device."""
         return self._interface and self._interface.is_connected
