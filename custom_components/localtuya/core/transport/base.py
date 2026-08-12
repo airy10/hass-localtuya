@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from ...const import DPType
@@ -21,6 +22,10 @@ from ..tuya_ble_lib import TuyaBLEDevice
 from ..tuya_ble_lib.const import TuyaBLEDataPointType
 
 _LOGGER = logging.getLogger(__name__)
+
+StatusListener = Callable[[dict[int, Any]], None]
+ConnectedListener = Callable[[], None]
+DisconnectListener = Callable[[], None]
 
 # Map localtuya's DPType (cloud spec) to the BLE datapoint wire type.
 _DPTYPE_TO_BLE: dict[DPType, TuyaBLEDataPointType] = {
@@ -36,8 +41,8 @@ _DPTYPE_TO_BLE: dict[DPType, TuyaBLEDataPointType] = {
 class Transport(ABC):
     """Semantic interface for a device connection used by the coordinator."""
 
-    #: Last dispatched DPS payload (dict of dp -> value), used to fire HA events.
-    dispatched_dps: dict[str, Any]
+    #: Last dispatched DPS payload (dict of numeric dp_id -> value).
+    dispatched_dps: dict[int, Any]
 
     @property
     @abstractmethod
@@ -49,8 +54,8 @@ class Transport(ABC):
         """Add datapoints to be included in status requests."""
 
     @abstractmethod
-    async def status(self, cid: str | None = None) -> dict:
-        """Return the current device status as a dict of dp -> value."""
+    async def status(self, cid: str | None = None) -> dict | None:
+        """Return the current device status, or None when it is unavailable."""
 
     @abstractmethod
     async def reset(self, dpIds=None, cid: str | None = None) -> Any:
@@ -65,7 +70,7 @@ class Transport(ABC):
         """Request the device to update the given (or detected) dps."""
 
     @abstractmethod
-    async def keep_alive(self, is_gateway: bool = False) -> None:
+    def keep_alive(self, is_gateway: bool = False) -> None:
         """Start the heartbeat/keep-alive loop with the device."""
 
     @abstractmethod
@@ -73,8 +78,8 @@ class Transport(ABC):
         """Close the connection and abort outstanding listeners."""
 
     @abstractmethod
-    async def detect_available_dps(self, cid: str | None = None) -> dict:
-        """Return which datapoints are supported by the device."""
+    async def detect_available_dps(self, cid: str | None = None) -> dict | None:
+        """Return supported datapoints, or None when detection is unavailable."""
 
     @abstractmethod
     def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
@@ -103,17 +108,27 @@ class EthernetTransport(Transport):
         return self._protocol.is_connected
 
     @property
-    def dispatched_dps(self) -> dict[str, Any]:
-        """Return the last dispatched DPS payload."""
-        return self._protocol.dispatched_dps
+    def dispatched_dps(self) -> dict[int, Any]:
+        """Return the last dispatched DPS payload with numeric DP IDs."""
+        return self._numeric_status(self._protocol.dispatched_dps)
+
+    @staticmethod
+    def _numeric_status(status: dict | None) -> dict[int, Any] | None:
+        """Normalize protocol DP keys while preserving an unavailable status."""
+        if status is None:
+            return None
+        return {
+            int(dp_id) if str(dp_id).isdigit() else dp_id: value
+            for dp_id, value in status.items()
+        }
 
     def add_dps_to_request(self, dp_indicies) -> None:
         """Delegate to the wrapped protocol."""
         self._protocol.add_dps_to_request(dp_indicies)
 
-    async def status(self, cid: str | None = None) -> dict:
-        """Return device status."""
-        return await self._protocol.status(cid=cid)
+    async def status(self, cid: str | None = None) -> dict | None:
+        """Return device status, preserving an unavailable protocol response."""
+        return self._numeric_status(await self._protocol.status(cid=cid))
 
     async def reset(self, dp_id=None, cid: str | None = None) -> Any:
         """Reset the device."""
@@ -127,17 +142,19 @@ class EthernetTransport(Transport):
         """Request the device to update dps."""
         return await self._protocol.update_dps(dps=dps, cid=cid)
 
-    async def keep_alive(self, is_gateway: bool = False) -> None:
-        """Start the heartbeat loop (sync on the protocol, awaited here)."""
+    def keep_alive(self, is_gateway: bool = False) -> None:
+        """Start the heartbeat loop on the wrapped protocol."""
         self._protocol.keep_alive(is_gateway=is_gateway)
 
     async def close(self) -> None:
         """Close the connection."""
         await self._protocol.close()
 
-    async def detect_available_dps(self, cid: str | None = None) -> dict:
-        """Return which datapoints are supported by the device."""
-        return await self._protocol.detect_available_dps(cid=cid)
+    async def detect_available_dps(self, cid: str | None = None) -> dict | None:
+        """Return supported datapoints, preserving an unavailable response."""
+        return self._numeric_status(
+            await self._protocol.detect_available_dps(cid=cid)
+        )
 
     def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
         """Enable debug logging."""
@@ -158,13 +175,28 @@ class BluetoothTransport(Transport):
     mapping.
     """
 
-    def __init__(self, device: TuyaBLEDevice) -> None:
+    def __init__(
+        self,
+        device: TuyaBLEDevice,
+        status_listener: StatusListener | None = None,
+        connected_listener: ConnectedListener | None = None,
+        disconnect_listener: DisconnectListener | None = None,
+    ) -> None:
         """Initialize the adapter around a TuyaBLEDevice."""
         self._device = device
-        self.dispatched_dps: dict[str, Any] = {}
+        self.dispatched_dps: dict[int, Any] = {}
         self._requested_dps: list | None = None
-        # Keep dispatched_dps fresh from device-initiated datapoint updates.
+        self._status_listener = status_listener
+        self._connected_listener = connected_listener
+        self._disconnect_listener = disconnect_listener
+        self._closed = False
         self._unregister_callback = device.register_callback(self._handle_datapoints)
+        self._unregister_connected_callback = device.register_connected_callback(
+            self._handle_connected
+        )
+        self._unregister_disconnected_callback = device.register_disconnected_callback(
+            self._handle_disconnect
+        )
 
     @property
     def ble_device(self) -> TuyaBLEDevice:
@@ -172,8 +204,32 @@ class BluetoothTransport(Transport):
         return self._device
 
     def _handle_datapoints(self, datapoints) -> None:
-        """Store the latest datapoints into dispatched_dps."""
-        self.dispatched_dps = self._status_by_dp_id()
+        """Forward changed datapoints and retain them for event detection."""
+        status = {datapoint.id: datapoint.value for datapoint in datapoints}
+        if not status:
+            return
+        self.dispatched_dps = status
+        if self._status_listener is not None:
+            try:
+                self._status_listener(status)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("BLE status listener failed")
+
+    def _handle_connected(self) -> None:
+        """Forward a successful reconnect to the owning coordinator."""
+        if not self._closed and self._connected_listener is not None:
+            try:
+                self._connected_listener()
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("BLE connected listener failed")
+
+    def _handle_disconnect(self) -> None:
+        """Forward unexpected disconnects to the owning coordinator."""
+        if not self._closed and self._disconnect_listener is not None:
+            try:
+                self._disconnect_listener()
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("BLE disconnect listener failed")
 
     def _dp_id_for_code(self, dpcode: str) -> int | None:
         """Resolve a dpcode to its dp_id via the cloud function/status mapping."""
@@ -182,7 +238,7 @@ class BluetoothTransport(Transport):
             f = self._device.status_range.get(dpcode)
         return f.dp_id if f else None
 
-    def _status_by_dp_id(self) -> dict[str, Any]:
+    def _status_by_dp_id(self) -> dict[int, Any]:
         """Return the device status keyed by dp_id (Q1 runtime key)."""
         result: dict[str, Any] = {}
         for dpcode, value in self._device.status.items():
@@ -238,15 +294,24 @@ class BluetoothTransport(Transport):
         self.dispatched_dps = self._status_by_dp_id()
         return True
 
-    async def keep_alive(self, is_gateway: bool = False) -> None:
+    def keep_alive(self, is_gateway: bool = False) -> None:
         """BLE manages its own connection lifecycle; no-op heartbeat."""
         _LOGGER.debug("BLE transport keep_alive: no-op (device manages reconnect)")
 
     async def close(self) -> None:
-        """Close the connection."""
+        """Close the connection and unregister all listeners."""
+        if self._closed:
+            return
+        self._closed = True
         if self._unregister_callback is not None:
             self._unregister_callback()
             self._unregister_callback = None
+        if self._unregister_connected_callback is not None:
+            self._unregister_connected_callback()
+            self._unregister_connected_callback = None
+        if self._unregister_disconnected_callback is not None:
+            self._unregister_disconnected_callback()
+            self._unregister_disconnected_callback = None
         await self._device.stop()
 
     async def detect_available_dps(self, cid: str | None = None) -> dict:
@@ -271,5 +336,10 @@ def create_transport(transport_type: str, **kwargs: Any) -> Transport:
     if transport_type == "ethernet":
         return EthernetTransport(kwargs["protocol"])
     if transport_type == "ble":
-        return BluetoothTransport(kwargs["device"])
+        return BluetoothTransport(
+            kwargs["device"],
+            status_listener=kwargs.get("status_listener"),
+            connected_listener=kwargs.get("connected_listener"),
+            disconnect_listener=kwargs.get("disconnect_listener"),
+        )
     raise ValueError(f"Unknown transport type: {transport_type}")

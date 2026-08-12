@@ -954,7 +954,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         node_id = self.nodeID
         device_data = self.cloud_data.device_list.get(dev_id)
         if device_data:
-            category = self.cloud_data.device_list[dev_id].get(TUYA_CATEGORY, "")
+            # Individual auto-configuration must not depend on the background
+            # options-flow task having populated cloud DP metadata already.
+            await self.cloud_data.async_get_device_functions(dev_id)
+            device_data = self.cloud_data.device_list.get(dev_id, device_data)
+            category = device_data.get(TUYA_CATEGORY, "")
 
         localtuya_data = {
             DEVICE_CLOUD_DATA: device_data,

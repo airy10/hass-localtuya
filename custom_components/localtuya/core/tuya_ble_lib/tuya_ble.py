@@ -349,17 +349,21 @@ class TuyaBLEDevice:
 
         return self._device_info is not None
 
-    def append_functions(self, function: list[dict], status_range: list[dict]) -> None:
-        if function:
-            for f in function:
-                dpcode = f.get("code")
-                if dpcode:
-                    self.function[dpcode] = TuyaBLEDeviceFunction(**f)
-                        
-            for f in status_range:
-                dpcode = f.get("code")
-                if dpcode:
-                    self.status_range[dpcode] = TuyaBLEDeviceFunction(**f)
+    def append_functions(
+        self,
+        function: list[dict] | None,
+        status_range: list[dict] | None,
+    ) -> None:
+        """Append writable and read-only cloud datapoint metadata."""
+        for f in function or []:
+            dpcode = f.get("code")
+            if dpcode:
+                self.function[dpcode] = TuyaBLEDeviceFunction(**f)
+
+        for f in status_range or []:
+            dpcode = f.get("code")
+            if dpcode:
+                self.status_range[dpcode] = TuyaBLEDeviceFunction(**f)
 
     def update_description(self, description: TuyaBLEEntityDescription | None) -> None:
         if not description:
@@ -707,7 +711,9 @@ class TuyaBLEDevice:
                         "%s: communication failed", self.address, exc_info=True
                     )
                     continue
-                except:
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
                     _LOGGER.debug("%s: unexpected error",
                                   self.address, exc_info=True)
                     continue
@@ -720,7 +726,9 @@ class TuyaBLEDevice:
                         await self._client.start_notify(
                             CHARACTERISTIC_NOTIFY, self._notification_handler
                         )
-                    except:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
                         self._client = None
                         _LOGGER.error("%s: starting notifications failed",
                                       self.address, exc_info=True)
@@ -744,7 +752,9 @@ class TuyaBLEDevice:
                                 self.address,
                             )
                             continue
-                    except:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
                         self._client = None
                         _LOGGER.error("%s: Sending device info request failed",
                                       self.address, exc_info=True)
@@ -767,7 +777,9 @@ class TuyaBLEDevice:
                                 self.address,
                             )
                             continue
-                    except:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception:  # [BLEAK_EXCEPTIONS, BleakNotFoundError]:
                         self._client = None
                         _LOGGER.error("%s: Sending pairing request failed",
                                       self.address, exc_info=True)
@@ -790,26 +802,26 @@ class TuyaBLEDevice:
             _LOGGER.error("%s: No client device", self.address)
 
     async def _reconnect(self) -> None:
-        """Attempt a reconnect"""
-        _LOGGER.debug("%s: Reconnect, ensuring connection", self.address)
-        async with self._seq_num_lock:
-            self._current_seq_num = 1
-        try:
-            if self._expected_disconnect:
+        """Attempt reconnects until shutdown or a connection succeeds."""
+        while not self._expected_disconnect:
+            _LOGGER.debug("%s: Reconnect, ensuring connection", self.address)
+            async with self._seq_num_lock:
+                self._current_seq_num = 1
+            try:
+                await self._ensure_connected()
+                if self._expected_disconnect:
+                    return
+                _LOGGER.debug("%s: Reconnect, connection ensured", self.address)
                 return
-            await self._ensure_connected()
-            if self._expected_disconnect:
-                return
-            _LOGGER.debug("%s: Reconnect, connection ensured", self.address)
-        except BLEAK_EXCEPTIONS:  # BleakNotFoundError:
-            _LOGGER.debug(
-                "%s: Reconnect, failed to ensure connection - backing off",
-                self.address,
-                exc_info=True,
-            )
-            await asyncio.sleep(BLEAK_BACKOFF_TIME)
-            _LOGGER.debug("%s: Reconnecting again", self.address)
-            asyncio.create_task(self._reconnect())
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                _LOGGER.debug(
+                    "%s: Reconnect, failed to ensure connection - backing off",
+                    self.address,
+                    exc_info=True,
+                )
+                await asyncio.sleep(BLEAK_BACKOFF_TIME)
 
     @staticmethod
     def _calc_crc16(data: bytes) -> int:
@@ -953,37 +965,42 @@ class TuyaBLEDevice:
             future = asyncio.Future()
             self._input_expected_responses[seq_num] = future
 
-        if response_to > 0:
-            _LOGGER.debug(
-                "%s: Sending packet: #%s %s in response to #%s",
-                self.address,
-                seq_num,
-                code.name,
-                response_to,
-            )
-        else:
-            _LOGGER.debug(
-                "%s: Sending packet: #%s %s",
-                self.address,
-                seq_num,
-                code.name,
-            )
-        packets: list[bytes] = self._build_packets(
-            seq_num, code, data, response_to)
-        await self._int_send_packet_while_connected(packets)
-        if future:
-            try:
-                await asyncio.wait_for(future, RESPONSE_WAIT_TIMEOUT)
-            except asyncio.TimeoutError:
-                _LOGGER.error(
-                    "%s: timeout receiving response, RSSI: %s",
+        try:
+            if response_to > 0:
+                _LOGGER.debug(
+                    "%s: Sending packet: #%s %s in response to #%s",
                     self.address,
-                    self.rssi,
+                    seq_num,
+                    code.name,
+                    response_to,
                 )
-                result = False
-            self._input_expected_responses.pop(seq_num, None)
-
-        return result
+            else:
+                _LOGGER.debug(
+                    "%s: Sending packet: #%s %s",
+                    self.address,
+                    seq_num,
+                    code.name,
+                )
+            packets: list[bytes] = self._build_packets(
+                seq_num, code, data, response_to
+            )
+            await self._int_send_packet_while_connected(packets)
+            if future:
+                try:
+                    await asyncio.wait_for(future, RESPONSE_WAIT_TIMEOUT)
+                except asyncio.TimeoutError:
+                    _LOGGER.error(
+                        "%s: timeout receiving response, RSSI: %s",
+                        self.address,
+                        self.rssi,
+                    )
+                    result = False
+            return result
+        finally:
+            if future is not None:
+                self._input_expected_responses.pop(seq_num, None)
+                if not future.done():
+                    future.cancel()
 
     async def _int_send_packet_while_connected(
         self,
@@ -1015,45 +1032,26 @@ class TuyaBLEDevice:
                 )
                 raise
 
-    async def _resend_packets(self, packets: list[bytes]) -> None:
-        if self._expected_disconnect:
-            return
-        await self._ensure_connected()
-        if self._expected_disconnect:
-            return
-        await self._int_send_packet_while_connected(packets)
-
     async def _send_packets_locked(self, packets: list[bytes]) -> None:
-        """Send command to device and read response."""
+        """Send command to device and let the reconnect loop recover failures."""
         try:
             await self._int_send_packets_locked(packets)
         except BleakDBusError as ex:
-            # Disconnect so we can reset state and try again
-            await asyncio.sleep(BLEAK_BACKOFF_TIME)
             _LOGGER.debug(
-                "%s: RSSI: %s; Backing off %ss; Disconnecting due to error: %s",
+                "%s: RSSI: %s; BLE backend communication failed: %s",
                 self.address,
                 self.rssi,
-                BLEAK_BACKOFF_TIME,
                 ex,
+                exc_info=True,
             )
-            if self._is_paired:
-                asyncio.create_task(self._resend_packets(packets))
-            else:
-                asyncio.create_task(self._reconnect())
             raise BleakError from ex
-        except BleakError as ex:
-            # Disconnect so we can reset state and try again
+        except BleakError:
             _LOGGER.debug(
-                "%s: RSSI: %s; Disconnecting due to error: %s",
+                "%s: RSSI: %s; BLE communication failed",
                 self.address,
                 self.rssi,
-                ex,
+                exc_info=True,
             )
-            if self._is_paired:
-                asyncio.create_task(self._resend_packets(packets))
-            else:
-                asyncio.create_task(self._reconnect())
             raise
 
     async def _int_send_packets_locked(self, packets: list[bytes]) -> None:
@@ -1067,7 +1065,9 @@ class TuyaBLEDevice:
                         packet,
                         False,
                     )
-                except:
+                except asyncio.CancelledError:
+                    raise
+                except BleakDBusError:
                     _LOGGER.error(
                         "%s: Error during sending packet",
                         self.address,
@@ -1075,7 +1075,16 @@ class TuyaBLEDevice:
                     )
                     if self._client and self._client.is_connected:
                         self._disconnected(self._client)
-                    raise BleakError()
+                    raise
+                except BLEAK_EXCEPTIONS as ex:
+                    _LOGGER.error(
+                        "%s: Error during sending packet",
+                        self.address,
+                        exc_info=True,
+                    )
+                    if self._client and self._client.is_connected:
+                        self._disconnected(self._client)
+                    raise BleakError from ex
             else:
                 _LOGGER.error(
                     "%s: Client disconnected during sending packet",
@@ -1276,10 +1285,11 @@ class TuyaBLEDevice:
                     response_to,
                     result,
                 )
-                if result == 0:
-                    future.set_result(result)
-                else:
-                    future.set_exception(TuyaBLEDeviceError(result))
+                if not future.done():
+                    if result == 0:
+                        future.set_result(result)
+                    else:
+                        future.set_exception(TuyaBLEDeviceError(result))
 
     def _clean_input(self) -> None:
         self._input_buffer = None

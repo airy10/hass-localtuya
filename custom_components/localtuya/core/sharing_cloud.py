@@ -339,6 +339,8 @@ class SharingCloud:
                 }
             )
             dps_data[str(dp_id)] = existing
+        if device_id in self.device_list:
+            self.device_list[device_id]["dps_data"] = dps_data
         return dps_data
 
     async def async_get_devices_dps_query(self) -> str:

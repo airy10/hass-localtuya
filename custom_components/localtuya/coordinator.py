@@ -29,11 +29,10 @@ from .core.pytuya import (
     TIMEOUT_CONNECT,
     SubdeviceState,
     TuyaListener,
-    TuyaProtocol,
     connect as pytuya_connect,
 )
 from .core.pytuya.parser import DecodeError
-from .core.transport import create_transport
+from .core.transport import Transport, create_transport
 from .core.tuya_ble_lib import TuyaBLEDevice
 
 from .const import (
@@ -86,7 +85,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self.local_key = self._device_config.local_key
 
         self._status = {}
-        self._interface: TuyaProtocol = None
+        self._interface: Transport | None = None
 
         # For SubDevices
         self.gateway: TuyaDevice = None
@@ -104,6 +103,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_connect: asyncio.Task | None = None
         self._task_reconnect: asyncio.Task | None = None
         self._task_shutdown_entities: asyncio.Task | None = None
+        self._task_ble_refresh: asyncio.Task | None = None
         self._unsub_refresh: CALLBACK_TYPE | None = None
         self._unsub_new_entity: CALLBACK_TYPE | None = None
         self._unsub_fingerbot: CALLBACK_TYPE | None = None
@@ -251,13 +251,16 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                             self._device_config.enable_debug, self.friendly_name
                         )
                 else:
-                    self._interface = await pytuya_connect(
+                    protocol = await pytuya_connect(
                         self._device_config.host,
                         self._device_config.id,
                         self.local_key,
                         float(self._device_config.protocol_version),
                         self._device_config.enable_debug,
                         self,
+                    )
+                    self._interface = create_transport(
+                        "ethernet", protocol=protocol
                     )
                     self._interface.enable_debug(
                         self._device_config.enable_debug, self.friendly_name
@@ -367,7 +370,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             if self.sub_devices:
                 asyncio.create_task(self._connect_subdevices())
 
-            self._interface.keep_alive(len(self.sub_devices) > 0)
+                self._interface.keep_alive(len(self.sub_devices) > 0)
 
         # If not connected try to handle the errors.
         if not self.connected and not self.is_closing:
@@ -412,7 +415,13 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             )
             device = TuyaBLEDevice(manager, ble_device)
             await device.initialize()
-            transport = create_transport("ble", device=device)
+            transport = create_transport(
+                "ble",
+                device=device,
+                status_listener=self.status_updated,
+                connected_listener=self._handle_ble_connected,
+                disconnect_listener=self.disconnected,
+            )
             self._unsub_fingerbot = device.register_callback(
                 self._handle_fingerbot_button
             )
@@ -420,6 +429,32 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         except Exception as ex:  # pylint: disable=broad-except
             self.warning(f"Failed to set up BLE device: {str(ex)}")
             return None
+
+    @callback
+    def _handle_ble_connected(self) -> None:
+        """Refresh status after the BLE library completes an internal reconnect."""
+        if self.is_closing or self._task_connect or self._task_ble_refresh:
+            return
+        self._task_ble_refresh = asyncio.create_task(self._async_ble_refresh())
+
+    async def _async_ble_refresh(self) -> None:
+        """Restore coordinator/entity state after a BLE reconnect."""
+        task = asyncio.current_task()
+        try:
+            if self._task_shutdown_entities is not None:
+                self._task_shutdown_entities.cancel()
+                self._task_shutdown_entities = None
+            if self._interface is not None and self.connected:
+                status = await self._interface.status(cid=self._node_id)
+                if status is not None:
+                    self.status_updated(status)
+        except asyncio.CancelledError:
+            raise
+        except Exception as ex:  # pylint: disable=broad-except
+            self.warning(f"Failed to refresh BLE status after reconnect: {ex}")
+        finally:
+            if self._task_ble_refresh is task:
+                self._task_ble_refresh = None
 
     @callback
     def _handle_fingerbot_button(self, datapoints) -> None:
@@ -468,7 +503,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         self.is_closing = True
 
-        tasks = [self._task_shutdown_entities, self._task_reconnect, self._task_connect]
+        tasks = [
+            self._task_shutdown_entities,
+            self._task_reconnect,
+            self._task_connect,
+            self._task_ble_refresh,
+        ]
         pending_tasks = [task for task in tasks if task and task.cancel()]
         await asyncio.gather(*pending_tasks, return_exceptions=True)
 
@@ -686,7 +726,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             # - We want only to update if status changed except for 1 DP trigger, for scene controls.
             if len(self._interface.dispatched_dps) == 1:
                 dp, value = next(iter(self._interface.dispatched_dps.items()))
-                data = {"dp": dp, "value": value}
+                # Keep the public event payload compatible with Ethernet/pytuya,
+                # which historically exposed DP identifiers as strings.
+                data = {"dp": str(dp), "value": value}
                 fire_event(event_device_dp_triggered, data)
             if old_status != new_status:
                 data = {"old_status": old_status, "new_status": new_status}
@@ -715,6 +757,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             return
 
         self._last_update_time = time.monotonic()
+        # Entity code historically stores DP IDs as strings. Keep that
+        # compatibility at the coordinator boundary while transports expose
+        # numeric IDs for their semantic contract.
+        status = {str(dp_id): value for dp_id, value in status.items()}
         self._handle_event(self._status, status)
         self._status.update(status)
         self._dispatch_status()
@@ -724,7 +770,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """Device disconnected."""
         if not self._interface:
             return
-        self._interface = None
+
+        # BLE owns its reconnecting client and must retain the transport so its
+        # listeners remain attached. Ethernet transports are recreated by the
+        # coordinator's reconnect loop after the protocol reports a disconnect.
+        if self._device_config.transport != TRANSPORT_BLE:
+            self._interface = None
 
         if self._unsub_refresh:
             self._unsub_refresh()
@@ -741,7 +792,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self.is_closing:
             return
 
-        if self._task_reconnect is None:
+        if (
+            self._device_config.transport != TRANSPORT_BLE
+            and self._task_reconnect is None
+        ):
             self._task_reconnect = asyncio.create_task(self._async_reconnect())
 
         if self._task_shutdown_entities is not None:
