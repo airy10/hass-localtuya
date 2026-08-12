@@ -17,6 +17,7 @@ __A Home Assistant custom Integration for local handling of Tuya-based devices._
 
 
 ## __𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬__
+- Supports both Wifi and BLE devices
 - Supported Sub-devices - `Devices that function through gateways`
 - Remote entities - `Supports IR remotes through native remote entity`
 - Auto-configure devices - `Requires a cloud API setup`
