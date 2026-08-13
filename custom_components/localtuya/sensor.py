@@ -21,6 +21,7 @@ from homeassistant.const import (
     CONF_ENTITY_CATEGORY,
     CONF_FRIENDLY_NAME,
     CONF_ID,
+    CONF_PLATFORM,
     CONF_UNIT_OF_MEASUREMENT,
     Platform,
     STATE_UNKNOWN,
