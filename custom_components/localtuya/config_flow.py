@@ -704,6 +704,27 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                     }
                     return await self.async_step_configure_device()
 
+        # IoT cloud (id/password): auto-select the device whose factory-info
+        # MAC matches the scanned BLE address (the sharing cloud matches by
+        # advertisement uuid above). Falls through to the manual picker when
+        # no match is found.
+        if isinstance(self.cloud_data, TuyaCloudApi) and ble_address:
+            macs = await self.cloud_data.async_get_devices_factory_infos(
+                list(self.cloud_data.device_list)
+            )
+            for dev_id, mac in macs.items():
+                if mac and mac.upper() == ble_address.upper():
+                    dev = self.cloud_data.device_list[dev_id]
+                    self.selected_device = dev_id
+                    self.device_data = {
+                        CONF_DEVICE_ID: dev_id,
+                        CONF_LOCAL_KEY: dev.get(CONF_LOCAL_KEY),
+                        CONF_FRIENDLY_NAME: dev.get(CONF_NAME),
+                        CONF_TRANSPORT: TRANSPORT_BLE,
+                        CONF_BLE_ADDRESS: ble_address,
+                    }
+                    return await self.async_step_configure_device()
+
         cloud = {
             v.get(CONF_NAME, d): d for d, v in self.cloud_data.device_list.items()
         }
@@ -840,7 +861,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                         ]
                         return await self.async_step_configure_entity()
 
-                valid_data = await validate_input(self.localtuya_data, user_input)
+                valid_data = await validate_input(self.hass, self.localtuya_data, user_input)
                 self.dps_strings = valid_data[CONF_DPS_STRINGS]
                 # We will also get protocol version from valid date in case auto used.
                 self.device_data[CONF_PROTOCOL_VERSION] = valid_data[
@@ -911,9 +932,18 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 defaults[CONF_BLE_ADDRESS] = self.device_data.get(
                     CONF_BLE_ADDRESS, ""
                 )
-                defaults.setdefault(CONF_DEVICE_ID, self.device_data.get(CONF_DEVICE_ID, ""))
-                defaults.setdefault(CONF_LOCAL_KEY, self.device_data.get(CONF_LOCAL_KEY, ""))
-                defaults.setdefault(CONF_FRIENDLY_NAME, self.device_data.get(CONF_FRIENDLY_NAME, ""))
+                # Prefill values captured by an upstream step (e.g.
+                # async_step_ble_cloud). setdefault() would be a no-op here
+                # because the keys above were already initialized to "".
+                defaults[CONF_DEVICE_ID] = user_in.get(CONF_DEVICE_ID) or self.device_data.get(
+                    CONF_DEVICE_ID, ""
+                )
+                defaults[CONF_LOCAL_KEY] = user_in.get(CONF_LOCAL_KEY) or self.device_data.get(
+                    CONF_LOCAL_KEY, ""
+                )
+                defaults[CONF_FRIENDLY_NAME] = user_in.get(CONF_FRIENDLY_NAME) or self.device_data.get(
+                    CONF_FRIENDLY_NAME, ""
+                )
 
             if defaults[CONF_DEVICE_ID] in [cloud_devs, self.selected_device]:
                 dev_id = defaults[CONF_DEVICE_ID]
@@ -930,7 +960,19 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
                 defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
 
-            schema = schema_suggested_values(DEVICE_SCHEMA, **defaults)
+            # The host/IP address is meaningless for BLE devices, drop the
+            # field so the user is not asked for an address the device lacks.
+            device_schema = DEVICE_SCHEMA
+            if defaults.get(CONF_TRANSPORT) == TRANSPORT_BLE:
+                device_schema = vol.Schema(
+                    {
+                        field: field_type
+                        for field, field_type in DEVICE_SCHEMA.schema.items()
+                        if field.schema != CONF_HOST
+                    }
+                )
+
+            schema = schema_suggested_values(device_schema, **defaults)
 
             placeholders["for_device"] = ""
 
@@ -1256,7 +1298,7 @@ async def setup_localtuya_devices(
             devices_cfg.append(device_data)
 
     # Connect to the devices to ensure the are usable.
-    validate_devices = [validate_input(localtuya_data, dev) for dev in devices_cfg]
+    validate_devices = [validate_input(hass, localtuya_data, dev) for dev in devices_cfg]
     results = await asyncio.gather(*validate_devices, return_exceptions=True)
 
     # Merge test results with devices config
@@ -1513,7 +1555,65 @@ def flow_schema(platform, dps_strings):
     return import_module("." + platform, integration_module).flow_schema(dps_strings)
 
 
-async def validate_input(entry_runtime: HassLocalTuyaData, data):
+async def detect_ble_dps(
+    hass: HomeAssistant, entry_runtime: HassLocalTuyaData, data: dict
+) -> dict:
+    """Return the DP ids currently reported by a Tuya BLE device.
+
+    Connects to the device and requests a status update, mirroring the runtime
+    ``BluetoothTransport.status`` path. Returns ``{}`` when the address is
+    missing, the device is out of range, or pairing fails, so callers fall
+    back to cloud DP data.
+    """
+    from homeassistant.components import bluetooth
+
+    from bleak_retry_connector import get_device
+
+    from .core.ble_manager import TuyaBLEDeviceManager
+    from .core.tuya_ble_lib import TuyaBLEDevice
+
+    address = data.get(CONF_BLE_ADDRESS)
+    if not address:
+        return {}
+    device = None
+    try:
+        ble_device = bluetooth.async_ble_device_from_address(
+            hass, address.upper(), True
+        ) or await get_device(address)
+        if ble_device is None:
+            _LOGGER.debug("BLE DP detection: device %s not found", address)
+            return {}
+        manager = TuyaBLEDeviceManager(
+            hass,
+            entry_runtime.cloud_data,
+            data[CONF_DEVICE_ID],
+            data.get(CONF_LOCAL_KEY),
+        )
+        device = TuyaBLEDevice(manager, ble_device)
+        async with asyncio.timeout(20):
+            await device.initialize()
+            await device.update()
+        # Datapoints are keyed by numeric dp_id from the wire, so detection
+        # works even when the cloud has no functions/status metadata.
+        detected = {
+            dp_id: dp.value for dp_id, dp in device.datapoints._datapoints.items()
+        }
+        _LOGGER.debug("BLE DP detection for %s: %s", address, detected)
+        return detected
+    except Exception as ex:  # pylint: disable=broad-except
+        _LOGGER.debug("BLE DP detection failed for %s: %s", address, ex)
+        return {}
+    finally:
+        if device is not None:
+            try:
+                await device.stop()
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.debug("BLE DP detection: failed to stop device", exc_info=True)
+
+
+async def validate_input(
+    hass: HomeAssistant, entry_runtime: HassLocalTuyaData, data
+):
     """Validate the user input allows us to connect."""
     logger = pytuya.ContextualLogger()
     logger.set_logger(_LOGGER, data[CONF_DEVICE_ID], True, data[CONF_FRIENDLY_NAME])
@@ -1534,11 +1634,13 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
         # If sub device we will search if gateway is existed if not create new connection.
         if data.get(CONF_TRANSPORT) == TRANSPORT_BLE:
             # BLE devices cannot connect via the gateway. Bypass the
-            # connection loop and rely on cloud DP details for detected_dps
-            # (cloud is required for BLE).
+            # connection loop: try to read the datapoints directly from the
+            # device (when in range) and fall back to cloud DP details.
             interface = None
             close = False
             bypass_handshake = True
+            if not detected_dps:
+                detected_dps = await detect_ble_dps(hass, entry_runtime, data)
         elif (
             cid
             and (existed_interface := localtuya_devices.get(data[CONF_HOST]))

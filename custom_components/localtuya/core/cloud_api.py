@@ -276,10 +276,48 @@ class TuyaCloudApi:
         if not result:
             return {}, "Error: no factory info for device"
 
-        mac = result[0].get("mac", "")
-        if mac:
-            mac = ":".join(mac[i : i + 2] for i in range(0, 12, 2)).upper()
+        mac = self._format_factory_mac(result[0].get("mac", ""))
         return mac, "ok"
+
+    async def async_get_devices_factory_infos(self, device_ids: list[str]) -> dict[str, str]:
+        """Return {device_id: mac} for a batch of devices (fewer API calls).
+
+        Used to auto-match a discovered BLE address to its cloud device;
+        ``async_get_device_factory_infos`` covers the single-device case.
+        """
+        macs: dict[str, str] = {}
+        for chunk in (
+            device_ids[i : i + 20] for i in range(0, len(device_ids), 20)
+        ):
+            if not (
+                resp := await self.async_make_request(
+                    "GET",
+                    url=f"/v1.0/iot-03/devices/factory-infos?device_ids={','.join(chunk)}",
+                )
+            ):
+                self._logger.debug("Failed to retrieve device factory infos")
+                continue
+            if not resp["success"]:
+                self._logger.debug(
+                    "Failed to retrieve device factory infos: %s %s",
+                    resp.get("code"),
+                    resp.get("msg"),
+                )
+                continue
+            for item in resp.get("result") or []:
+                dev_id = item.get("device_id") or item.get("id")
+                mac = item.get("mac", "")
+                if dev_id and mac:
+                    macs[dev_id] = self._format_factory_mac(mac)
+        return macs
+
+    @staticmethod
+    def _format_factory_mac(mac: str) -> str:
+        """Normalize a factory-info MAC to the ``AA:BB:CC:DD:EE:FF`` form."""
+        mac = mac.strip().upper()
+        if ":" not in mac and len(mac) == 12:
+            mac = ":".join(mac[i : i + 2] for i in range(0, 12, 2))
+        return mac
 
     async def async_get_device_query_properties(self, device_id) -> dict[dict, str]:
         """Obtain the DP ID mappings for a device correctly! Note: This won't works if the subscription expired."""
