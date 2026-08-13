@@ -24,6 +24,7 @@ from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     CONF_BRIGHTNESS_LOWER,
     CONF_BRIGHTNESS_UPPER,
@@ -54,12 +55,8 @@ MODE_COLOR = "colour"
 MODE_MUSIC = "music"
 MODE_SCENE = "scene"
 MODE_WHITE = "white"
-# Alternate work_mode values used by some music-light firmware.
+# Fallback music work_mode values when no cloud spec is available.
 MODE_MUSIC_ALIASES = ("dynamic_mod",)
-
-# Some BLE music-light firmware reports the cloud work_mode string with the
-# US spelling "color" instead of localtuya's canonical "colour".
-MODE_COLOR_ALIASES = ("color",)
 
 SCENE_MUSIC = "Music"
 
@@ -289,6 +286,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             self._config.get(CONF_COLOR_TYPE_DATA)
         )
         self._modes = MAP_MODE_SET[int(self._config.get(CONF_COLOR_MODE_SET, 0))]
+        self._work_mode_range: list[str] | None = None
         self._hs = None
         self._effect = None
         self._effect_list = []
@@ -346,6 +344,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if self._color_type_data is None:
                 if (spec := self._device.color_data_spec) and "h" in spec:
                     self._color_type_data = ColorTypeData.from_config(spec)
+
+        if self.has_config(CONF_COLOR_MODE):
+            if (wrapper := dp_wrapper_by_id(
+                self._device, self._config.get(CONF_COLOR_MODE)
+            )) and getattr(wrapper, "options", None):
+                self._work_mode_range = wrapper.options
 
         if is_write_only and self._cached_status:
             self._status.update(self._cached_status)
@@ -460,10 +464,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     @property
     def is_color_mode(self):
-        """Return true if the light is in color mode."""
+        """Return true if the light is in color mode.
+
+        Mirrors the reference component's model: any work_mode that is not
+        white, scene or music is treated as color (so US spelling "color"
+        and "colour" both classify without alias tables).
+        """
         color_mode = self.__get_color_mode()
-        return color_mode is not None and (
-            color_mode == self._modes.color or color_mode in MODE_COLOR_ALIASES
+        return color_mode is not None and not (
+            self.is_white_mode or self.is_scene_mode or self.is_music_mode
         )
 
     @property
@@ -479,9 +488,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_music_mode(self):
         """Return true if the light is in music mode."""
         color_mode = self.__get_color_mode()
-        return color_mode is not None and (
-            color_mode == self._modes.music or color_mode in MODE_MUSIC_ALIASES
-        )
+        if color_mode is None:
+            return False
+        if color_mode == self._modes.music:
+            return True
+        if self._work_mode_range is not None:
+            # Cloud-derived: music is any work_mode value named for music.
+            return "music" in str(color_mode) or "dynamic" in str(color_mode)
+        return color_mode in MODE_MUSIC_ALIASES
 
     @property
     def color_mode(self) -> ColorMode:

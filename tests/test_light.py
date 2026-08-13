@@ -1,6 +1,10 @@
 """Test for localtuya."""
 
+from unittest.mock import PropertyMock, patch
+
 from . import *
+from custom_components.localtuya import coordinator
+from custom_components.localtuya.const import DPType
 from custom_components.localtuya.light import (
     LocalTuyaLight,
     DOMAIN as PLATFORM_DOMAIN,
@@ -82,3 +86,37 @@ async def test_light():
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
+
+
+async def test_work_mode_cloud_derivation():
+    """US "color" and "dynamic_mod" work_mode values classify via cloud range."""
+    with patch.object(
+        coordinator.TuyaDevice,
+        "status_range",
+        new_callable=PropertyMock,
+        return_value={
+            "work_mode": {
+                "type": DPType.ENUM,
+                "values": {"0": "color", "1": "dynamic_mod", "2": "scene_mod"},
+                "dp_id": 21,
+            }
+        },
+    ):
+        device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaLight)
+    entities: list[LocalTuyaLight] = get_entites(device)
+
+    assert len(entities) > 0
+    entity_1, *_ = entities
+
+    device.status_updated({"21": "color"})
+    assert entity_1.is_color_mode
+    assert not entity_1.is_music_mode
+    assert not entity_1.is_white_mode
+
+    device.status_updated({"21": "dynamic_mod"})
+    assert entity_1.is_music_mode
+    assert not entity_1.is_color_mode
+
+    device.status_updated({"21": "scene_mod"})
+    assert entity_1.is_scene_mode
+    assert not entity_1.is_color_mode
