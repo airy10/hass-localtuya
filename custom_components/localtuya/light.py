@@ -340,6 +340,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 self.__to_color = self.__to_color_common
                 self.__from_color = self.__from_color_common
 
+            # Like the reference component, derive the HSV color type from the
+            # cloud colour_data spec (per-channel min/max) so hue/sat remapping
+            # adapts to the device's actual ranges (e.g. a 0-100 hue strip).
+            if self._color_type_data is None:
+                if (spec := self._device.color_data_spec) and "h" in spec:
+                    self._color_type_data = ColorTypeData.from_config(spec)
+
         if is_write_only and self._cached_status:
             self._status.update(self._cached_status)
 
@@ -544,27 +551,37 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     def __to_color_v2(self, hs, brightness):
         # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-9-colour_data_v2
-        return "{:04x}{:04x}{:04x}".format(
-            round(hs[0]), round(hs[1] * 10.0), brightness
-        )
+        if self._color_type_data:
+            h = self._color_type_data.remap_h_from(hs[0])
+            s = self._color_type_data.remap_s_from(hs[1])
+        else:
+            h = round(hs[0])
+            s = round(hs[1] * 10.0)
+        return "{:04x}{:04x}{:04x}".format(h, s, brightness)
 
     def __to_color_common(self, hs, brightness):
         """Converts HSB values to a string."""
         if self.__is_color_rgb_encoded():
-            # Not documented format
+            # Not documented format.
+            # Known defect (shared with the reference component): the s/v
+            # fields are 2-hex-digit wide but can exceed 255 when remapped to
+            # a 0-1000 cloud range, producing a >14-char string that the
+            # decoder mis-parses.
             rgb = color_util.color_hsv_to_RGB(
                 hs[0], hs[1], int(brightness * 100 / self._upper_brightness)
             )
             if self._color_type_data:
                 h = self._color_type_data.remap_h_from(hs[0])
+                s = self._color_type_data.remap_s_from(hs[1])
             else:
                 h = round(hs[0])
+                s = round(hs[1] * 255 / 100)
             return "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
                 round(rgb[0]),
                 round(rgb[1]),
                 round(rgb[2]),
                 h,
-                round(hs[1] * 255 / 100),
+                s,
                 brightness,
             )
         else:
@@ -588,7 +605,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def __from_color_v2(self, color):
         # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-9-colour_data_v2
         hue, sat, value = [int(value, 16) for value in textwrap.wrap(color, 4)]
-        self._hs = [hue, sat / 10.0]
+        if self._color_type_data:
+            self._hs = [
+                self._color_type_data.remap_h_to(hue),
+                self._color_type_data.remap_s_to(sat),
+            ]
+        else:
+            self._hs = [hue, sat / 10.0]
         self._brightness = value
 
     def __from_color_common(self, color: str):
@@ -600,7 +623,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if self._color_type_data:
                 self._hs = [
                     self._color_type_data.remap_h_to(hue),
-                    (sat * 100 / 255),
+                    self._color_type_data.remap_s_to(sat),
                 ]
             else:
                 self._hs = [hue, (sat * 100 / 255)]

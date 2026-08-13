@@ -3,6 +3,7 @@
 from __future__ import annotations
 import asyncio
 import errno
+import json
 import logging
 import time
 from datetime import timedelta
@@ -149,6 +150,44 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """Return the wrapped TuyaBLEDevice for BLE transports, else None."""
         if self._interface is not None and self._device_config.transport == TRANSPORT_BLE:
             return self._interface.ble_device
+        return None
+
+    @property
+    def color_data_spec(self) -> dict | None:
+        """Return the cloud h/s/v spec for the device's colour_data dp, if known.
+
+        The reference component reads the ``colour_data`` function spec from the
+        cloud (``{"h": {...}, "s": {...}, "v": {...}}`` with per-channel
+        min/max) and derives its color type from it, which adapts hue/sat
+        remapping to the device's actual ranges (e.g. a 0-100 hue strip).
+        BLE devices expose that spec in the cloud-fetched function/status_range
+        metadata; Ethernet devices keep it in the cloud dps data.
+        """
+        colour_code = ("colour_data", "colour_data_v2", "colour_data_v1")
+        if ble := self.ble_device:
+            for f in (*ble.function.values(), *ble.status_range.values()):
+                if f.code not in colour_code:
+                    continue
+                if isinstance(f.values, dict) and "h" in f.values:
+                    return f.values
+        # Ethernet: cloud dps_data holds the same type spec (JSON string).
+        try:
+            dps_data = self._hass_entry.cloud_data.device_list.get(
+                self.id, {}
+            ).get("dps_data", {})
+        except AttributeError:
+            return None
+        for dp_data in dps_data.values():
+            if not dp_data:
+                continue
+            values = dp_data.get("values")
+            if isinstance(values, str):
+                try:
+                    values = json.loads(values)
+                except (TypeError, ValueError):
+                    continue
+            if isinstance(values, dict) and "h" in values:
+                return values
         return None
 
     @property

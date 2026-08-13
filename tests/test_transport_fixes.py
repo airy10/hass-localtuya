@@ -403,3 +403,81 @@ def test_white_mode_supported_derived_from_work_mode_values():
     )
     assert _bare_tuya_device(TRANSPORT_BLE).white_mode_supported is True
     assert _bare_tuya_device(TRANSPORT_ETHERNET).white_mode_supported is True
+
+
+def test_color_data_spec_derived_from_ble_function():
+    device = _bare_tuya_device(
+        TRANSPORT_BLE,
+        [
+            {
+                "code": "colour_data",
+                "dp_id": 5,
+                "type": DPType.STRING,
+                "values": {
+                    "h": {"min": 0, "max": 360, "scale": 0, "step": 1},
+                    "s": {"min": 0, "max": 1000, "scale": 0, "step": 1},
+                    "v": {"min": 0, "max": 1000, "scale": 0, "step": 1},
+                },
+            }
+        ],
+    )
+
+    spec = device.color_data_spec
+    assert spec is not None
+    assert spec["h"]["max"] == 360
+    assert spec["s"]["max"] == 1000
+
+
+def test_color_data_spec_from_ethernet_cloud_dps_data():
+    tuya_device = object.__new__(TuyaDevice)
+    tuya_device._device_config = SimpleNamespace(transport=TRANSPORT_ETHERNET)
+    tuya_device._interface = None
+    tuya_device.id = "device_id"
+    tuya_device._hass_entry = SimpleNamespace(
+        cloud_data=SimpleNamespace(
+            device_list={
+                "device_id": {
+                    "dps_data": {
+                        "5": {
+                            "code": "colour_data",
+                            "values": (
+                                '{"h": {"min": 0, "max": 360},'
+                                ' "s": {"min": 0, "max": 1000},'
+                                ' "v": {"min": 0, "max": 1000}}'
+                            ),
+                        }
+                    }
+                }
+            }
+        )
+    )
+
+    spec = tuya_device.color_data_spec
+    assert spec is not None
+    assert spec["h"]["max"] == 360
+    assert spec["v"]["max"] == 1000
+
+
+def test_color_type_data_remaps_hue_from_cloud_spec():
+    from custom_components.localtuya.light import ColorTypeData
+
+    color_type = ColorTypeData.from_config(
+        {"h": {"min": 0, "max": 100}, "s": {"min": 0, "max": 1000}}
+    )
+    assert color_type is not None
+
+    # HA hue 240 (0-360) maps into the device's 0-100 hue range.
+    assert color_type.remap_h_from(240) == 67
+    # Hue 90 maps cleanly in both directions (round-trip stable).
+    assert color_type.remap_h_from(90) == 25
+    assert color_type.remap_h_to(25) == 90
+    # Full saturation maps to the device's 0-1000 range and back.
+    assert color_type.remap_s_from(100) == 1000
+    assert color_type.remap_s_to(1000) == 100
+
+    # Default ranges (user's strip) are identity on the v2 wire format.
+    default_type = ColorTypeData.from_config(
+        {"h": {"min": 0, "max": 360}, "s": {"min": 0, "max": 1000}}
+    )
+    assert default_type.remap_h_from(240) == 240
+    assert default_type.remap_s_from(50) == 500

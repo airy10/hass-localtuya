@@ -404,8 +404,7 @@ class TuyaBLEDevice:
         self.append_functions(description.function, description.status_range)
 
         if description.values_overrides:
-            for key in description.values_overrides:
-                values = description.values_overrides.values
+            for key, values in description.values_overrides.items():
                 if f := self.function.get(key):
                     f.values = values
 
@@ -413,12 +412,13 @@ class TuyaBLEDevice:
                     f.values = values
 
         if description.values_defaults:
-            for key in description.values_defaults:
-                values = description.values_defaults.values
-                if f := self.function.get(key) and not f.values:
+            for key, values in description.values_defaults.items():
+                f = self.function.get(key)
+                if f and not f.values:
                     f.values = values
 
-                if f := self.status_range.get(key) and not f.values:
+                f = self.status_range.get(key)
+                if f and not f.values:
                     f.values = values
 
         for f in (*self.function.values(), *self.status_range.values()):
