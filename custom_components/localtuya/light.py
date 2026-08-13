@@ -455,7 +455,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_scene_mode(self):
         """Return true if the light is in scene mode."""
         color_mode = self.__get_color_mode()
-        return color_mode is not None and color_mode.startswith(self._modes.scene)
+        return (
+            isinstance(color_mode, str)
+            and color_mode.startswith(self._modes.scene)
+        )
 
     @property
     def is_music_mode(self):

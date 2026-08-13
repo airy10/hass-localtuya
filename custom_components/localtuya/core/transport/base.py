@@ -283,9 +283,10 @@ class BluetoothTransport(Transport):
         """Set values for a set of datapoints."""
         for dp_id, value in dps.items():
             dp_id = int(dp_id)
-            dp = self._device.datapoints.get_or_create(
-                dp_id, self._datapoint_type_for_id(dp_id), value
-            )
+            dp_type = self._datapoint_type_for_id(dp_id)
+            if dp_type == TuyaBLEDataPointType.DT_ENUM and isinstance(value, str):
+                value = self._device._enum_index_for_id(dp_id, value)
+            dp = self._device.datapoints.get_or_create(dp_id, dp_type, value)
             await dp.set_value(value)
 
     async def update_dps(self, dps=None, cid: str | None = None) -> bool:
