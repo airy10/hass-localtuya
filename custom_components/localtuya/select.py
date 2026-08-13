@@ -16,6 +16,7 @@ from .const import (
     CONF_RESTORE_ON_RECONNECT,
     DictSelector,
 )
+from .core.dp_wrappers import dp_wrapper_by_id
 
 
 def flow_schema(dps):
@@ -56,6 +57,12 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
                 + "where each line follows the structure [device_value: friendly name]"
             )
             config_options = {}
+        if not config_options:
+            # Cloud spec (core enum range) as default options source.
+            if (wrapper := dp_wrapper_by_id(self._device, self._dp_id)) and getattr(
+                wrapper, "options", None
+            ):
+                config_options = {opt: opt for opt in wrapper.options}
         for k, v in config_options.items():
             options[k] = str(v) if v else k.replace("_", "").capitalize()
 

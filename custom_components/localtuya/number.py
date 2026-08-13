@@ -22,6 +22,7 @@ from .const import (
     CONF_SCALING,
     CONF_STEPSIZE,
 )
+from .core.dp_wrappers import dp_wrapper_by_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,11 +73,26 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
 
-        self._min_value = self.scale(self._config.get(CONF_MIN_VALUE, DEFAULT_MIN))
-        self._max_value = self.scale(self._config.get(CONF_MAX_VALUE, DEFAULT_MAX))
-        self._step_size = self.scale(
-            self._config.get(CONF_STEPSIZE, DEFAULT_STEP), scale_only=True
-        )
+        wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+
+        if CONF_MIN_VALUE in self._config:
+            self._min_value = self.scale(self._config[CONF_MIN_VALUE])
+        else:
+            self._min_value = wrapper.min_value if wrapper else self.scale(DEFAULT_MIN)
+        if CONF_MAX_VALUE in self._config:
+            self._max_value = self.scale(self._config[CONF_MAX_VALUE])
+        else:
+            self._max_value = wrapper.max_value if wrapper else self.scale(DEFAULT_MAX)
+        if CONF_STEPSIZE in self._config:
+            self._step_size = self.scale(
+                self._config[CONF_STEPSIZE], scale_only=True
+            )
+        else:
+            self._step_size = (
+                wrapper.value_step
+                if wrapper
+                else self.scale(DEFAULT_STEP, scale_only=True)
+            )
 
         # Override standard default value handling to cast to a float
         default_value = self._config.get(CONF_DEFAULT_VALUE)

@@ -1,7 +1,9 @@
 """Test for localtuya."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, PropertyMock, patch
 from . import *
+from custom_components.localtuya import coordinator
+from custom_components.localtuya.const import DPType
 from custom_components.localtuya.number import (
     LocalTuyaNumber,
     DOMAIN as PLATFORM_DOMAIN,
@@ -91,3 +93,33 @@ async def test_scaling_and_offset():
     device.set_dp.reset_mock()
     await entity_1.async_set_native_value(20.0)
     device.set_dp.assert_called_once_with(100, "2")
+
+
+async def test_cloud_bounds_fallback():
+    """Unset min/max/step fall back to the cloud spec bounds (already scaled)."""
+    with patch.object(
+        coordinator.TuyaDevice,
+        "status_range",
+        new_callable=PropertyMock,
+        return_value={
+            "brightness": {
+                "type": DPType.INTEGER,
+                "values": {"min": 0, "max": 1000, "scale": 1, "step": 10},
+                "dp_id": 1,
+            }
+        },
+    ):
+        device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entities: list[LocalTuyaNumber] = get_entites(device)
+
+    assert len(entities) > 0
+    entity_1, *_ = entities
+    # Cloud spec scale=1 → bounds divided by 10, and NOT re-scaled by user scaling.
+    assert entity_1.native_min_value == 0.0
+    assert entity_1.native_max_value == 100.0
+    assert entity_1.native_step == 1.0
+
+    device.set_dp = AsyncMock()
+    await entity_1.async_set_native_value(50.0)
+    # Write path still uses user scaling (0.01) until migrated in a later phase.
+    device.set_dp.assert_called_once_with(5000, "1")
