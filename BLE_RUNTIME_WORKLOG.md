@@ -28,7 +28,7 @@ verification** of the white fix (§7).
 |---|---|
 | Branch | `ble-qrcode-auth` (head of the runtime work) |
 | Remote | `https://github.com/airy10/hass-localtuya.git` |
-| Session commits (newest first) | `white-fix` (BLE white via colour_data s=0, next commit); `MODE_COLOR_ALIASES` fix (US/UK color spelling); `9696311` work_mode fallback; `061721a` JSON→DT_STRING; `f3e21a3` range enums + music alias; `189b0bb` color_mode fix; `bddd03d` Raw/Bitmap hex; `f2c1c8c` enum int→string; `c4a46ae`; `3c651ab`; `0d072bf` |
+| Session commits (newest first) | `capability refactor` (white_mode_supported on TuyaDevice, no transport checks in light.py, next commit); `a796047` BLE white via colour_data s=0; `10ec910` MODE_COLOR_ALIASES (US "color"); `9696311` work_mode fallback; `061721a` JSON→DT_STRING; `f3e21a3` range enums + music alias; `189b0bb` color_mode fix; `bddd03d` Raw/Bitmap hex; `f2c1c8c` enum int→string; `c4a46ae`; `3c651ab`; `0d072bf` |
 | Working tree | Clean after last commit |
 
 The older `BLE_TRANSPORT_REVIEW_FIX_PLAN.md` and `STATUS.md` describe the *other* branch
@@ -118,6 +118,7 @@ This is the ground truth the fixes were derived from:
 | `9696311` | `WORK_MODE_FALLBACK = ("colour", "dynamic_mod", "scene_mod", "music")` used when cloud `values` empty for a `work_mode`-coded dp; `"white"` maps to `0`. Added regression tests (`test_ble_work_mode_fallback_maps_enum_when_cloud_values_empty`, `test_ble_enum_mapping_uses_cloud_values_when_present`) |
 | *next* | **`MODE_COLOR_ALIASES = ("color",)`** in `light.py` (`is_color_mode` accepts the US spelling) → `is_color_mode` True → brightness goes to `colour_data.v` instead of dead `bright_value`; plus a one-time debug dump of enum cloud values in `tuya_ble.update_description` (`_LOGGED_ENUM_VALUES`) to capture the real `work_mode` spec |
 | *next* | **BLE white fix**: `light.py` — when BLE (`self._device._device_config.transport == TRANSPORT_BLE`), white via wheel center (`hs[1]==0`) or the WHITE color-mode button (`ATTR_WHITE`) writes `colour_data` with s=0 and stays in colour mode, instead of the dead `bright_value` + "white" mode path (which is correct for Ethernet). Mirrors the reference (these strips have no white mode; white = colour_data s=0) |
+| *next* | **Capability refactor** (user: "transport-related coding in the light component is weird"): moved the white decision out of `light.py` into a semantic device capability `TuyaDevice.white_mode_supported` (coordinator.py). Derives from the BLE device's effective work_mode enum values (cloud values, else WORK_MODE_FALLBACK which has no white); Ethernet always True. `light.py`: WHITE advertised only if `white_mode_supported`, and the s==0 shortcut gated on it — otherwise `colour_data` s=0 (white). No `TRANSPORT_BLE`/`_is_ble` in light.py. Test added (`test_white_mode_supported_derived_from_work_mode_values`), 40 passed |
 
 ## 5b. Open issue: saturation stuck at max on the strip
 
@@ -159,7 +160,11 @@ PYTHONPATH="<repo>:<repo>/custom_components:/Users/airy/Sources/Others/homeassis
    strip should go white (if the device special-cases s=0); (b) brightness slider still works;
    (c) log should show `Sending datapoint update, id: 5, type: DT_STRING: value: 00000000XXXX`
    for white, and the new one-time line `enum dp 2 (work_mode) cloud values: {...}` — grab that
-   dict, it reveals the full mode spec (music/scene/white strings).
+   dict, it reveals the full mode spec (music/scene/white strings). NOTE: `white_mode_supported`
+   derives from those values — if the dump shows NO "white" (expected for nvfrtxlq), white
+   routes to colour_data s=0 correctly; if it DOES show "white", the white-mode path activates
+   and may still be broken (reference overrides work_mode for this product to exclude white).
+   In that case hardcode the exclusion per-product (reference-style).
 2. **Color matching vs reference**: our v2 encoding is near-identical to the reference's
    (h 0-360/s 0-1000/v 0-1000; reference remaps 0-360→1-360, 0-100→1-1000, 0-255→1-1000).
    The perceived "much better matching" on the reference is attributed to its white path

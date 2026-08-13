@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from bleak_retry_connector import BleakError
 
-from custom_components.localtuya.const import DPType
+from custom_components.localtuya.const import DPType, TRANSPORT_BLE, TRANSPORT_ETHERNET
 from custom_components.localtuya.coordinator import TuyaDevice
 from custom_components.localtuya.core.sharing_cloud import SharingCloud
 from custom_components.localtuya.core.transport import (
@@ -336,3 +336,70 @@ async def test_tuya_device_refreshes_after_ble_reconnect(monkeypatch):
     assert device._interface.status.await_count == 2
     assert device.status_updated.call_count == 2
     device.status_updated.assert_called_with({1: True})
+
+
+def _bare_tuya_device(transport, functions=None):
+    """Build a TuyaDevice skeleton wired to a BLE device with the given specs."""
+    tuya_device = object.__new__(TuyaDevice)
+    tuya_device._device_config = SimpleNamespace(transport=transport)
+    if transport == TRANSPORT_BLE:
+        ble = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+        ble.append_functions(functions or [], [])
+        tuya_device._interface = SimpleNamespace(ble_device=ble)
+    else:
+        tuya_device._interface = None
+    return tuya_device
+
+
+def test_white_mode_supported_derived_from_work_mode_values():
+    assert (
+        _bare_tuya_device(
+            TRANSPORT_BLE,
+            [
+                {
+                    "code": "work_mode",
+                    "dp_id": 2,
+                    "type": DPType.ENUM,
+                    "values": {"0": "color", "1": "music", "2": "scene"},
+                }
+            ],
+        ).white_mode_supported
+        is False
+    )
+
+    assert (
+        _bare_tuya_device(
+            TRANSPORT_BLE,
+            [
+                {
+                    "code": "work_mode",
+                    "dp_id": 2,
+                    "type": DPType.ENUM,
+                    "values": {
+                        "0": "color",
+                        "1": "music",
+                        "2": "scene",
+                        "3": "white",
+                    },
+                }
+            ],
+        ).white_mode_supported
+        is True
+    )
+
+    assert (
+        _bare_tuya_device(
+            TRANSPORT_BLE,
+            [
+                {
+                    "code": "work_mode",
+                    "dp_id": 2,
+                    "type": DPType.ENUM,
+                    "values": {},
+                }
+            ],
+        ).white_mode_supported
+        is False
+    )
+    assert _bare_tuya_device(TRANSPORT_BLE).white_mode_supported is True
+    assert _bare_tuya_device(TRANSPORT_ETHERNET).white_mode_supported is True

@@ -49,6 +49,7 @@ from .const import (
     FINGERBOT_SWITCH_DP,
     RESTORE_STATES,
     TRANSPORT_BLE,
+    DPType,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -149,6 +150,33 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._interface is not None and self._device_config.transport == TRANSPORT_BLE:
             return self._interface.ble_device
         return None
+
+    @property
+    def white_mode_supported(self) -> bool:
+        """Return True when the device exposes a white work_mode.
+
+        BLE music-light strips typically have no dedicated white mode
+        (white is expressed via colour_data saturation 0), so this derives
+        from the device's effective work_mode enum values. Ethernet devices
+        always expose one.
+        """
+        ble = self.ble_device
+        if ble is None:
+            return True
+        for f in (*ble.function.values(), *ble.status_range.values()):
+            if f.type == DPType.ENUM and f.code in ("work_mode", "mode"):
+                if not f.values:
+                    return False
+                if isinstance(f.values, dict):
+                    candidates = list(f.values.values())
+                    if isinstance(f.values.get("range"), list):
+                        candidates.extend(f.values["range"])
+                elif isinstance(f.values, list):
+                    candidates = f.values
+                else:
+                    return True
+                return any("white" in str(v).lower() for v in candidates)
+        return True
 
     @property
     def is_connecting(self):
