@@ -1,7 +1,9 @@
 # Architecture Alignment: LocalTuya-unified vs HA Core Tuya
 
 > **Goal**: make our entity-type logic (light, switch, select, number, sensor, ...) as close as
-> possible to the HA core `tuya` integration — only the *transport* differs
+> possible to the HA core `tuya` integration — including the **entity class implementations**
+> (`switch.py`, `light.py`, ...): thin classes delegating to a shared capability layer, with
+> config-flow construction preserved as our differentiator. Only the *transport* differs
 > (we talk to devices over BLE/Ethernet, core talks to the cloud over MQTT).
 >
 > This document inventories both architectures, identifies the gaps, and proposes the
@@ -43,6 +45,7 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
 | Diagnostics | Entry + device, `customer_device_as_dict` (function/status_range/status/local_strategy/quirk), redaction | Entry + device, obfuscation, `cloud_devices` + `Discovered_Devices` (`diagnostics.py:33,64`) |
 | Platforms | 18: alarm_control_panel, binary_sensor, button, camera, climate, cover, **event**, fan, humidifier, light, number, **scene**, select, sensor, siren, switch, vacuum, **valve** | 18: alarm_control_panel, binary_sensor, button, climate, cover, fan, humidifier, light, lock, number, remote, select, sensor, siren, switch, text, vacuum, water_heater. **No camera / event / scene / valve; has extra lock / remote / text / water_heater** |
 | Entity base | `TuyaEntity` (`entity.py:15-109`): unique_id `tuya.{device.id}{desc.key}`, `available = device.online`, has_entity_name | `LocalTuyaEntity` (`entity.py:175+`): RestoreEntity + ContextualLogger, config-driven `_dp_id`, per-DP getter/setter/is_available |
+| Entity classes | **Thin delegators** over `definition.X_wrapper` (e.g. `switch.py:954-997`: is_on/turn_on/_process_update all go through wrapper) | **Thick config-driven** classes touching raw DPs (`switch.py:50-151`: getter/setter/bitmap branching + `set_dp`) — target: wrapper-delegating bodies with config as construction source |
 | Device registry link | `get_device_info()` (`util.py:66-92`): identifiers `(tuya, device.id)`, manufacturer/model/model_id | `device_info` (`entity.py:278-297`): identifiers `(localtuya, local_{id})`, model = config model |
 | Quirks | `TUYA_QUIRKS_REGISTRY` keyed by product_id (`tuya_device_handlers/registry.py`) | **None** — hardcoded per-product tables in `mappings.py` (only 3 categories) |
 
@@ -113,21 +116,58 @@ Port the `tuya_device_handlers` model into our `core/` as a transport-agnostic l
   differences; keep the extra BLE-specific codes like `COLOUR_DATA_RAW`, `SCENE_DATA_RAW`).
 - Replace free-string category keys in `ha_entities/*.py` tables with `DeviceCategory` members.
 
-### Phase 3 — Entity logic parity
+### Phase 3 — Entity class & logic parity
 
-For each platform, move capability handling into the wrappers:
+**Yes — the plan targets class-type implementation parity** (`switch.py`, `light.py`, ...):
+core's entity classes are *thin delegators* over a capability wrapper, ours are *thick,
+config-driven* classes that touch raw DPs. The goal is class bodies whose read/write/update
+flow delegates to wrappers exactly like core, while **keeping our config-driven construction
+path** (manual DP mapping is our value-add — offline, BLE, arbitrary devices).
 
-- **number**: use `IntegerTypeInformation` min/max/step/scale instead of manual
-  `min_value/max_value/step_size` config only.
-- **select**: derive `options` from `EnumWrapper.range` when `CONF_OPTIONS` empty (cloud
-  fallback, exactly like core `DPCodeEnumWrapper.options`).
-- **switch/binary_sensor**: gate availability on spec presence; adopt `skip_update` on
-  echoes (`dp_timestamps`).
-- **light**: already partially aligned (`color_data_spec`, `white_mode_supported`); move the
-  remaining hardcoded mode tables (`MODES_SET`, `MODE_COLOR_ALIASES`, `WORK_MODE_FALLBACK`)
-  to cloud-derived `work_mode` range — this removes the US/UK spelling patches entirely.
-- **sensor/climate/fan/cover/humidifier/vacuum/...**: consume `TypeInformation` for units,
-  scaling, and value validation.
+Core `switch.py` shape (thin, ~40 lines):
+```python
+class TuyaSwitchEntity(TuyaEntity, SwitchEntity):
+    def __init__(self, device, device_manager, description, definition):
+        super().__init__(device, device_manager, description)
+        self._dpcode_wrapper = definition.switch_wrapper   # capability object
+
+    def is_on(self) -> bool | None:
+        return self._read_wrapper(self._dpcode_wrapper)
+
+    async def async_turn_on(self, **kwargs):
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
+
+    async def _process_device_update(self, updated, dp_timestamps) -> bool:
+        return not self._dpcode_wrapper.skip_update(self.device, updated, dp_timestamps)
+```
+
+Ours today (`switch.py:50-151`, thick, direct `set_dp`/`dp_value`, getter/setter/bitmap
+branching, no wrapper). Target alignment, per platform:
+
+- **Delegate reads/writes to wrappers**: `is_on` → `_read_wrapper(wrapper)`,
+  `async_turn_on/off` → `_async_send_wrapper_updates(wrapper, value)`, adopt `skip_update`
+  echo suppression. The wrapper resolves *by dp_id* (our config key) instead of core's
+  dpcode — a `dp_wrapper_by_id(device, dp_id)` helper over `TuyaDevice.dp_type()`.
+- **Constructor gains a resolved wrapper**: replace `getter`/`setter`/bitmap branching in the
+  class body with one `self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id)`; keep
+  getter/setter/bitmap as *optional overrides* (they already exist for synthetic configs).
+- **Descriptions & naming**: adopt `EntityDescription`-style `key`/`translation_key`/
+  `device_class`/`entity_category` so auto-configured entities render like core; keep
+  `_attr_translation_key = f"{platform}_{dp_id}"` as the config-driven default
+  (`entity.py:192-195`).
+- **Config stays the source of construction**; spec becomes the *default* source:
+  - **number**: `IntegerTypeInformation` min/max/step/scale as defaults, user config as
+    override (core `number.py:540-542` copies wrapper bounds into `_attr_native_*`).
+  - **select**: `EnumWrapper.range` options when `CONF_OPTIONS` empty (exactly core
+    `DPCodeEnumWrapper.options`).
+  - **light**: already partially aligned (`color_data_spec`, `white_mode_supported`); move
+    remaining hardcoded tables (`MODES_SET`, `MODE_COLOR_ALIASES`, `WORK_MODE_FALLBACK`) to
+    cloud-derived `work_mode` range — removes the US/UK spelling patches entirely.
+  - **sensor/climate/fan/cover/humidifier/vacuum/...**: consume `TypeInformation` for units,
+    scaling, validation.
+- **Keep what core lacks**: `extra_state_attributes` (current/voltage/consumption on
+  switches), `RestoreEntity`/restore-on-reconnect, per-DP `getter`/`setter`/`is_available`
+  callbacks — these are localtuva extras worth preserving.
 
 ### Phase 4 — Discovery & runtime entity addition
 
