@@ -121,12 +121,12 @@ This is the ground truth the fixes were derived from:
 
 In the 16:13 log the color writes carry correct, *varied* saturation
 (`001b00c003e8` = h=27, s=192, v=1000; `015b005003e8` = h=347, s=80, v=1000; ...), the device
-echoes dp 5, yet the user reports the strip always shows full saturation and full brightness.
-Hue changes are assumed to work (user was "playing with colors"). Likely the device firmware
-ignores the `s` channel (budget 30-LED strip) — not fixable from our side. The brightness
-part IS fixable (v-channel routing, see §5) and should be verified first; if after that the
-strip still ignores `s`, treat it as a device limitation. Also confirm with the user whether
-"max saturation" is observed on the physical strip or in the HA color wheel.
+echoes dp 5, yet the strip always shows full saturation. **User confirmed (post-fix): hue
+changes on the physical strip work; the max-saturation observation is on the physical strip,
+not the HA wheel.** Conclusion: the device firmware applies only the `h` channel and ignores
+`s` — a device limitation, not a code bug. The reference component writes the same h/s/v
+format for this exact product (`nvfrtxlq`) and behaves identically. The brightness part IS
+fixable (v-channel routing, see §5) — verification pending on the user's next restart.
 
 Key code locations:
 - `custom_components/localtuya/core/tuya_ble_lib/tuya_ble.py` — `WORK_MODE_FALLBACK`,
