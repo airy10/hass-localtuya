@@ -32,7 +32,7 @@ import binascii
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, ClassVar, Self, cast
+from typing import Any, ClassVar, Self
 
 from ..const import DPType
 

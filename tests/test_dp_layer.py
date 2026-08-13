@@ -182,6 +182,17 @@ def test_dp_wrapper_by_code_and_by_id():
     assert dp_wrapper_by_id(device, 999) is None
 
 
+def test_dp_wrapper_by_id_accepts_string_dp_id():
+    """Entity configs pass dp_id as str; BLE specs store int. Both must resolve."""
+    device = _fake_device(
+        status_range={"bright": {**_int_spec(min=0, max=1000), "dp_id": 3}}
+    )
+    wrapper = dp_wrapper_by_id(device, "3")
+    assert isinstance(wrapper, DPCodeIntegerWrapper)
+    assert wrapper.dpcode == "bright"
+    assert wrapper.dp_id == "3"
+
+
 def test_dp_wrapper_by_id_prefers_status_range():
     device = _fake_device(
         status_range={"work_mode": {**_enum_spec({"0": "color"}), "dp_id": 2}},

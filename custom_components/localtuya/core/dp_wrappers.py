@@ -222,7 +222,7 @@ class DPCodeTypeInformationWrapper[
         )
         for device_specs in lookup_tuple:
             for dpcode, spec in device_specs.items():
-                if _spec_dp_id(spec) != dp_id:
+                if str(_spec_dp_id(spec)) != str(dp_id):
                     continue
                 if wrapper := cls.find_dpcode(
                     device, dpcode, prefer_function=prefer_function
@@ -361,7 +361,7 @@ def dp_wrapper_by_id(
     )
     for device_specs in lookup_tuple:
         for dpcode, spec in device_specs.items():
-            if _spec_dp_id(spec) != dp_id:
+            if str(_spec_dp_id(spec)) != str(dp_id):
                 continue
             if wrapper := dp_wrapper_by_code(device, dpcode):
                 wrapper.dp_id = dp_id
