@@ -52,6 +52,13 @@ _LOGGER = logging.getLogger(__name__)
 
 BLEAK_EXCEPTIONS = (*BLEAK_RETRY_EXCEPTIONS, OSError)
 
+# Default work_mode enum values, used when the cloud provides no usable
+# values for the dp (music-light firmware often omits them). Verified
+# against the reference ha_tuya_ble component for the "dd" category: mode
+# 0 is the manual colour mode, white is expressed through colour_data with
+# saturation 0 (those strips have no dedicated white mode).
+WORK_MODE_FALLBACK: tuple[str, ...] = ("colour", "dynamic_mod", "scene_mod", "music")
+
 #@dataclass
 class TuyaBLEEntityDescription:
     # Added to info that we get from the cloud
@@ -565,9 +572,9 @@ class TuyaBLEDevice:
         """Map a raw BLE enum index to the cloud enum string, if known."""
         for funcs in (self.status_range, self.function):
             for f in funcs.values():
-                if f.dp_id == dp_id and f.type == DPType.ENUM:
-                    if not isinstance(f.values, dict):
-                        continue
+                if f.dp_id != dp_id or f.type != DPType.ENUM:
+                    continue
+                if isinstance(f.values, dict) and f.values:
                     if (mapped := f.values.get(str(value))) is not None:
                         return mapped
                     range_list = f.values.get("range")
@@ -577,22 +584,34 @@ class TuyaBLEDevice:
                         and 0 <= value < len(range_list)
                     ):
                         return range_list[value]
+                if self._is_work_mode(f.code) and isinstance(value, int):
+                    if 0 <= value < len(WORK_MODE_FALLBACK):
+                        return WORK_MODE_FALLBACK[value]
         return None
 
     def _enum_index_for_id(self, dp_id: int, value: Any) -> Any:
         """Reverse-map a cloud enum string to its raw BLE integer index."""
         for funcs in (self.status_range, self.function):
             for f in funcs.values():
-                if f.dp_id == dp_id and f.type == DPType.ENUM:
-                    if not isinstance(f.values, dict):
-                        continue
+                if f.dp_id != dp_id or f.type != DPType.ENUM:
+                    continue
+                if isinstance(f.values, dict) and f.values:
                     for key, mapped in f.values.items():
                         if mapped == value:
                             return int(key)
                     range_list = f.values.get("range")
                     if isinstance(range_list, list) and value in range_list:
                         return range_list.index(value)
+                if self._is_work_mode(f.code):
+                    if value in WORK_MODE_FALLBACK:
+                        return WORK_MODE_FALLBACK.index(value)
+                    if value == "white":
+                        return 0
         return value
+
+    @staticmethod
+    def _is_work_mode(code: str | None) -> bool:
+        return code in ("work_mode", "mode")
 
     def get_or_create_datapoint(
         self,

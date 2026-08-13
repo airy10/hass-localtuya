@@ -174,6 +174,47 @@ def test_ble_status_range_is_loaded_without_functions():
     assert device.status_range["temperature"].dp_id == 2
 
 
+def test_ble_work_mode_fallback_maps_enum_when_cloud_values_empty():
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device.append_functions(
+        [
+            {
+                "code": "work_mode",
+                "dp_id": 2,
+                "type": DPType.ENUM,
+                "values": {},
+            },
+        ],
+        [],
+    )
+
+    assert device._enum_string_for_id(2, 0) == "colour"
+    assert device._enum_string_for_id(2, 1) == "dynamic_mod"
+    assert device._enum_string_for_id(2, 3) == "music"
+    assert device._enum_string_for_id(2, 99) is None
+    assert device._enum_index_for_id(2, "colour") == 0
+    assert device._enum_index_for_id(2, "music") == 3
+    assert device._enum_index_for_id(2, "white") == 0
+
+
+def test_ble_enum_mapping_uses_cloud_values_when_present():
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device.append_functions(
+        [
+            {
+                "code": "mode",
+                "dp_id": 4,
+                "type": DPType.ENUM,
+                "values": {"0": "white", "1": "colour", "2": "scene", "3": "music"},
+            },
+        ],
+        [],
+    )
+
+    assert device._enum_string_for_id(4, 1) == "colour"
+    assert device._enum_index_for_id(4, "scene") == 2
+
+
 @pytest.mark.asyncio
 async def test_ble_write_failure_removes_response_future():
     class FailingClient:
