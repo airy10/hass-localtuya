@@ -373,9 +373,35 @@ def get_device_key(dev_config: dict) -> str:
 class DPType(StrEnum):
     """Data point types."""
 
+    BITMAP = "Bitmap"
     BOOLEAN = "Boolean"
     ENUM = "Enum"
     INTEGER = "Integer"
     JSON = "Json"
     RAW = "Raw"
     STRING = "String"
+
+    @staticmethod
+    def try_parse(current_type: str | DPType) -> DPType | None:
+        """Try to parse a string into a DPType.
+
+        Mirrors ``tuya_device_handlers/const.py`` so ill-formed cloud types
+        (lowercase, ``Value``, ...) resolve to the canonical member.
+        """
+        if isinstance(current_type, DPType):
+            return current_type
+        try:
+            return DPType(current_type)
+        except ValueError:
+            return _DPTYPE_MAPPING.get(current_type)
+
+
+_DPTYPE_MAPPING: dict[str, DPType] = {
+    "bitmap": DPType.BITMAP,
+    "bool": DPType.BOOLEAN,
+    "enum": DPType.ENUM,
+    "json": DPType.JSON,
+    "raw": DPType.RAW,
+    "string": DPType.STRING,
+    "value": DPType.INTEGER,
+}

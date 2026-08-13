@@ -218,6 +218,74 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return True
 
     @property
+    def function(self) -> dict:
+        """Writable DP specs keyed by dpcode (core-compatible surface).
+
+        Mirrors the ``CustomerDevice.function`` dict the core integration
+        reads, so the vendored ``core/dp_types.py``/``core/dp_wrappers.py``
+        layer can consume it unchanged.  BLE passthroughs to the cloud-fetched
+        BLE function specs; Ethernet builds the view from cloud dps_data.
+        """
+        if ble := self.ble_device:
+            return ble.function
+        return self._cloud_dpspec_view()
+
+    @property
+    def status_range(self) -> dict:
+        """Read-only DP specs keyed by dpcode (core-compatible surface).
+
+        See ``function`` for the transport handling.
+        """
+        if ble := self.ble_device:
+            return ble.status_range
+        return self._cloud_dpspec_view()
+
+    @property
+    def status(self) -> dict:
+        """Current DP values keyed by dpcode (core-compatible surface).
+
+        BLE passthroughs to the BLE library status (already dpcode-keyed);
+        Ethernet maps the dp_id-keyed coordinator status back to dpcodes via
+        the cloud dps_data.
+        """
+        if ble := self.ble_device:
+            return ble.status
+        result = {}
+        for dp_id, data in self._cloud_dpspec_view().items():
+            if code := data.get("code"):
+                result[code] = self._status.get(str(data.get("dp_id")))
+        return result
+
+    def _cloud_dpspec_view(self) -> dict:
+        """Build a dpcode-keyed spec view from the Ethernet cloud dps_data."""
+        try:
+            dps_data = self._hass_entry.cloud_data.device_list.get(
+                self.id, {}
+            ).get("dps_data", {})
+        except AttributeError:
+            return {}
+        view = {}
+        for dp_id, data in dps_data.items():
+            if not data or not isinstance(data, dict):
+                continue
+            if code := data.get("code"):
+                view[code] = {**data, "dp_id": dp_id}
+        return view
+
+    def dp_type(self, code: str):
+        """Return the cloud capability spec for a DP code, or None.
+
+        Generalizes ``color_data_spec``/``white_mode_supported``: resolves
+        the ``TypeInformation`` for any DP from the BLE or Ethernet cloud
+        specs, so entity logic can mirror the core integration.
+        """
+        from .core.dp_wrappers import dp_wrapper_by_code
+
+        if wrapper := dp_wrapper_by_code(self, code):
+            return wrapper.type_information
+        return None
+
+    @property
     def is_connecting(self):
         """Return whether device is currently connecting."""
         return self._task_connect is not None
