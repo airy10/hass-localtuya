@@ -132,10 +132,11 @@ class TuyaBLEDataPoint:
     def value(self) -> bytes | bool | int | str:
         """Return the datapoint value.
 
-        BLE firmware reports Enum datapoints as their raw integer index,
-        while Ethernet devices report the cloud enum string (e.g.
-        "scene_1"). Map the integer through the cloud values mapping so
-        platform code sees transport-independent values.
+        BLE firmware encodes Enum dps as raw integer indices and
+        Raw/Bitmap dps as bytes, while Ethernet devices report the cloud
+        representation (enum strings, hex strings). Project both onto the
+        cloud representation so platform code sees transport-independent
+        values.
         """
         if self._type == TuyaBLEDataPointType.DT_ENUM:
             device = getattr(self._owner, "_owner", None)
@@ -143,6 +144,12 @@ class TuyaBLEDataPoint:
             if enum_string is not None:
                 if (mapped := enum_string(self._id, self._value)) is not None:
                     return mapped
+        if (
+            self._type
+            in (TuyaBLEDataPointType.DT_RAW, TuyaBLEDataPointType.DT_BITMAP)
+            and isinstance(self._value, bytes)
+        ):
+            return self._value.hex()
         return self._value
 
     @property
@@ -158,7 +165,10 @@ class TuyaBLEDataPoint:
     async def set_value(self, value: bytes | bool | int | str) -> None:
         match self._type:
             case TuyaBLEDataPointType.DT_RAW | TuyaBLEDataPointType.DT_BITMAP:
-                self._value = bytes(value)
+                if isinstance(value, str):
+                    self._value = bytes.fromhex(value)
+                else:
+                    self._value = bytes(value)
             case TuyaBLEDataPointType.DT_BOOL:
                 self._value = bool(value)
             case TuyaBLEDataPointType.DT_VALUE:
