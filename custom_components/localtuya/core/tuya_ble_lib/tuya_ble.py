@@ -59,6 +59,8 @@ BLEAK_EXCEPTIONS = (*BLEAK_RETRY_EXCEPTIONS, OSError)
 # saturation 0 (those strips have no dedicated white mode).
 WORK_MODE_FALLBACK: tuple[str, ...] = ("colour", "dynamic_mod", "scene_mod", "music")
 
+_LOGGED_ENUM_VALUES: set[str] = set()
+
 #@dataclass
 class TuyaBLEEntityDescription:
     # Added to info that we get from the cloud
@@ -418,6 +420,18 @@ class TuyaBLEDevice:
 
                 if f := self.status_range.get(key) and not f.values:
                     f.values = values
+
+        for f in (*self.function.values(), *self.status_range.values()):
+            dump_key = f"{self.address}:{f.dp_id}:{f.code}"
+            if f.type == DPType.ENUM and f.values and dump_key not in _LOGGED_ENUM_VALUES:
+                _LOGGED_ENUM_VALUES.add(dump_key)
+                _LOGGER.debug(
+                    "%s: enum dp %s (%s) cloud values: %s",
+                    self.address,
+                    f.dp_id,
+                    f.code,
+                    f.values,
+                )
 
     def _decode_advertisement_data(self) -> None:
         raw_product_id: bytes | None = None

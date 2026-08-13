@@ -57,6 +57,10 @@ MODE_WHITE = "white"
 # Alternate work_mode values used by some music-light firmware.
 MODE_MUSIC_ALIASES = ("dynamic_mod",)
 
+# Some BLE music-light firmware reports the cloud work_mode string with the
+# US spelling "color" instead of localtuya's canonical "colour".
+MODE_COLOR_ALIASES = ("color",)
+
 SCENE_MUSIC = "Music"
 
 MODES_SET = {"Colour, Music, Scene and White": 0, "Manual, Music, Scene and White": 1}
@@ -451,7 +455,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_color_mode(self):
         """Return true if the light is in color mode."""
         color_mode = self.__get_color_mode()
-        return color_mode is not None and color_mode == self._modes.color
+        return color_mode is not None and (
+            color_mode == self._modes.color or color_mode in MODE_COLOR_ALIASES
+        )
 
     @property
     def is_scene_mode(self):
