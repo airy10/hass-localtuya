@@ -33,6 +33,7 @@ from homeassistant.const import (
 )
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     CONF_CURRENT_HUMIDITY_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -222,6 +223,9 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             self._config.get(CONF_HUMIDITY_COEFFICIENT, 1.0)
         )
         self._hvac_switch_dp = self._config.get(CONF_HVAC_SWITCH_DP)
+        self._switch_wrapper = dp_wrapper_by_id(
+            device, self._hvac_switch_dp or self._dp_id
+        )
 
         # HVAC Modes
         self._hvac_mode_dp = self._config.get(CONF_HVAC_MODE_DP)
@@ -283,6 +287,10 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def _is_on(self):
         """Return if the device is on."""
+        if self._switch_wrapper:
+            state = self._read_wrapper(self._switch_wrapper)
+            if isinstance(state, bool):
+                return state
         if self._hvac_switch_dp:
             return self.dp_value(self._hvac_switch_dp) == self._state_on
         return self._state and self._state != self._state_off
@@ -331,9 +339,108 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         # DEFAULT_MAX_TEMP is in C
         return self._max_temp
 
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode):
+        """Set new target hvac mode."""
+        new_states = {}
+        if not self._is_on:
+            new_states[self._hvac_switch_dp or self._dp_id] = self._state_on
+
+        if hvac_mode in self._hvac_mode_set.names:
+            new_states[self._hvac_mode_dp] = self._hvac_mode_set.to_tuya(hvac_mode)
+        elif hvac_mode == HVACMode.OFF:
+            new_states[self._hvac_switch_dp or self._dp_id] = self._state_off
+
+        await self._device.set_dps(new_states)
+
+    async def async_set_preset_mode(self, preset_mode):
+        """Set new target preset mode."""
+        if preset_mode == PRESET_ECO:
+            await self._device.set_dp(self._eco_value, self._eco_dp)
+            return
+
+        preset_value = self._preset_set.to_tuya(preset_mode)
+        await self._device.set_dp(preset_value, self._preset_dp)
+
+    async def async_set_fan_mode(self, fan_mode):
+        """Set new target fan mode."""
+        if not self._is_on:
+            await self._device.set_dp(self._state_on, self._dp_id)
+
+        await self._device.set_dp(
+            self._fan_speeds.to_tuya(fan_mode), self._fan_speed_dp
+        )
+
+    async def async_set_humidity(self, humidity):
+        """Set new target humidity."""
+        if self.has_config(CONF_TARGET_HUMIDITY_DP):
+            humidity = round(humidity * self._humidity_coefficient)
+            await self._device.set_dp(humidity, self._config[CONF_TARGET_HUMIDITY_DP])
+
+    async def async_set_swing_mode(self, swing_mode):
+        """Set new target swing operation."""
+        await self._device.set_dp(
+            self._swing_v_modes.to_tuya(swing_mode), self._swing_v_mode_dp
+        )
+
+    async def async_set_swing_horizontal_mode(self, swing_mode):
+        """Set new target horizontal swing operation."""
+        await self._device.set_dp(
+            self._swing_h_modes.to_tuya(swing_mode), self._swing_h_mode_dp
+        )
+
+    async def async_set_temperature(self, **kwargs):
+        """Set new target temperature."""
+        if ATTR_TEMPERATURE in kwargs and self.has_config(CONF_TARGET_TEMPERATURE_DP):
+            temperature = kwargs[ATTR_TEMPERATURE]
+
+            if self._target_temp_forced_to_celsius:
+                # Revert Temperature to Fahrenheit it was forced to celsius
+                temperature = round(c_to_f(temperature))
+
+            temperature = round(temperature / self._precision_target)
+            await self._device.set_dp(
+                temperature, self._config[CONF_TARGET_TEMPERATURE_DP]
+            )
+
+    @property
+    def current_temperature(self):
+        """Return the current temperature."""
+        return self._current_temperature
+
+    @property
+    def current_humidity(self):
+        """Return the current humidity."""
+        return self._current_humidity
+
+    @property
+    def target_temperature(self):
+        """Return the temperature currently set to be reached."""
+        return self._target_temperature
+
+    @property
+    def target_humidity(self):
+        """Return the humidity currently set to be reached."""
+        return self._target_humidity
+
+    @property
+    def min_humidity(self):
+        """Return the minimum humidity."""
+        return 0
+
+    @property
+    def max_humidity(self):
+        """Return the maximum humidity."""
+        return 100
+
+    @property
+    def target_temperature_step(self):
+        """Return the supported step of target temperature."""
+        target_step = self._config.get(CONF_TEMPERATURE_STEP, DEFAULT_TEMPERATURE_STEP)
+        return float(target_step)
+
     @property
     def hvac_mode(self):
-        """Return current operation ie. heat, cool, idle."""
+        """Return hvac mode."""
         if not self._is_on:
             return HVACMode.OFF
         if not self._hvac_mode_dp:
@@ -399,7 +506,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
     @property
     def preset_mode(self):
-        """Return current preset."""
+        """Return preset mode."""
         mode = self.dp_value(CONF_HVAC_MODE_DP)
         if self._preset_dp == self._hvac_mode_dp and (
             mode in self._hvac_mode_set.values
@@ -420,44 +527,8 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         return presets
 
     @property
-    def current_temperature(self):
-        """Return the current temperature."""
-        return self._current_temperature
-
-    @property
-    def target_temperature(self):
-        """Return the temperature we try to reach."""
-        return self._target_temperature
-
-    @property
-    def current_humidity(self):
-        """Return the current humidity."""
-        return self._current_humidity
-
-    @property
-    def target_humidity(self):
-        """Return the humidity we try to reach."""
-        return self._target_humidity
-
-    @property
-    def min_humidity(self):
-        """Return the minimum humidity."""
-        return 0
-
-    @property
-    def max_humidity(self):
-        """Return the maximum humidity."""
-        return 100
-
-    @property
-    def target_temperature_step(self):
-        """Return the supported step of target temperature."""
-        target_step = self._config.get(CONF_TEMPERATURE_STEP, DEFAULT_TEMPERATURE_STEP)
-        return float(target_step)
-
-    @property
     def fan_mode(self):
-        """Return the fan setting."""
+        """Return fan mode."""
         if not (fan_value := self.dp_value(self._fan_speed_dp)):
             return None
         return self._fan_speeds.to_ha(fan_value)
@@ -469,7 +540,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
     @property
     def swing_mode(self) -> str | None:
-        """Return the swing setting."""
+        """Return swing mode."""
         return self._swing_mode
 
     @property
@@ -487,76 +558,21 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Return the list of available horizontal swing modes."""
         return self._swing_h_modes.names
 
-    async def async_set_swing_mode(self, swing_mode):
-        """Set new target swing operation."""
-        await self._device.set_dp(
-            self._swing_v_modes.to_tuya(swing_mode), self._swing_v_mode_dp
-        )
-
-    async def async_set_swing_horizontal_mode(self, swing_mode):
-        """Set new target horizontal swing operation."""
-        await self._device.set_dp(
-            self._swing_h_modes.to_tuya(swing_mode), self._swing_h_mode_dp
-        )
-
-    async def async_set_temperature(self, **kwargs):
-        """Set new target temperature."""
-        if ATTR_TEMPERATURE in kwargs and self.has_config(CONF_TARGET_TEMPERATURE_DP):
-            temperature = kwargs[ATTR_TEMPERATURE]
-
-            if self._target_temp_forced_to_celsius:
-                # Revert Temperature to Fahrenheit it was forced to celsius
-                temperature = round(c_to_f(temperature))
-
-            temperature = round(temperature / self._precision_target)
-            await self._device.set_dp(
-                temperature, self._config[CONF_TARGET_TEMPERATURE_DP]
-            )
-
-    async def async_set_humidity(self, humidity):
-        """Set new target humidity."""
-        if self.has_config(CONF_TARGET_HUMIDITY_DP):
-            humidity = round(humidity * self._humidity_coefficient)
-            await self._device.set_dp(humidity, self._config[CONF_TARGET_HUMIDITY_DP])
-
-    async def async_set_fan_mode(self, fan_mode):
-        """Set new target fan mode."""
-        if not self._is_on:
-            await self._device.set_dp(self._state_on, self._dp_id)
-
-        await self._device.set_dp(
-            self._fan_speeds.to_tuya(fan_mode), self._fan_speed_dp
-        )
-
-    async def async_set_hvac_mode(self, hvac_mode: HVACMode):
-        """Set new target operation mode."""
-        new_states = {}
-        if not self._is_on:
-            new_states[self._hvac_switch_dp or self._dp_id] = self._state_on
-
-        if hvac_mode in self._hvac_mode_set.names:
-            new_states[self._hvac_mode_dp] = self._hvac_mode_set.to_tuya(hvac_mode)
-        elif hvac_mode == HVACMode.OFF:
-            new_states[self._hvac_switch_dp or self._dp_id] = self._state_off
-
-        await self._device.set_dps(new_states)
-
     async def async_turn_on(self) -> None:
-        """Turn the entity on."""
-        await self._device.set_dp(self._state_on, self._hvac_switch_dp or self._dp_id)
+        """Turn the device on, retaining current HVAC (if supported)."""
+        if self._switch_wrapper:
+            await self._async_send_wrapper_updates(self._switch_wrapper, True)
+        else:
+            await self._device.set_dp(self._state_on, self._hvac_switch_dp or self._dp_id)
 
     async def async_turn_off(self) -> None:
-        """Turn the entity off."""
-        await self._device.set_dp(self._state_off, self._hvac_switch_dp or self._dp_id)
-
-    async def async_set_preset_mode(self, preset_mode):
-        """Set new target preset mode."""
-        if preset_mode == PRESET_ECO:
-            await self._device.set_dp(self._eco_value, self._eco_dp)
-            return
-
-        preset_value = self._preset_set.to_tuya(preset_mode)
-        await self._device.set_dp(preset_value, self._preset_dp)
+        """Turn the device off, retaining current HVAC (if supported)."""
+        if self._switch_wrapper:
+            await self._async_send_wrapper_updates(self._switch_wrapper, False)
+        else:
+            await self._device.set_dp(
+                self._state_off, self._hvac_switch_dp or self._dp_id
+            )
 
     def connection_made(self):
         """The connection has made with the device and status retrieved. configure entity based on it."""

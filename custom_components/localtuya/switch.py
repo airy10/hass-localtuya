@@ -14,6 +14,7 @@ from homeassistant.components.switch import (
 from homeassistant.const import CONF_DEVICE_CLASS
 
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     ATTR_CURRENT,
     ATTR_CURRENT_CONSUMPTION,
@@ -63,6 +64,7 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
         self._bitmap_mask = self._parse_bitmap_mask()
+        self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id)
 
     def _parse_bitmap_mask(self) -> bytes | None:
         """Parse the configured bitmap mask (hex string) into bytes."""
@@ -87,7 +89,7 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
 
     @property
     def is_on(self):
-        """Check if Tuya switch is on."""
+        """Return true if switch is on."""
         if self._getter:
             return self._getter()
         if self._bitmap_mask:
@@ -95,6 +97,8 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
                 v & m
                 for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
             )
+        if self._dpcode_wrapper:
+            return self._read_wrapper(self._dpcode_wrapper)
         return self._state
 
     @property
@@ -117,8 +121,24 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
             attrs[ATTR_STATE] = self._last_state
         return attrs
 
+    async def _process_device_update(
+        self,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None,
+    ) -> bool:
+        """Called when Tuya device sends an update with updated properties.
+
+        Returns True if the Home Assistant state should be written,
+        or False if the state write should be skipped.
+        """
+        if self._dpcode_wrapper is None:
+            return True
+        return not self._dpcode_wrapper.skip_update(
+            self._device, updated_status_properties, dp_timestamps
+        )
+
     async def async_turn_on(self, **kwargs):
-        """Turn Tuya switch on."""
+        """Turn the switch on."""
         if self._setter:
             await self._async_call_setter(True)
             return
@@ -129,10 +149,13 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
             )
             await self._device.set_dp(new_value, self._dp_id)
             return
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
+            return
         await self._device.set_dp(True, self._dp_id)
 
     async def async_turn_off(self, **kwargs):
-        """Turn Tuya switch off."""
+        """Turn the switch off."""
         if self._setter:
             await self._async_call_setter(False)
             return
@@ -142,6 +165,9 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
                 for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
             )
             await self._device.set_dp(new_value, self._dp_id)
+            return
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
             return
         await self._device.set_dp(False, self._dp_id)
 

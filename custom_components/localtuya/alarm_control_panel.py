@@ -17,6 +17,7 @@ from homeassistant.components.alarm_control_panel import (
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_ALARM_SUPPORTED_STATES, DictSelector
+from .core.dp_wrappers import dp_wrapper_by_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
         super().__init__(device, config_entry, dpid, _LOGGER, **kwargs)
         self._state = None
         self._changed_by = None
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
 
         # supported modes
         if supported_modes := self._config.get(CONF_ALARM_SUPPORTED_STATES, {}):
@@ -79,12 +81,11 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
         """Return the state of the device."""
+        if self._dpcode_wrapper:
+            tuya_value = self._read_wrapper(self._dpcode_wrapper)
+            if tuya_value is not None:
+                return self._states.to_ha(tuya_value, None)
         return self._states.to_ha(self._state, None)
-
-    @property
-    def code_format(self) -> CodeFormat | None:
-        """Code format or None if no code is required."""
-        return None  # self._attr_code_format
 
     @property
     def changed_by(self) -> str | None:
@@ -92,29 +93,46 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
         return None  # self._attr_changed_by
 
     @property
+    def code_format(self) -> CodeFormat | None:
+        """Code format or None if no code is required."""
+        return None  # self._attr_code_format
+
+    @property
     def code_arm_required(self) -> bool:
         """Whether the code is required for arm actions."""
         return True  # self._attr_code_arm_required
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
-        """Send disarm command."""
+        """Send Disarm command."""
         state = self._states.to_tuya(AlarmControlPanelState.DISARMED)
-        await self._device.set_dp(state, self._dp_id)
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        else:
+            await self._device.set_dp(state, self._dp_id)
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
-        """Send arm home command."""
+        """Send Home command."""
         state = self._states.to_tuya(AlarmControlPanelState.ARMED_HOME)
-        await self._device.set_dp(state, self._dp_id)
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        else:
+            await self._device.set_dp(state, self._dp_id)
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
-        """Send arm away command."""
+        """Send Arm command."""
         state = self._states.to_tuya(AlarmControlPanelState.ARMED_AWAY)
-        await self._device.set_dp(state, self._dp_id)
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        else:
+            await self._device.set_dp(state, self._dp_id)
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
-        """Send alarm trigger command."""
+        """Send SOS command."""
         state = self._states.to_tuya(AlarmControlPanelState.TRIGGERED)
-        await self._device.set_dp(state, self._dp_id)
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        else:
+            await self._device.set_dp(state, self._dp_id)
 
     def status_updated(self):
         """Device status was updated."""

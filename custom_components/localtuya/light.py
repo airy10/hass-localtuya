@@ -293,6 +293,22 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._scenes = DictSelector({})
         self._cached_status = {}
 
+        # Cloud spec wrappers for the configured DPs (core parity). The color
+        # data DP is intentionally excluded: core decodes it via a JSON
+        # wrapper, but our color format is a config-driven string (v1/v2/
+        # base64) that no vendored wrapper can decode. None when the DP is
+        # unknown so reads/writes fall back to config handling.
+        self._switch_wrapper = dp_wrapper_by_id(device, self._dp_id)
+        self._brightness_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_BRIGHTNESS)
+        )
+        self._color_mode_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_COLOR_MODE)
+        )
+        self._color_temp_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_COLOR_TEMP)
+        )
+
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
 
@@ -373,20 +389,144 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     @property
     def is_on(self):
-        """Check if Tuya light is on."""
+        """Return true if light is on."""
+        if self._switch_wrapper:
+            return self._read_wrapper(self._switch_wrapper)
         return self._state
+
+    async def async_turn_on(self, **kwargs):
+        """Turn on or control the light."""
+        states = {}
+        if not self.is_on or self._write_only:
+            if self._switch_wrapper:
+                await self._async_send_wrapper_updates(self._switch_wrapper, True)
+            else:
+                states[self._dp_id] = True
+        features = self.supported_features
+        color_modes = self.supported_color_modes
+        brightness = None
+        color_mode = None
+        if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
+            effect = kwargs[ATTR_EFFECT]
+            scene = self._scenes.to_tuya(effect)
+            if scene is not None:
+                if scene.startswith(self._modes.scene) or scene in (
+                    self._modes.white,
+                    self._modes.color,
+                ):
+                    color_mode = scene
+                else:
+                    color_mode = self._modes.scene
+                    states[self._config.get(CONF_SCENE)] = scene
+            elif effect in self._modes.as_list():
+                color_mode = effect
+            elif effect == SCENE_MUSIC:
+                color_mode = self._modes.music
+
+        if ATTR_BRIGHTNESS in kwargs and (
+            ColorMode.BRIGHTNESS in color_modes
+            or self.has_config(CONF_BRIGHTNESS)
+            or self.has_config(CONF_COLOR)
+        ):
+            brightness = map_range(
+                int(kwargs[ATTR_BRIGHTNESS]),
+                0,
+                255,
+                self._lower_brightness,
+                self._upper_brightness,
+            )
+            brightness = max(brightness, self._lower_brightness)
+
+            if self.is_color_mode and self._hs is not None:
+                states[self._config.get(CONF_COLOR)] = self.__to_color(
+                    self._hs, brightness
+                )
+                color_mode = self._modes.color
+            else:
+                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                color_mode = self._modes.white
+
+        if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
+            if brightness is None:
+                brightness = self._brightness
+            hs = kwargs[ATTR_HS_COLOR]
+            if (
+                hs[1] == 0
+                and self.has_config(CONF_BRIGHTNESS)
+                and self._device.white_mode_supported
+            ):
+                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                color_mode = self._modes.white
+            else:
+                states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
+                color_mode = self._modes.color
+
+        if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in color_modes:
+            if brightness is None:
+                brightness = self._brightness
+
+            color_temp = map_range(
+                int(kwargs[ATTR_COLOR_TEMP_KELVIN]),
+                self.min_color_temp_kelvin,
+                self.max_color_temp_kelvin,
+                self._lower_brightness,
+                self._upper_color_temp,
+                self._color_temp_reverse,
+            )
+
+            color_mode = self._modes.white
+            states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+
+        if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
+            if brightness is None:
+                brightness = self._brightness
+            color_mode = self._modes.white
+            states[self._config.get(CONF_BRIGHTNESS)] = brightness
+
+        if color_mode is not None:
+            states[self._config.get(CONF_COLOR_MODE)] = color_mode
+
+        await self._device.set_dps(states)
+
+    async def async_turn_off(self, **kwargs):
+        """Instruct the light to turn off."""
+        if self._switch_wrapper:
+            await self._async_send_wrapper_updates(self._switch_wrapper, False)
+        else:
+            await self._device.set_dp(False, self._dp_id)
 
     @property
     def brightness(self):
         """Return the brightness of the light."""
-        brightness = self._brightness
+        if self._brightness_wrapper:
+            brightness = self._read_wrapper(self._brightness_wrapper)
+        else:
+            brightness = self._brightness
         if brightness is not None and (self.is_color_mode or self.is_white_mode):
             return map_range(brightness, self._lower_brightness, self._upper_brightness)
         return None
 
     @property
+    def color_temp_kelvin(self):
+        """Return the color temperature value in Kelvin."""
+        if self._color_temp_wrapper:
+            color_temp = self._read_wrapper(self._color_temp_wrapper)
+        else:
+            color_temp = self._color_temp
+        if color_temp is not None:
+            return map_range(
+                color_temp,
+                self._lower_brightness,
+                self._upper_brightness,
+                self.min_color_temp_kelvin,
+                self.max_color_temp_kelvin,
+                self._color_temp_reverse,
+            )
+
+    @property
     def hs_color(self):
-        """Return the hs color value."""
+        """Return the hs_color of the light."""
         if self.is_color_mode:
             return self._hs
         if (
@@ -395,19 +535,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         ):
             return [0, 0]
         return None
-
-    @property
-    def color_temp_kelvin(self):
-        """Return the color_temp of the light."""
-        if self._color_temp is not None:
-            return map_range(
-                self._color_temp,
-                self._lower_brightness,
-                self._upper_brightness,
-                self.min_color_temp_kelvin,
-                self.max_color_temp_kelvin,
-                self._color_temp_reverse,
-            )
 
     @property
     def effect(self):
@@ -644,102 +771,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             self._brightness = value
         else:
             self.__from_color_v2(color)
-
-    async def async_turn_on(self, **kwargs):
-        """Turn on or control the light."""
-        states = {}
-        if not self.is_on or self._write_only:
-            states[self._dp_id] = True
-        features = self.supported_features
-        color_modes = self.supported_color_modes
-        brightness = None
-        color_mode = None
-        if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
-            effect = kwargs[ATTR_EFFECT]
-            scene = self._scenes.to_tuya(effect)
-            if scene is not None:
-                if scene.startswith(self._modes.scene) or scene in (
-                    self._modes.white,
-                    self._modes.color,
-                ):
-                    color_mode = scene
-                else:
-                    color_mode = self._modes.scene
-                    states[self._config.get(CONF_SCENE)] = scene
-            elif effect in self._modes.as_list():
-                color_mode = effect
-            elif effect == SCENE_MUSIC:
-                color_mode = self._modes.music
-
-        if ATTR_BRIGHTNESS in kwargs and (
-            ColorMode.BRIGHTNESS in color_modes
-            or self.has_config(CONF_BRIGHTNESS)
-            or self.has_config(CONF_COLOR)
-        ):
-            brightness = map_range(
-                int(kwargs[ATTR_BRIGHTNESS]),
-                0,
-                255,
-                self._lower_brightness,
-                self._upper_brightness,
-            )
-            brightness = max(brightness, self._lower_brightness)
-
-            if self.is_color_mode and self._hs is not None:
-                states[self._config.get(CONF_COLOR)] = self.__to_color(
-                    self._hs, brightness
-                )
-                color_mode = self._modes.color
-            else:
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
-                color_mode = self._modes.white
-
-        if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
-            if brightness is None:
-                brightness = self._brightness
-            hs = kwargs[ATTR_HS_COLOR]
-            if (
-                hs[1] == 0
-                and self.has_config(CONF_BRIGHTNESS)
-                and self._device.white_mode_supported
-            ):
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
-                color_mode = self._modes.white
-            else:
-                states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
-                color_mode = self._modes.color
-
-        if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in color_modes:
-            if brightness is None:
-                brightness = self._brightness
-
-            color_temp = map_range(
-                int(kwargs[ATTR_COLOR_TEMP_KELVIN]),
-                self.min_color_temp_kelvin,
-                self.max_color_temp_kelvin,
-                self._lower_brightness,
-                self._upper_color_temp,
-                self._color_temp_reverse,
-            )
-
-            color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
-            states[self._config.get(CONF_COLOR_TEMP)] = color_temp
-
-        if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
-            if brightness is None:
-                brightness = self._brightness
-            color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
-
-        if color_mode is not None:
-            states[self._config.get(CONF_COLOR_MODE)] = color_mode
-
-        await self._device.set_dps(states)
-
-    async def async_turn_off(self, **kwargs):
-        """Turn Tuya light off."""
-        await self._device.set_dp(False, self._dp_id)
 
     def status_updated(self):
         """Device status was updated."""

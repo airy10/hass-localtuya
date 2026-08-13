@@ -24,6 +24,7 @@ from bleak_retry_connector import get_device
 
 from .core.ble_manager import TuyaBLEDeviceManager
 from .core.cloud_api import TuyaCloudApi
+from .core.dp_wrappers import _spec_dp_id
 from .core.pytuya import (
     ContextualLogger,
     HEARTBEAT_INTERVAL,
@@ -854,9 +855,34 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             k: v for k, v in self.sub_devices.items() if not v.is_closing
         }
 
-    def _dispatch_status(self):
+    def _dpcode_by_id(self) -> dict[str, str]:
+        """Return the dp_id → dpcode reverse map from the device specs."""
+        reverse = {}
+        for device_specs in (self.function, self.status_range):
+            for dpcode, spec in device_specs.items():
+                if (dp_id := _spec_dp_id(spec)) is not None:
+                    reverse[str(dp_id)] = dpcode
+        return reverse
+
+    def _updated_dpcodes(self, status: dict) -> list[str] | None:
+        """Return the dpcodes changed by a status delta, or None if unknown.
+
+        Mirrors core's ``updated_status_properties`` dispatcher payload.
+        Returns None when the delta cannot be fully mapped (e.g. the
+        RESTORE_STATES marker) so callers never skip state writes on
+        unknown updates.
+        """
+        reverse = self._dpcode_by_id()
+        dpcodes = []
+        for dp_id in status:
+            if (dpcode := reverse.get(str(dp_id))) is None:
+                return None
+            dpcodes.append(dpcode)
+        return dpcodes
+
+    def _dispatch_status(self, updated_dpcodes: list[str] | None = None):
         signal = f"localtuya_{self._device_config.id}"
-        dispatcher_send(self.hass, signal, self._status)
+        dispatcher_send(self.hass, signal, self._status, updated_dpcodes)
 
     def _handle_event(self, old_status: dict, new_status: dict):
         """Handle events in HA when devices updated."""
@@ -914,7 +940,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         status = {str(dp_id): value for dp_id, value in status.items()}
         self._handle_event(self._status, status)
         self._status.update(status)
-        self._dispatch_status()
+        self._dispatch_status(self._updated_dpcodes(status))
 
     @callback
     def disconnected(self, exc=""):

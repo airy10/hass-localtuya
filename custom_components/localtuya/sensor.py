@@ -31,6 +31,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers import entity_registry as er
 
+from .core.dp_wrappers import DPCodeEnumWrapper, dp_wrapper_by_id
 from .entity import LocalTuyaEntity, async_setup_entry as _setup_entry
 from .const import (
     CONF_ENTITY_ENABLED_DEFAULT,
@@ -94,10 +95,51 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         self._has_sub_entities = False
         self._attr_device_class = self._config.get(CONF_DEVICE_CLASS)
 
+        # Cloud spec (core sensor_wrapper) as default source for unit/class.
+        self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id)
+        if self._dpcode_wrapper:
+            if not self.has_config(CONF_UNIT_OF_MEASUREMENT):
+                self._attr_native_unit_of_measurement = (
+                    self._dpcode_wrapper.native_unit
+                    or self._dpcode_wrapper.suggested_unit
+                )
+            # For enum DPs, we can assume it's an ENUM sensor (core parity)
+            if (
+                self._attr_device_class is None
+                and isinstance(self._dpcode_wrapper, DPCodeEnumWrapper)
+            ):
+                self._attr_device_class = SensorDeviceClass.ENUM
+                self._attr_options = self._dpcode_wrapper.options
+
     @property
     def native_value(self):
-        """Return sensor state."""
+        """Return the value reported by the sensor."""
+        if self._getter:
+            return self._getter()
+        if (
+            self._dpcode_wrapper
+            and not self.has_config(CONF_SCALING)
+            and not self.has_config(CONF_OFFSET)
+            and not self.is_base64(self.dp_value(self._dp_id))
+        ):
+            return self._read_wrapper(self._dpcode_wrapper)
         return self._state
+
+    async def _process_device_update(
+        self,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None,
+    ) -> bool:
+        """Called when Tuya device sends an update with updated properties.
+
+        Returns True if the Home Assistant state should be written,
+        or False if the state write should be skipped.
+        """
+        if self._dpcode_wrapper is None:
+            return True
+        return not self._dpcode_wrapper.skip_update(
+            self._device, updated_status_properties, dp_timestamps
+        )
 
     @property
     def state_class(self) -> str | None:

@@ -23,6 +23,7 @@ from homeassistant.util.percentage import (
 )
 
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     CONF_FAN_DIRECTION,
     CONF_FAN_DIRECTION_FWD,
@@ -80,93 +81,18 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         else:
             self._use_ordered_list = False
 
-    @property
-    def oscillating(self):
-        """Return current oscillating status."""
-        return self._oscillating
-
-    @property
-    def current_direction(self):
-        """Return the current direction of the fan."""
-        return self._direction
-
-    @property
-    def is_on(self):
-        """Check if Tuya fan is on."""
-        return self._is_on
-
-    @property
-    def percentage(self):
-        """Return the current percentage."""
-        return self._percentage
-
-    async def async_turn_on(
-        self,
-        speed: str = None,
-        percentage: int = None,
-        preset_mode: str = None,
-        **kwargs,
-    ) -> None:
-        """Turn on the entity."""
-        _LOGGER.debug("Fan async_turn_on")
-        await self._device.set_dp(True, self._dp_id)
-        if percentage is not None:
-            await self.async_set_percentage(percentage)
-        else:
-            self.schedule_update_ha_state()
-
-    async def async_turn_off(self, **kwargs) -> None:
-        """Turn off the entity."""
-        _LOGGER.debug("Fan async_turn_off")
-
-        await self._device.set_dp(False, self._dp_id)
-        self.schedule_update_ha_state()
-
-    async def async_set_percentage(self, percentage):
-        """Set the speed of the fan."""
-        _LOGGER.debug("Fan async_set_percentage: %s", percentage)
-
-        if percentage is not None:
-            if percentage == 0:
-                return await self.async_turn_off()
-            if not self.is_on:
-                await self.async_turn_on()
-
-            if self._use_ordered_list:
-                await self._device.set_dp(
-                    str(
-                        percentage_to_ordered_list_item(self._ordered_list, percentage)
-                    ),
-                    self._config.get(CONF_FAN_SPEED_CONTROL),
-                )
-                _LOGGER.debug(
-                    "Fan async_set_percentage: %s > %s",
-                    percentage,
-                    percentage_to_ordered_list_item(self._ordered_list, percentage),
-                )
-            else:
-                await self._device.set_dp(
-                    int(
-                        math.ceil(
-                            percentage_to_ranged_value(self._speed_range, percentage)
-                        )
-                    ),
-                    self._config.get(CONF_FAN_SPEED_CONTROL),
-                )
-                _LOGGER.debug(
-                    "Fan async_set_percentage: %s > %s",
-                    percentage,
-                    percentage_to_ranged_value(self._speed_range, percentage),
-                )
-            self.schedule_update_ha_state()
-
-    async def async_oscillate(self, oscillating: bool) -> None:
-        """Set oscillation."""
-        _LOGGER.debug("Fan async_oscillate: %s", oscillating)
-        await self._device.set_dp(
-            oscillating, self._config.get(CONF_FAN_OSCILLATING_CONTROL)
+        # Cloud spec wrappers for the configured DPs (core parity); None when
+        # the DP is unknown so all reads/writes fall back to config handling.
+        self._switch_wrapper = dp_wrapper_by_id(device, self._dp_id)
+        self._speed_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_FAN_SPEED_CONTROL)
         )
-        self.schedule_update_ha_state()
+        self._oscillate_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_FAN_OSCILLATING_CONTROL)
+        )
+        self._direction_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_FAN_DIRECTION)
+        )
 
     async def async_set_direction(self, direction):
         """Set the direction of the fan."""
@@ -177,8 +103,127 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
 
         if direction == DIRECTION_REVERSE:
             value = self._config.get(CONF_FAN_DIRECTION_REV)
-        await self._device.set_dp(value, self._config.get(CONF_FAN_DIRECTION))
+        if self._direction_wrapper:
+            await self._async_send_wrapper_updates(self._direction_wrapper, value)
+        else:
+            await self._device.set_dp(value, self._config.get(CONF_FAN_DIRECTION))
         self.schedule_update_ha_state()
+
+    async def async_set_percentage(self, percentage):
+        """Set the speed of the fan, as a percentage."""
+        _LOGGER.debug("Fan async_set_percentage: %s", percentage)
+
+        if percentage is not None:
+            if percentage == 0:
+                return await self.async_turn_off()
+            if not self.is_on:
+                await self.async_turn_on()
+
+            if self._use_ordered_list:
+                value = str(
+                    percentage_to_ordered_list_item(self._ordered_list, percentage)
+                )
+                _LOGGER.debug(
+                    "Fan async_set_percentage: %s > %s", percentage, value
+                )
+            else:
+                value = int(
+                    math.ceil(
+                        percentage_to_ranged_value(self._speed_range, percentage)
+                    )
+                )
+                _LOGGER.debug(
+                    "Fan async_set_percentage: %s > %s", percentage, value
+                )
+            if self._speed_wrapper:
+                await self._async_send_wrapper_updates(self._speed_wrapper, value)
+            else:
+                await self._device.set_dp(
+                    value, self._config.get(CONF_FAN_SPEED_CONTROL)
+                )
+            self.schedule_update_ha_state()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        """Turn the fan off."""
+        _LOGGER.debug("Fan async_turn_off")
+
+        if self._switch_wrapper:
+            await self._async_send_wrapper_updates(self._switch_wrapper, False)
+        else:
+            await self._device.set_dp(False, self._dp_id)
+        self.schedule_update_ha_state()
+
+    async def async_turn_on(
+        self,
+        speed: str = None,
+        percentage: int = None,
+        preset_mode: str = None,
+        **kwargs,
+    ) -> None:
+        """Turn on the fan."""
+        _LOGGER.debug("Fan async_turn_on")
+        if self._switch_wrapper:
+            await self._async_send_wrapper_updates(self._switch_wrapper, True)
+        else:
+            await self._device.set_dp(True, self._dp_id)
+        if percentage is not None:
+            await self.async_set_percentage(percentage)
+        else:
+            self.schedule_update_ha_state()
+
+    async def async_oscillate(self, oscillating: bool) -> None:
+        """Oscillate the fan."""
+        _LOGGER.debug("Fan async_oscillate: %s", oscillating)
+        if self._oscillate_wrapper:
+            await self._async_send_wrapper_updates(self._oscillate_wrapper, oscillating)
+        else:
+            await self._device.set_dp(
+                oscillating, self._config.get(CONF_FAN_OSCILLATING_CONTROL)
+            )
+        self.schedule_update_ha_state()
+
+    @property
+    def is_on(self):
+        """Return true if fan is on."""
+        if self._switch_wrapper:
+            return self._read_wrapper(self._switch_wrapper)
+        return self._is_on
+
+    @property
+    def current_direction(self):
+        """Return the current direction of the fan."""
+        if self._direction_wrapper:
+            value = self._read_wrapper(self._direction_wrapper)
+            if value is not None:
+                if value == self._config.get(CONF_FAN_DIRECTION_FWD):
+                    return DIRECTION_FORWARD
+                if value == self._config.get(CONF_FAN_DIRECTION_REV):
+                    return DIRECTION_REVERSE
+        return self._direction
+
+    @property
+    def oscillating(self):
+        """Return true if the fan is oscillating."""
+        if self._oscillate_wrapper:
+            return self._read_wrapper(self._oscillate_wrapper)
+        return self._oscillating
+
+    @property
+    def percentage(self):
+        """Return the current speed."""
+        if self._speed_wrapper:
+            speed = self._read_wrapper(self._speed_wrapper)
+            if speed is not None:
+                if self._use_ordered_list:
+                    if str(speed) in self._ordered_list:
+                        return ordered_list_item_to_percentage(
+                            self._ordered_list, str(speed)
+                        )
+                else:
+                    return ranged_value_to_percentage(
+                        self._speed_range, int(speed)
+                    )
+        return self._percentage
 
     @property
     def supported_features(self) -> FanEntityFeature:

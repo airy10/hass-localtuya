@@ -233,8 +233,17 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
             self._stored_states = stored_data
             self.status_restored(stored_data)
 
-        def _update_handler(status: dict | None):
-            """Update entity state when status was updated."""
+        async def _update_handler(
+            status: dict | None,
+            updated_status_properties: list[str] | None = None,
+            dp_timestamps: dict[str, int] | None = None,
+        ):
+            """Update entity state when status was updated.
+
+            Mirrors core's ``_handle_state_update``: the HA state write is
+            skipped when the coordinator delivers a known delta and the
+            platform's ``_process_device_update`` says to skip it.
+            """
             last_status = self._status.copy()
 
             self._status = {} if status is None else {**self._status, **status}
@@ -247,7 +256,10 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
                 if status:
                     self.status_updated()
 
-                self.schedule_update_ha_state()
+                if updated_status_properties is None or await self._process_device_update(
+                    updated_status_properties, dp_timestamps
+                ):
+                    self.schedule_update_ha_state()
 
         signal = f"localtuya_{self._device_config.id}"
 
@@ -392,6 +404,45 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         # as last state will be used to restore the previous state
         if (state is not None) and (not self._device.is_connecting):
             self._last_state = state
+
+    def _read_wrapper(self, wrapper) -> Any | None:
+        """Read the wrapper's device status (core-tuya parity).
+
+        Mirrors ``TuyaEntity._read_wrapper``; the wrapper resolves its value
+        from ``device.status`` (dpcode-keyed) with type conversion.
+        """
+        if wrapper is None:
+            return None
+        return wrapper.read_device_status(self._device)
+
+    async def _async_send_commands(self, commands: list[dict]) -> None:
+        """Send a list of DP update commands to the device (local transport).
+
+        Core sends ``{code, dp_id, value}`` command dicts over MQTT; we send
+        the same dicts over BLE/Ethernet via ``TuyaDevice.set_dp``.
+        """
+        if not commands:
+            return
+        for command in commands:
+            await self._device.set_dp(command["value"], command["dp_id"])
+
+    async def _async_send_wrapper_updates(self, wrapper, value) -> None:
+        """Send a wrapper-generated command to the device (core-tuya parity)."""
+        if wrapper is None:
+            return
+        await self._async_send_commands(wrapper.get_update_commands(self._device, value))
+
+    async def _process_device_update(
+        self,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None,
+    ) -> bool:
+        """Called when Tuya device sends an update with updated properties.
+
+        Returns True if the Home Assistant state should be written,
+        or False if the state write should be skipped.
+        """
+        return True
 
     async def _async_call_setter(self, value) -> None:
         """Invoke the configured setter callback, awaiting it if it returns an awaitable."""

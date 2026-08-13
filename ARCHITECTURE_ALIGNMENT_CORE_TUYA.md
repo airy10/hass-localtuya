@@ -203,3 +203,73 @@ branching, no wrapper). Target alignment, per platform:
 > `tuya-device-sharing-sdk==0.2.14`; the venv has 0.0.24 / 0.2.10. Our component pins
 > `tuya-device-sharing-sdk~=0.2.4`. If we reuse `tuya_device_handlers` classes directly,
 > align the pinned versions first.
+
+---
+
+## 7. Completed alignment work
+
+### 7.1 Async update pipeline + echo suppression (all shared platforms)
+
+- `_process_device_update` is now `async def(self, updated_status_properties: list[str],
+  dp_timestamps: dict[str, int] | None) -> bool` in the base (`entity.py`) and in all six
+  platform overrides (switch, sensor, select, number, siren, binary_sensor), matching core's
+  signature exactly (no default for `dp_timestamps`; core `dp_timestamps` may be `None` and
+  is passed through to `skip_update`).
+- The `_update_handler` that drives it is async as well.
+- Docstring is verbatim core: "Called when Tuya device sends an update with updated
+  properties." / "Returns True if the Home Assistant state should be written, or False if
+  the state write should be skipped."
+- Ours keeps one guard core doesn't need: `if self._dpcode_wrapper is None: return True`
+  (in core the wrapper always exists; ours may be `None` when no wrapper could be resolved
+  for the configured dp_id).
+
+### 7.2 Method order + docstring parity (all shared platforms)
+
+Per user directive — "similar functions should be in the same order (with same
+docstrings/comments if the functions match) in both core and our components class files" —
+every platform's shared methods now appear in core's relative order with core's exact
+docstrings. Ours-only config-driven extras (`flow_schema`, `_setter`/`_getter`, bitmap
+helpers, `extra_state_attributes`, scene math, `_process_device_update` guard, etc.) stay,
+positioned sensibly around the core-shaped block.
+
+Core orders adopted:
+
+| Platform | Shared method order (core relative order) |
+|---|---|
+| switch | `is_on` → `_process_device_update` → `async_turn_on` → `async_turn_off` |
+| sensor | `native_value` → `_process_device_update` |
+| fan | writes first: `async_set_direction` → `async_set_percentage` → `async_turn_off` → `async_turn_on` → `async_oscillate`, then reads: `is_on` → `current_direction` → `oscillating` → `percentage` |
+| light | `is_on` → `async_turn_on` → `async_turn_off` → `brightness` → `color_temp_kelvin` → `hs_color` → `color_mode` (duplicates removed) |
+| select | `current_option` → `_process_device_update` → `async_select_option` |
+| number | `native_value` → `_process_device_update` → `async_set_native_value` |
+| button | `async_press` (already matched) |
+| siren | `is_on` → `_process_device_update` → `async_turn_on` → `async_turn_off` |
+| binary_sensor | `is_on` → `_process_device_update` |
+| humidifier | `is_on` → `mode` → `target_humidity` → `current_humidity` → `async_turn_on` → `async_turn_off` → `async_set_humidity` → `async_set_mode` |
+| climate | writes first: `async_set_hvac_mode` → `async_set_preset_mode` → `async_set_fan_mode` → `async_set_humidity` → `async_set_swing_mode` → `async_set_temperature`, then reads: `current_temperature` → `current_humidity` → `target_temperature` → `target_humidity` → `hvac_mode` → `preset_mode` → `fan_mode` → `swing_mode`, then `async_turn_on` → `async_turn_off` |
+| alarm_control_panel | `alarm_state` → `changed_by` → `async_alarm_disarm` → `async_alarm_arm_home` → `async_alarm_arm_away` → `async_alarm_trigger` |
+| cover | `current_cover_position` → `is_closed` → `async_open_cover` → `async_close_cover` → `async_set_cover_position` → `async_stop_cover` |
+| vacuum | `fan_speed` → `activity` → `async_start` → `async_stop` → `async_pause` → `async_return_to_base` → `async_locate` → `async_set_fan_speed` → `async_send_command` |
+
+Notable docstrings now verbatim core (examples): switch `is_on` "Return true if switch is
+on."; sensor `native_value` "Return the value reported by the sensor."; fan `async_turn_on`
+"Turn on the fan."; light `async_turn_on` "Turn on or control the light."; select
+`current_option` "Return the selected entity option to represent the entity state."; number
+`async_set_native_value` "Set new value."; button `async_press` "Press the button."; siren
+`async_turn_on` "Turn the siren on."; binary_sensor `is_on` "Return true if sensor is on.";
+vacuum `async_send_command` "Send raw command."; alarm "Send Disarm/Home/Arm/SOS command."
+
+Deliberate deltas kept (documented deviations):
+- siren `is_on` keeps its bool-guard (`isinstance(state, bool)` before `self._is_on`
+  fallback) — needed because the raw DP may be a string for non-boolean wirings.
+- binary_sensor `is_on` stays config-`CONF_STATE_ON`-driven (wrapper returns raw enum
+  values; core compares against a `state_on` value).
+- climate `async_turn_off` docstring says "Turn the device off..." — core has a typo
+  ("Turn the device on") which we did not reproduce.
+- cover has no tilt support (`current_cover_tilt_position`/`async_set_cover_tilt_position`
+  absent — no tilt config in our flow).
+
+Verification: full pytest suite green (79 passed) after the async conversion and after
+every alignment batch; `compileall` clean. Test coverage of the wrapper delegation lives in
+`tests/test_wrapper_delegation.py` (16 tests: skip-gate semantics, command batching,
+synthetic-config fallbacks, percentage/humidity math).

@@ -16,6 +16,7 @@ from homeassistant.components.cover import (
 from homeassistant.const import CONF_DEVICE_CLASS
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     CONF_COMMANDS_SET,
     CONF_CURRENT_POSITION_DP,
@@ -105,6 +106,12 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         self._stop_switch = self._config.get(CONF_STOP_SWITCH_DP)
         self._position_inverted = self._config.get(CONF_POSITION_INVERTED)
         self._current_task = None
+        # Core resolves set/current position wrappers; our read path is
+        # config-driven (inversion, timed math, bool/str decoding) so only
+        # the set-position write is delegated to the wrapper when available.
+        self._set_position_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_SET_POSITION_DP)
+        )
 
     @property
     def supported_features(self):
@@ -137,7 +144,7 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
 
     @property
     def current_cover_position(self):
-        """Return current cover position in percent."""
+        """Return cover current position."""
         if self._config[CONF_POSITIONING_MODE] == MODE_NONE:
             return None
         return self._current_cover_position
@@ -154,56 +161,12 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
 
     @property
     def is_closed(self):
-        """Return if the cover is closed or not."""
+        """Return true if cover is closed."""
         if isinstance(self._open_cmd, bool):
             return self._current_cover_position == 0
         if self._config[CONF_POSITIONING_MODE] == MODE_NONE:
             return None
         return self.current_cover_position == 0 and self._current_state == STATE_STOPPED
-
-    async def async_set_cover_position(self, **kwargs):
-        """Move the cover to a specific position."""
-        # Update device values IF the device is moving at the moment.
-        if self._current_state != STATE_STOPPED:
-            await self.async_stop_cover()
-
-        self.debug("Setting cover position: %r", kwargs[ATTR_POSITION])
-        if self._config[CONF_POSITIONING_MODE] == MODE_TIME_BASED:
-            newpos = float(kwargs[ATTR_POSITION])
-
-            currpos = self.current_cover_position
-            posdiff = abs(newpos - currpos)
-            mydelay = posdiff / 100.0 * self._config[CONF_SPAN_TIME]
-            if newpos > currpos:
-                self.debug("Opening to %f: delay %f", newpos, mydelay)
-                await self.async_open_cover(delay=mydelay)
-                self.update_state(STATE_OPENING)
-            else:
-                self.debug("Closing to %f: delay %f", newpos, mydelay)
-                await self.async_close_cover(delay=mydelay)
-                self.update_state(STATE_CLOSING)
-            self.debug("Done")
-
-        elif self._config[CONF_POSITIONING_MODE] == MODE_SET_POSITION:
-            converted_position = int(kwargs[ATTR_POSITION])
-            if self._position_inverted:
-                converted_position = 100 - converted_position
-            if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
-                await self._device.set_dp(
-                    converted_position, self._config[CONF_SET_POSITION_DP]
-                )
-            # Give it a moment, to make sure hass updated current pos.
-            await asyncio.sleep(0.1)
-            self.update_state(STATE_SET_CMD, int(kwargs[ATTR_POSITION]))
-
-    async def async_stop_after_timeout(self, delay_sec):
-        """Stop the cover if timeout (max movement span) occurred."""
-        try:
-            await asyncio.sleep(delay_sec)
-            self._current_task = None
-            await self.async_stop_cover()
-        except asyncio.CancelledError:
-            self._current_task = None
 
     async def async_open_cover(self, **kwargs):
         """Open the cover."""
@@ -240,6 +203,55 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
                 )
             )
         self.update_state(STATE_CLOSING)
+
+    async def async_set_cover_position(self, **kwargs):
+        """Move the cover to a specific position."""
+        # Update device values IF the device is moving at the moment.
+        if self._current_state != STATE_STOPPED:
+            await self.async_stop_cover()
+
+        self.debug("Setting cover position: %r", kwargs[ATTR_POSITION])
+        if self._config[CONF_POSITIONING_MODE] == MODE_TIME_BASED:
+            newpos = float(kwargs[ATTR_POSITION])
+
+            currpos = self.current_cover_position
+            posdiff = abs(newpos - currpos)
+            mydelay = posdiff / 100.0 * self._config[CONF_SPAN_TIME]
+            if newpos > currpos:
+                self.debug("Opening to %f: delay %f", newpos, mydelay)
+                await self.async_open_cover(delay=mydelay)
+                self.update_state(STATE_OPENING)
+            else:
+                self.debug("Closing to %f: delay %f", newpos, mydelay)
+                await self.async_close_cover(delay=mydelay)
+                self.update_state(STATE_CLOSING)
+            self.debug("Done")
+
+        elif self._config[CONF_POSITIONING_MODE] == MODE_SET_POSITION:
+            converted_position = int(kwargs[ATTR_POSITION])
+            if self._position_inverted:
+                converted_position = 100 - converted_position
+            if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
+                if self._set_position_wrapper:
+                    await self._async_send_wrapper_updates(
+                        self._set_position_wrapper, converted_position
+                    )
+                else:
+                    await self._device.set_dp(
+                        converted_position, self._config[CONF_SET_POSITION_DP]
+                    )
+            # Give it a moment, to make sure hass updated current pos.
+            await asyncio.sleep(0.1)
+            self.update_state(STATE_SET_CMD, int(kwargs[ATTR_POSITION]))
+
+    async def async_stop_after_timeout(self, delay_sec):
+        """Stop the cover if timeout (max movement span) occurred."""
+        try:
+            await asyncio.sleep(delay_sec)
+            self._current_task = None
+            await self.async_stop_cover()
+        except asyncio.CancelledError:
+            self._current_task = None
 
     async def async_stop_cover(self, **kwargs):
         """Stop the cover."""

@@ -8,6 +8,7 @@ from homeassistant.components.siren import DOMAIN, SirenEntity, SirenEntityFeatu
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_STATE_ON
+from .core.dp_wrappers import dp_wrapper_by_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,19 +38,46 @@ class LocalTuyaSiren(LocalTuyaEntity, SirenEntity):
         """Initialize the Tuya siren."""
         super().__init__(device, config_entry, sirenid, _LOGGER, **kwargs)
         self._is_on = False
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
 
     @property
     def is_on(self):
-        """Return siren state."""
+        """Return true if siren is on."""
+        if self._dpcode_wrapper:
+            state = self._read_wrapper(self._dpcode_wrapper)
+            if isinstance(state, bool):
+                return state
         return self._is_on
 
+    async def _process_device_update(
+        self,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None,
+    ) -> bool:
+        """Called when Tuya device sends an update with updated properties.
+
+        Returns True if the Home Assistant state should be written,
+        or False if the state write should be skipped.
+        """
+        if self._dpcode_wrapper is None:
+            return True
+        return not self._dpcode_wrapper.skip_update(
+            self._device, updated_status_properties, dp_timestamps
+        )
+
     async def async_turn_on(self, **kwargs):
-        """Turn Tuya siren on."""
-        await self._device.set_dp(True, self._dp_id)
+        """Turn the siren on."""
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
+        else:
+            await self._device.set_dp(True, self._dp_id)
 
     async def async_turn_off(self, **kwargs):
-        """Turn Tuya siren off."""
-        await self._device.set_dp(False, self._dp_id)
+        """Turn the siren off."""
+        if self._dpcode_wrapper:
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
+        else:
+            await self._device.set_dp(False, self._dp_id)
 
     # No need to restore state for a siren
     async def restore_state_when_connected(self):

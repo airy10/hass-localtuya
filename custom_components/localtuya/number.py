@@ -73,7 +73,8 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
 
-        wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+        wrapper = self._dpcode_wrapper
 
         if CONF_MIN_VALUE in self._config:
             self._min_value = self.scale(self._config[CONF_MIN_VALUE])
@@ -101,9 +102,27 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
     @property
     def native_value(self) -> float:
-        """Return sensor state."""
+        """Return the entity value to represent the entity state."""
+        if self._dpcode_wrapper:
+            return self._read_wrapper(self._dpcode_wrapper)
         self._state = self.scale(self._state)
         return self._state
+
+    async def _process_device_update(
+        self,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None,
+    ) -> bool:
+        """Called when Tuya device sends an update with updated properties.
+
+        Returns True if the Home Assistant state should be written,
+        or False if the state write should be skipped.
+        """
+        if self._dpcode_wrapper is None:
+            return True
+        return not self._dpcode_wrapper.skip_update(
+            self._device, updated_status_properties, dp_timestamps
+        )
 
     @property
     def native_min_value(self) -> float:
@@ -131,9 +150,14 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         return self._config.get(CONF_DEVICE_CLASS)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Update the current value."""
+        """Set new value."""
         if self._setter:
             await self._async_call_setter(value)
+            return
+        if self._dpcode_wrapper and not self._config.get(CONF_OFFSET) and not self._config.get(
+            CONF_SCALING
+        ):
+            await self._async_send_wrapper_updates(self._dpcode_wrapper, value)
             return
         offset = self._config.get(CONF_OFFSET)
         if offset is not None:

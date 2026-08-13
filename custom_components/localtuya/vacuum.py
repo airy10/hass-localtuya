@@ -13,6 +13,7 @@ from homeassistant.components.vacuum import (
 )
 
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import dp_wrapper_by_id
 from .const import (
     CONF_CLEAN_AREA_DP,
     CONF_CLEAN_RECORD_DP,
@@ -115,6 +116,13 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         self._fan_speed = ""
         self._cleaning_mode = ""
 
+        # Core resolves action/fan_speed/activity wrappers; ours reads the
+        # config status lists and writes config values, so only fan speed is
+        # wrapper-delegated (enum options match the config list).
+        self._fan_speed_wrapper = dp_wrapper_by_id(
+            device, self._config.get(CONF_FAN_SPEED_DP)
+        )
+
     @property
     def supported_features(self) -> VacuumEntityFeature:
         """Flag supported features."""
@@ -139,18 +147,12 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         return supported_features
 
     @property
-    def activity(self) -> VacuumActivity | None:
-        """Return the vacuum state."""
-        return self._state
-
-    @property
-    def extra_state_attributes(self):
-        """Return the specific state attributes of this vacuum cleaner."""
-        return self._attrs
-
-    @property
     def fan_speed(self):
-        """Return the current fan speed."""
+        """Return the fan speed of the vacuum cleaner."""
+        if self._fan_speed_wrapper:
+            speed = self._read_wrapper(self._fan_speed_wrapper)
+            if speed is not None:
+                return speed
         return self._fan_speed
 
     @property
@@ -158,12 +160,22 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         """Return the list of available fan speeds."""
         return self._fan_speed_list
 
+    @property
+    def activity(self) -> VacuumActivity | None:
+        """Return Tuya vacuum device state."""
+        return self._state
+
+    @property
+    def extra_state_attributes(self):
+        """Return the specific state attributes of this vacuum cleaner."""
+        return self._attrs
+
     async def async_start(self, **kwargs):
-        """Turn the vacuum on and start cleaning."""
+        """Start the device."""
         await self._device.set_dp(True, self._config[CONF_POWERGO_DP])
 
     async def async_stop(self, **kwargs):
-        """Turn the vacuum off stopping the cleaning."""
+        """Stop the device."""
         if (
             self.has_config(CONF_STOP_STATUS)
             and self._config[CONF_STOP_STATUS] in self._modes_list
@@ -176,14 +188,14 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             # _LOGGER.error("Missing command for stop in commands set.")
 
     async def async_pause(self, **kwargs):
-        """Stop the vacuum cleaner, do not return to base."""
+        """Pause the device."""
         if self.has_config(CONF_PAUSE_DP):
             return await self._device.set_dp(True, self._config[CONF_PAUSE_DP])
 
         await self.async_stop()
 
     async def async_return_to_base(self, **kwargs):
-        """Set the vacuum cleaner to return to the dock."""
+        """Return device to dock."""
         if self.has_config(CONF_RETURN_MODE):
             await self._device.set_dp(
                 self._config[CONF_RETURN_MODE], self._config[CONF_MODE_DP]
@@ -196,16 +208,19 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         return None
 
     async def async_locate(self, **kwargs):
-        """Locate the vacuum cleaner."""
+        """Locate the device."""
         if self.has_config(CONF_LOCATE_DP):
             await self._device.set_dp(True, self._config[CONF_LOCATE_DP])
 
     async def async_set_fan_speed(self, fan_speed, **kwargs):
-        """Set the fan speed."""
-        await self._device.set_dp(fan_speed, self._config[CONF_FAN_SPEED_DP])
+        """Set fan speed."""
+        if self._fan_speed_wrapper:
+            await self._async_send_wrapper_updates(self._fan_speed_wrapper, fan_speed)
+        else:
+            await self._device.set_dp(fan_speed, self._config[CONF_FAN_SPEED_DP])
 
     async def async_send_command(self, command, params=None, **kwargs):
-        """Send a command to a vacuum cleaner."""
+        """Send raw command."""
         if command == "set_mode" and "mode" in params:
             mode = params["mode"]
             await self._device.set_dp(mode, self._config[CONF_MODE_DP])
