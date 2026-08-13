@@ -397,6 +397,18 @@ class TuyaBLEDevice:
             if dpcode:
                 self.status_range[dpcode] = TuyaBLEDeviceFunction(**f)
 
+        for f in (*self.function.values(), *self.status_range.values()):
+            dump_key = f"{self.address}:{f.dp_id}:{f.code}"
+            if f.type == DPType.ENUM and f.values and dump_key not in _LOGGED_ENUM_VALUES:
+                _LOGGED_ENUM_VALUES.add(dump_key)
+                _LOGGER.info(
+                    "%s: enum dp %s (%s) cloud values: %s",
+                    self.address,
+                    f.dp_id,
+                    f.code,
+                    f.values,
+                )
+
     def update_description(self, description: TuyaBLEEntityDescription | None) -> None:
         if not description:
             return
@@ -420,18 +432,6 @@ class TuyaBLEDevice:
                 f = self.status_range.get(key)
                 if f and not f.values:
                     f.values = values
-
-        for f in (*self.function.values(), *self.status_range.values()):
-            dump_key = f"{self.address}:{f.dp_id}:{f.code}"
-            if f.type == DPType.ENUM and f.values and dump_key not in _LOGGED_ENUM_VALUES:
-                _LOGGED_ENUM_VALUES.add(dump_key)
-                _LOGGER.debug(
-                    "%s: enum dp %s (%s) cloud values: %s",
-                    self.address,
-                    f.dp_id,
-                    f.code,
-                    f.values,
-                )
 
     def _decode_advertisement_data(self) -> None:
         raw_product_id: bytes | None = None
