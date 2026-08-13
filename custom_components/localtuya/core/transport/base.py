@@ -32,7 +32,7 @@ _DPTYPE_TO_BLE: dict[DPType, TuyaBLEDataPointType] = {
     DPType.BOOLEAN: TuyaBLEDataPointType.DT_BOOL,
     DPType.ENUM: TuyaBLEDataPointType.DT_ENUM,
     DPType.INTEGER: TuyaBLEDataPointType.DT_VALUE,
-    DPType.JSON: TuyaBLEDataPointType.DT_RAW,
+    DPType.JSON: TuyaBLEDataPointType.DT_STRING,
     DPType.RAW: TuyaBLEDataPointType.DT_RAW,
     DPType.STRING: TuyaBLEDataPointType.DT_STRING,
 }
