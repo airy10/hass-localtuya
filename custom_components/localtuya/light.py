@@ -477,12 +477,17 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if self.is_white_mode:
             if self.has_config(CONF_COLOR_TEMP):
                 return ColorMode.COLOR_TEMP
-            else:
-                return ColorMode.WHITE
-        if self._brightness:
+            return ColorMode.WHITE
+        if (
+            (self.is_scene_mode or self.is_music_mode)
+            and ColorMode.HS in self.supported_color_modes
+        ):
+            return ColorMode.HS
+        if self._brightness and ColorMode.BRIGHTNESS in self.supported_color_modes:
             return ColorMode.BRIGHTNESS
-
-        return ColorMode.ONOFF
+        if ColorMode.HS in self.supported_color_modes:
+            return ColorMode.HS
+        return next(iter(self.supported_color_modes))
 
     def __is_color_rgb_encoded(self):
         # for now we will prefer non encoded if color is none "added by manual or cloud pull dp"
