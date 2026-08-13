@@ -54,6 +54,8 @@ MODE_COLOR = "colour"
 MODE_MUSIC = "music"
 MODE_SCENE = "scene"
 MODE_WHITE = "white"
+# Alternate work_mode values used by some music-light firmware.
+MODE_MUSIC_ALIASES = ("dynamic_mod",)
 
 SCENE_MUSIC = "Music"
 
@@ -464,7 +466,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_music_mode(self):
         """Return true if the light is in music mode."""
         color_mode = self.__get_color_mode()
-        return color_mode is not None and color_mode == self._modes.music
+        return color_mode is not None and (
+            color_mode == self._modes.music or color_mode in MODE_MUSIC_ALIASES
+        )
 
     @property
     def color_mode(self) -> ColorMode:

@@ -565,27 +565,33 @@ class TuyaBLEDevice:
         """Map a raw BLE enum index to the cloud enum string, if known."""
         for funcs in (self.status_range, self.function):
             for f in funcs.values():
-                if (
-                    f.dp_id == dp_id
-                    and f.type == DPType.ENUM
-                    and isinstance(f.values, dict)
-                ):
+                if f.dp_id == dp_id and f.type == DPType.ENUM:
+                    if not isinstance(f.values, dict):
+                        continue
                     if (mapped := f.values.get(str(value))) is not None:
                         return mapped
+                    range_list = f.values.get("range")
+                    if (
+                        isinstance(range_list, list)
+                        and isinstance(value, int)
+                        and 0 <= value < len(range_list)
+                    ):
+                        return range_list[value]
         return None
 
     def _enum_index_for_id(self, dp_id: int, value: Any) -> Any:
         """Reverse-map a cloud enum string to its raw BLE integer index."""
         for funcs in (self.status_range, self.function):
             for f in funcs.values():
-                if (
-                    f.dp_id == dp_id
-                    and f.type == DPType.ENUM
-                    and isinstance(f.values, dict)
-                ):
+                if f.dp_id == dp_id and f.type == DPType.ENUM:
+                    if not isinstance(f.values, dict):
+                        continue
                     for key, mapped in f.values.items():
                         if mapped == value:
                             return int(key)
+                    range_list = f.values.get("range")
+                    if isinstance(range_list, list) and value in range_list:
+                        return range_list.index(value)
         return value
 
     def get_or_create_datapoint(
