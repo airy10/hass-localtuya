@@ -290,7 +290,16 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     break
 
         # Get device status and configure DPS.
-        if self.connected and not self.is_closing:
+        # BLE connections are lazy: the first packet send (inside status())
+        # triggers connect+pair via the library's _ensure_connected(). The
+        # transport already exists (created by async_prepare_ble) before the
+        # device is connected, so the ``connected`` gate must not block the
+        # initial status fetch for BLE transports.
+        if (
+            self._interface is not None
+            and (self.connected or self._device_config.transport == TRANSPORT_BLE)
+            and not self.is_closing
+        ):
             try:
                 # If reset dpids set - then assume reset is needed before status.
                 reset_dpids = self._default_reset_dpids
