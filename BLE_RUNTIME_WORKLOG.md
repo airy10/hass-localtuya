@@ -11,13 +11,14 @@
 
 BLE devices now set up, connect, expose correct entities, and the user's music light
 (`LGB102 蓝牙BK幻彩灯带 30点`, MAC `DC:23:4D:96:0A:40`, product `nvfrtxlq`, category `dd`)
-turns on/off, and mode writes now succeed (device echoes mode `0`). **Remaining**: brightness
-still has no visible effect because the device's cloud `work_mode` values use the **US
-spelling `"color"`** while localtuya's canonical string is `"colour"` (UK) → `is_color_mode`
-is always False → brightness is routed to `bright_value` (dp 3), which the device never
-echoes/applies. Fixed with `MODE_COLOR_ALIASES = ("color",)` (see §5); **pending live
-verification** by the user on the next restart (§7). Saturation appears stuck at max on the
-strip (device ignores the `s` channel of `colour_data`) — under investigation (§5b).
+turns on/off, and mode writes now succeed (device echoes mode `0`). **Brightness works** after
+the `MODE_COLOR_ALIASES` fix. **Remaining**: white on the wheel was broken (s==0 shortcut wrote
+the dead `bright_value` dp 3 instead of `colour_data`); fixed for BLE by writing `colour_data`
+with s=0 (reference behavior — these strips have no white mode). Saturation is stuck at max on
+the physical strip (device ignores the `s` channel — device limit, see §5b). Hue matches the
+reference's encoding (V2, near-identical writes); user reports the reference matches "much
+better", attributed to the white path + the saturation-ignore effect. **Pending live
+verification** of the white fix (§7).
 
 ---
 
@@ -27,7 +28,7 @@ strip (device ignores the `s` channel of `colour_data`) — under investigation 
 |---|---|
 | Branch | `ble-qrcode-auth` (head of the runtime work) |
 | Remote | `https://github.com/airy10/hass-localtuya.git` |
-| Session commits (newest first) | `MODE_COLOR_ALIASES` fix (US/UK color spelling, next commit); `9696311` work_mode fallback; `061721a` JSON→DT_STRING; `f3e21a3` range enums + music alias; `189b0bb` color_mode fix; `bddd03d` Raw/Bitmap hex; `f2c1c8c` enum int→string; `c4a46ae`; `3c651ab`; `0d072bf` |
+| Session commits (newest first) | `white-fix` (BLE white via colour_data s=0, next commit); `MODE_COLOR_ALIASES` fix (US/UK color spelling); `9696311` work_mode fallback; `061721a` JSON→DT_STRING; `f3e21a3` range enums + music alias; `189b0bb` color_mode fix; `bddd03d` Raw/Bitmap hex; `f2c1c8c` enum int→string; `c4a46ae`; `3c651ab`; `0d072bf` |
 | Working tree | Clean after last commit |
 
 The older `BLE_TRANSPORT_REVIEW_FIX_PLAN.md` and `STATUS.md` describe the *other* branch
@@ -116,17 +117,24 @@ This is the ground truth the fixes were derived from:
 | `061721a` | `_DPTYPE_TO_BLE[DPType.JSON] = DT_STRING` (reference sends cloud JSON as string) |
 | `9696311` | `WORK_MODE_FALLBACK = ("colour", "dynamic_mod", "scene_mod", "music")` used when cloud `values` empty for a `work_mode`-coded dp; `"white"` maps to `0`. Added regression tests (`test_ble_work_mode_fallback_maps_enum_when_cloud_values_empty`, `test_ble_enum_mapping_uses_cloud_values_when_present`) |
 | *next* | **`MODE_COLOR_ALIASES = ("color",)`** in `light.py` (`is_color_mode` accepts the US spelling) → `is_color_mode` True → brightness goes to `colour_data.v` instead of dead `bright_value`; plus a one-time debug dump of enum cloud values in `tuya_ble.update_description` (`_LOGGED_ENUM_VALUES`) to capture the real `work_mode` spec |
+| *next* | **BLE white fix**: `light.py` — when BLE (`self._device._device_config.transport == TRANSPORT_BLE`), white via wheel center (`hs[1]==0`) or the WHITE color-mode button (`ATTR_WHITE`) writes `colour_data` with s=0 and stays in colour mode, instead of the dead `bright_value` + "white" mode path (which is correct for Ethernet). Mirrors the reference (these strips have no white mode; white = colour_data s=0) |
 
 ## 5b. Open issue: saturation stuck at max on the strip
 
 In the 16:13 log the color writes carry correct, *varied* saturation
 (`001b00c003e8` = h=27, s=192, v=1000; `015b005003e8` = h=347, s=80, v=1000; ...), the device
-echoes dp 5, yet the strip always shows full saturation. **User confirmed (post-fix): hue
-changes on the physical strip work; the max-saturation observation is on the physical strip,
-not the HA wheel.** Conclusion: the device firmware applies only the `h` channel and ignores
-`s` — a device limitation, not a code bug. The reference component writes the same h/s/v
-format for this exact product (`nvfrtxlq`) and behaves identically. The brightness part IS
-fixable (v-channel routing, see §5) — verification pending on the user's next restart.
+echoes dp 5, yet the strip always shows full saturation. **User confirmed: hue changes on the
+physical strip work; the max-saturation observation is on the physical strip, not the HA
+wheel.** Conclusion: the device firmware applies only the `h` channel and ignores `s` — a
+device limitation, not a code bug. The reference component writes the same h/s/v format for
+this exact product (`nvfrtxlq`) and behaves identically.
+
+**White (fixed in light.py for BLE)**: these strips have NO white mode (reference's work_mode
+override = colour/dynamic_mod/scene_mod/music only); white is expressed via `colour_data`
+with s=0. Our s==0 shortcut wrote the dead `bright_value` (dp 3) + "white" mode → strip kept
+the previous color. BLE now writes `colour_data` s=0 + colour mode (matches reference).
+Caveat: IF the device special-cases s==0 → white, this works; if it ignores s entirely (as
+intermediate s values suggest), white may remain impossible — pending user test.
 
 Key code locations:
 - `custom_components/localtuya/core/tuya_ble_lib/tuya_ble.py` — `WORK_MODE_FALLBACK`,
@@ -147,23 +155,26 @@ PYTHONPATH="<repo>:<repo>/custom_components:/Users/airy/Sources/Others/homeassis
 
 ## 7. Pending verification / next steps (where the next session must pick up)
 
-1. **User must restart HA and test** (asked): pick a color → strip should change (hue works?);
-   **brightness slider → should now work** (v-channel via `MODE_COLOR_ALIASES`); log should
-   show `Sending datapoint update, id: 5, type: DT_STRING: value: ...` with the *v* field
-   varying, and the new one-time line `enum dp 2 (work_mode) cloud values: {...}` — grab that
+1. **User must restart HA and test**: (a) white via the wheel center and/or the WHITE button →
+   strip should go white (if the device special-cases s=0); (b) brightness slider still works;
+   (c) log should show `Sending datapoint update, id: 5, type: DT_STRING: value: 00000000XXXX`
+   for white, and the new one-time line `enum dp 2 (work_mode) cloud values: {...}` — grab that
    dict, it reveals the full mode spec (music/scene/white strings).
-2. **Effect-mode order guess**: `dynamic_mod`/`scene_mod`/`music` mapped to 1/2/3 is a best
-   guess from the reference's listing. Mode **0 = colour** is solid (that's all color/brightness
-   needs). If the user later reports music effects mapping to the wrong modes, swap the tuple
-   order — the enum-values dump will settle it.
-3. **Secondary**: music-mode control appears as the light's *effect* list, which only shows if
+2. **Color matching vs reference**: our v2 encoding is near-identical to the reference's
+   (h 0-360/s 0-1000/v 0-1000; reference remaps 0-360→1-360, 0-100→1-1000, 0-255→1-1000).
+   The perceived "much better matching" on the reference is attributed to its white path
+   (colour_data s≈1) + the saturation-ignore effect. If the user still sees a hue mismatch
+   after the white fix, ask for a specific example (e.g. pick pure red/green/blue, report
+   what the strip shows) before changing the encoding.
+3. **Effect-mode order guess**: `dynamic_mod`/`scene_mod`/`music` mapped to 1/2/3 is a best
+   guess from the reference's listing. Mode **0 = colour** is solid. If the user later reports
+   music effects mapping to the wrong modes, swap the tuple order — the enum-values dump will
+   settle it.
+4. **Secondary**: music-mode control appears as the light's *effect* list, which only shows if
    the entity config has `CONF_MUSIC_MODE`/`CONF_SCENE` dp assigned (light.py:294-295, 438).
    No separate entity is expected. Not wired for the user's config yet — low priority.
-4. If the fallback proves too aggressive for OTHER empty-value enum dps, scope it to product
+5. If the fallback proves too aggressive for OTHER empty-value enum dps, scope it to product
    `nvfrtxlq` (device has `_device_info.product_id`); the reference scopes it per-product.
-5. **Saturation**: after brightness is verified, ask the user whether hue changes and whether
-   low-saturation picks (e.g. pastel) ever appear on the strip — if never, the strip ignores
-   `s` and that's a device limit, not a code bug.
 
 ## 8. Useful log markers (user's HA debug log)
 

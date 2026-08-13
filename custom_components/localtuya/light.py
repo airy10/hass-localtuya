@@ -36,6 +36,7 @@ from .const import (
     CONF_COLOR_TYPE_DATA,
     CONF_MUSIC_MODE,
     CONF_SCENE_VALUES,
+    TRANSPORT_BLE,
     DictSelector,
 )
 
@@ -608,6 +609,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         else:
             self.__from_color_v2(color)
 
+    @property
+    def _is_ble(self) -> bool:
+        """Return True when the entity communicates over the BLE transport."""
+        return self._device._device_config.transport == TRANSPORT_BLE
+
     async def async_turn_on(self, **kwargs):
         """Turn on or control the light."""
         states = {}
@@ -662,8 +668,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 brightness = self._brightness
             hs = kwargs[ATTR_HS_COLOR]
             if hs[1] == 0 and self.has_config(CONF_BRIGHTNESS):
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
-                color_mode = self._modes.white
+                if self._is_ble:
+                    states[self._config.get(CONF_COLOR)] = self.__to_color(
+                        hs, brightness
+                    )
+                    color_mode = self._modes.color
+                else:
+                    states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                    color_mode = self._modes.white
             else:
                 states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
                 color_mode = self._modes.color
@@ -688,8 +700,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
                 brightness = self._brightness
-            color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            if self._is_ble:
+                states[self._config.get(CONF_COLOR)] = self.__to_color((0, 0), brightness)
+                color_mode = self._modes.color
+            else:
+                color_mode = self._modes.white
+                states[self._config.get(CONF_BRIGHTNESS)] = brightness
 
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
