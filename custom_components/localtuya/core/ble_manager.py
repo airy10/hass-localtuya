@@ -92,10 +92,24 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
         )
 
         if result is None:
+            missing = [
+                field
+                for field, value in {
+                    "uuid": credentials.get("uuid"),
+                    "local_key": credentials.get("local_key"),
+                    "device_id": credentials.get("device_id"),
+                    "category": credentials.get("category"),
+                    "product_id": credentials.get("product_id"),
+                }.items()
+                if not value
+            ]
             _LOGGER.debug(
-                "BLE device %s: missing required credential fields for %s",
+                "BLE device %s: missing credential fields for %s: %s "
+                "(available keys: %s)",
                 address,
                 self._device_id,
+                missing,
+                sorted(credentials.keys()),
             )
         elif save_data:
             self._data = credentials

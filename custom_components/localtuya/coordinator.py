@@ -424,6 +424,13 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             )
             device = TuyaBLEDevice(manager, ble_device)
             await device.initialize()
+            if device._device_info is None:
+                self.warning(
+                    f"BLE device {address}: cloud credentials could not be "
+                    f"resolved (check device id/local key and cloud account); "
+                    f"skipping connection"
+                )
+                return None
             transport = create_transport(
                 "ble",
                 device=device,

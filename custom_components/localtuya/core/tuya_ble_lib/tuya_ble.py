@@ -883,6 +883,11 @@ class TuyaBLEDevice:
         else:
             key = self._session_key
             security_flag = b"\x05"
+        if key is None:
+            raise TuyaBLEDeviceError(
+                "encryption key not available - device credentials were not "
+                "resolved from the cloud"
+            )
 
         raw = bytearray()
         raw += pack(">IIHH", seq_num, response_to, code.value, len(data))
