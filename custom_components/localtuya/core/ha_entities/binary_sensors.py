@@ -6,7 +6,7 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
 CONF_STATE_ON = "state_on"
@@ -86,10 +86,10 @@ FAULT_SENSOR = (
 )
 
 
-BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Fan
     # https://developer.tuya.com/en/docs/iot/categoryfs?id=Kaiuz1xweel1c
-    "fs": (
+    DeviceCategory.FS: (
         LocalTuyaEntity(
             id=DPCode.ERRO,  # codespell:ignore
             name="Error",
@@ -107,7 +107,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Multi-functional Sensor
     # https://developer.tuya.com/en/docs/iot/categorydgnbj?id=Kaiuz3yorvzg3
-    "dgnbj": (
+    DeviceCategory.DGNBJ: (
         LocalTuyaEntity(
             id=DPCode.GAS_SENSOR_STATE,
             name="Gas detection",
@@ -192,7 +192,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # CO2 Detector
     # https://developer.tuya.com/en/docs/iot/categoryco2bj?id=Kaiuz3wes7yuy
-    "co2bj": (
+    DeviceCategory.CO2BJ: (
         LocalTuyaEntity(
             id=DPCode.CO2_STATE,
             icon="mdi:molecule-co2",
@@ -203,7 +203,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # CO Detector
     # https://developer.tuya.com/en/docs/iot/categorycobj?id=Kaiuz3u1j6q1v
-    "cobj": (
+    DeviceCategory.COBJ: (
         LocalTuyaEntity(
             id=DPCode.CO_STATE,
             icon="mdi:molecule-co",
@@ -220,7 +220,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Pet Feeder
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
-    "cwwsq": (
+    DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
             id=DPCode.FEED_STATE,
             icon="mdi:information",
@@ -230,7 +230,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Human Presence Sensor
     # https://developer.tuya.com/en/docs/iot/categoryhps?id=Kaiuz42yhn1hs
-    "hps": (
+    DeviceCategory.HPS: (
         LocalTuyaEntity(
             id=DPCode.PRESENCE_STATE,
             device_class=BinarySensorDeviceClass.MOTION,
@@ -239,7 +239,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Formaldehyde Detector
     # Note: Not documented
-    "jqbj": (
+    DeviceCategory.JQBJ: (
         LocalTuyaEntity(
             id=DPCode.CH2O_STATE,
             device_class=BinarySensorDeviceClass.SAFETY,
@@ -249,7 +249,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Methane Detector
     # https://developer.tuya.com/en/docs/iot/categoryjwbj?id=Kaiuz40u98lkm
-    "jwbj": (
+    DeviceCategory.JWBJ: (
         LocalTuyaEntity(
             id=DPCode.CH4_SENSOR_STATE,
             device_class=BinarySensorDeviceClass.GAS,
@@ -259,7 +259,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Door and Window Controller
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf48r5zjsy9
-    "mc": (
+    DeviceCategory.MC: (
         LocalTuyaEntity(
             id=DPCode.STATUS,
             device_class=BinarySensorDeviceClass.DOOR,
@@ -273,7 +273,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Cat litter box
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
-    "msp": (
+    DeviceCategory.MSP: (
         LocalTuyaEntity(
             id=DPCode.CLEANING_NUM,
             name="Cleaning",
@@ -302,7 +302,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Door Window Sensor
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf48hm02l8m
-    "mcs": (
+    DeviceCategory.MCS: (
         LocalTuyaEntity(
             id=DPCode.DOORCONTACT_STATE,
             device_class=BinarySensorDeviceClass.DOOR,
@@ -312,7 +312,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Access Control
     # https://developer.tuya.com/en/docs/iot/s?id=Kb0o2xhlkxbet
-    "mk": (
+    DeviceCategory.MK: (
         LocalTuyaEntity(
             id=DPCode.CLOSED_OPENED_KIT,
             device_class=BinarySensorDeviceClass.LOCK,
@@ -321,7 +321,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Access Control
     # https://developer.tuya.com/en/docs/iot/s?id=Kb0o2xhlkxbet
-    "mk": (
+    DeviceCategory.MK: (
         LocalTuyaEntity(
             id=DPCode.CLOSED_OPENED_KIT,
             device_class=BinarySensorDeviceClass.LOCK,
@@ -330,7 +330,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Luminance Sensor
     # https://developer.tuya.com/en/docs/iot/categoryldcg?id=Kaiuz3n7u69l8
-    "ldcg": (
+    DeviceCategory.LDCG: (
         LocalTuyaEntity(
             id=DPCode.TEMPER_ALARM,
             device_class=BinarySensorDeviceClass.TAMPER,
@@ -341,7 +341,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # PIR Detector
     # https://developer.tuya.com/en/docs/iot/categorypir?id=Kaiuz3ss11b80
-    "pir": (
+    DeviceCategory.PIR: (
         LocalTuyaEntity(
             id=(DPCode.PIR, DPCode.PIR_STATE),
             device_class=BinarySensorDeviceClass.MOTION,
@@ -366,7 +366,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Gas Detector
     # https://developer.tuya.com/en/docs/iot/categoryrqbj?id=Kaiuz3d162ubw
-    "rqbj": (
+    DeviceCategory.RQBJ: (
         LocalTuyaEntity(
             id=DPCode.GAS_SENSOR_STATUS,
             device_class=BinarySensorDeviceClass.GAS,
@@ -381,7 +381,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Water Detector
     # https://developer.tuya.com/en/docs/iot/categorysj?id=Kaiuz3iub2sli
-    "sj": (
+    DeviceCategory.SJ: (
         LocalTuyaEntity(
             id=DPCode.WATERSENSOR_STATE,
             device_class=BinarySensorDeviceClass.MOISTURE,
@@ -391,7 +391,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Emergency Button
     # https://developer.tuya.com/en/docs/iot/categorysos?id=Kaiuz3oi6agjy
-    "sos": (
+    DeviceCategory.SOS: (
         LocalTuyaEntity(
             id=DPCode.SOS_STATE,
             device_class=BinarySensorDeviceClass.SAFETY,
@@ -401,7 +401,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Volatile Organic Compound Sensor
     # Note: Undocumented in cloud API docs, based on test device
-    "voc": (
+    DeviceCategory.VOC: (
         LocalTuyaEntity(
             id=DPCode.VOC_STATE,
             device_class=BinarySensorDeviceClass.SAFETY,
@@ -411,7 +411,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Thermostatic Radiator Valve
     # Not documented
-    "wkf": (
+    DeviceCategory.WKF: (
         LocalTuyaEntity(
             id=DPCode.WINDOW_STATE,
             device_class=BinarySensorDeviceClass.WINDOW,
@@ -420,10 +420,10 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Temperature and Humidity Sensor
     # https://developer.tuya.com/en/docs/iot/categorywsdcg?id=Kaiuz3hinij34
-    "wsdcg": (TAMPER_BINARY_SENSOR,),
+    DeviceCategory.WSDCG: (TAMPER_BINARY_SENSOR,),
     # Pressure Sensor
     # https://developer.tuya.com/en/docs/iot/categoryylcg?id=Kaiuz3kc2e4gm
-    "ylcg": (
+    DeviceCategory.YLCG: (
         LocalTuyaEntity(
             id=DPCode.PRESSURE_STATE,
             custom_configs=ALARM_ON,
@@ -432,7 +432,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smoke Detector
     # https://developer.tuya.com/en/docs/iot/categoryywbj?id=Kaiuz3f6sf952
-    "ywbj": (
+    DeviceCategory.YWBJ: (
         LocalTuyaEntity(
             id=DPCode.SMOKE_SENSOR_STATUS,
             device_class=BinarySensorDeviceClass.SMOKE,
@@ -453,7 +453,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Vibration Sensor
     # https://developer.tuya.com/en/docs/iot/categoryzd?id=Kaiuz3a5vrzno
-    "zd": (
+    DeviceCategory.ZD: (
         LocalTuyaEntity(
             id=(DPCode.SHOCK_STATE, f"{DPCode.SHOCK_STATE}_vibration"),
             device_class=BinarySensorDeviceClass.VIBRATION,
@@ -476,17 +476,17 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # EV Charcher
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
-    "qccdz": (*FAULT_SENSOR,),
+    DeviceCategory.QCCDZ: (*FAULT_SENSOR,),
 }
 
-BINARY_SENSORS["gcj"] = FAULT_SENSOR
-BINARY_SENSORS["cl"] = FAULT_SENSOR
-BINARY_SENSORS["wk"] = FAULT_SENSOR
-BINARY_SENSORS["kg"] = FAULT_SENSOR
-BINARY_SENSORS["pc"] = FAULT_SENSOR
-BINARY_SENSORS["cz"] = FAULT_SENSOR
-BINARY_SENSORS["cs"] = FAULT_SENSOR
-BINARY_SENSORS["jsq"] = FAULT_SENSOR
-BINARY_SENSORS["kt"] = FAULT_SENSOR
-BINARY_SENSORS["sd"] = FAULT_SENSOR
-BINARY_SENSORS["sfkzq"] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.GCJ] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.CL] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.WK] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.KG] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.PC] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.CZ] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.CS] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.JSQ] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.KT] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.SD] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.SFKZQ] = FAULT_SENSOR

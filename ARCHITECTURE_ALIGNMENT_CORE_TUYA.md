@@ -177,7 +177,7 @@ branching, no wrapper). Target alignment, per platform:
   select/button), or better: derive mappings from cloud spec + category tables instead of
   per-product hardcoding.
 
-### Phase 5 — Capability platforms & polish
+### Phase 5 — Capability platforms & polish (DONE — see §7.5)
 
 - **event**: doorbell/button events (BLE Fingerbot already fires `localtuya_fingerbot_button_pressed`
   on the bus; wrap it as an `event` entity).
@@ -273,3 +273,97 @@ Verification: full pytest suite green (79 passed) after the async conversion and
 every alignment batch; `compileall` clean. Test coverage of the wrapper delegation lives in
 `tests/test_wrapper_delegation.py` (16 tests: skip-gate semantics, command batching,
 synthetic-config fallbacks, percentage/humidity math).
+
+### 7.3 Phase 2 — `DeviceCategory` + `DPCode` vocabulary (DONE)
+
+- `DeviceCategory` (137 members, verbatim from core `const.py` — name/value/order verified
+  by AST parity script; docstrings kept after each member) plus 4 localtuya extensions
+  (`DGNZK`, `GCJ`, `HDMIPMTBQ`, `QT`) in `core/ha_entities/base.py` (placed there so the
+  per-table `from .base import ...` line already covers it — no import churn).
+- `DPCode` reconciled to 876 assignments / **874 unique values**: every core `DPCode`
+  value now exists here (parity script proves zero core values missing); 479 ours-only
+  values retained. Two intentional duplicate-value aliases remain: `COUNTDOWN_USB =
+  'countdown'` (pre-existing ours) and `FILTER_LIFE = 'filter'` (core's own alias of
+  `FILTER`; core also has `FILTER_DURATION = 'filter_life'`). StrEnum dedupes aliases so
+  both names resolve to the same member.
+- All 19 `ha_entities/*.py` tables converted from string category keys to
+  `DeviceCategory.X` members (232 occurrences, including bracket-appends like
+  `LIGHTS["hdmipmtbq"]`, `NUMBERS["hdmipmtbq"] = NUMBERS["dj"]`,
+  `BINARY_SENSORS["gcj"] = FAULT_SENSOR`); annotations now `dict[DeviceCategory, ...]`.
+  String lookups still work: StrEnum members hash-equal their values, so
+  `tuya_data.get("bh")` on a `DeviceCategory.BH`-keyed dict resolves (smoke-tested;
+  `DATA_PLATFORMS` platform lookups unaffected).
+- Verification: parity script (DeviceCategory 137/137 exact; core DPCode values missing:
+  none), `compileall` clean, pylint E-level clean on `base.py`, no new >120-char lines,
+  full suite 79 passed.
+
+### 7.4 Phase 4 — Runtime discovery + spec-derived mappings (DONE)
+
+- `LOCALTUYA_DISCOVERY_NEW = "localtuya_discovery_new"` in `const.py` (mirrors core
+  `TUYA_DISCOVERY_NEW`, const.py:37-38).
+- `TuyaDevice.device_key` property (`coordinator.py`): `get_device_key(device_config)` +
+  `_{node_id}` for sub-devices — exactly the key under which the device is stored in
+  `hass.data[DOMAIN][entry_id].devices` (mirrors `__init__.py:388-400`).
+- `_make_ble_connection` fires `async_dispatcher_send(hass, LOCALTUYA_DISCOVERY_NEW,
+  [device_key])` once a BLE transport exists. During entry setup the signal is a no-op
+  (no platform subscribed yet); the target case is runtime pairing/binding/reconnect —
+  mirrors core `coordinator.py:120-143` (`async_add_device`).
+- Shared `async_setup_entry` (`entity.py`) subscribes `_async_discover_device(device_keys)`
+  via `config_entry.async_on_unload(async_dispatcher_connect(...))`. The handler looks up
+  the device by key, skips devices without a BLE transport or with manually-configured
+  entities for the platform, reuses `_auto_entities_for_device`, and registers the new
+  `LocalTuyaEntity` instances — mirrors core `async_discover_device` (switch.py:933-951).
+- `_auto_entities_for_device` now idempotent: it skips auto-generating configs whose
+  `CONF_ID`/`CONF_PLATFORM` already exist in `dev_entry[CONF_ENTITIES]`, so repeated
+  discovery signals can't duplicate entities.
+- `mappings.py` grew `derive_mappings_from_spec(device)`: instead of per-product
+  hardcoding, any device with a cloud spec (`function`/`status_range`: dpcode → dp_id)
+  gets its entity mappings derived on the fly from the (now `DeviceCategory`-keyed)
+  `ha_entities` tables. Per-product `MAPPINGS` still win when present; otherwise the
+  derivation kicks in. Resolution rules mirror `gen_localtuya_entities` (Enum vs tuple
+  DPCode alternatives, first-present-wins) and the spec gate mirrors core
+  `get_default_definition` (switch.py:938-943) — entities whose primary DP is absent from
+  the device spec are skipped. Import is lazy (function-scope) to break the
+  `ha_entities → platform → entity → mappings` import cycle.
+- Tests: 3 new cases in `tests/test_p2f1_auto_config.py` (category-table derivation,
+  unknown-category empty, unknown-product fallback-to-derivation). Full suite now
+  **92 passed**.
+
+### 7.5 Phase 5 — Capability platforms, diagnostics & quirks (DONE)
+
+- **event** (`event.py` + `core/ha_entities/events.py`): BLE Fingerbot devices already fire
+  `localtuya_fingerbot_button_pressed` on the HA bus (coordinator `_handle_fingerbot_button`);
+  the new `LocalTuyaEvent(LocalTuyaEntity, EventEntity)` platform wraps that bus event as an
+  `event` entity — `_attr_device_class = EventDeviceClass.BUTTON`, `_attr_event_types =
+  ["pressed"]`, subscribed in `async_added_to_hass`, mirroring core's event platform (which
+  turns doorbell/button DP updates into `EventEntity` triggers). Registered as
+  `"Event": Platform.EVENT` in `PLATFORMS` with an (intentionally empty) `EVENTS` table in
+  `DATA_PLATFORMS` — event entities are per-DP-configurable, not derived from category
+  tables, so the table stays empty.
+- **valve** (`valve.py` + `core/ha_entities/valves.py`): `LocalTuyaValve(LocalTuyaEntity,
+  ValveEntity)` with `_attr_supported_features = OPEN | CLOSE`, `is_closed = not is_open`,
+  `async_open_valve`/`async_close_valve` via `_async_send_wrapper_updates`, and verbatim core
+  `_process_device_update` docstring. `VALVES` table mirrors core for `DeviceCategory.SFKZQ`
+  (SWITCH + SWITCH_1..SWITCH_8 → "Valve", "Valve 1".."Valve 8").
+- **scene** (`scene.py`): cloud scenes exposed via `SharingCloud.async_get_scenes()` /
+  `async_trigger_scene()` (executor-jobs wrapping tuya_sharing `Manager.query_scenes` /
+  `trigger_scene`; the legacy `TuyaCloudApi` has no scene endpoint). `TuyaSceneEntity(Scene)`
+  mirrors core: `unique_id = f"tys{scene.scene_id}"`, `entry_type = DeviceEntryType.SERVICE`,
+  `available = scene.enabled`, `async_activate`. Not in `PLATFORMS` (that dict doubles as the
+  config-flow entity-type selector); instead forwarded separately in `__init__.py` via
+  `async_forward_entry_setups(entry, (Platform.SCENE,))` — mirrors core `const.py:61`.
+- **diagnostics** (`diagnostics.py`): `async_get_device_diagnostics` now surfaces the parsed
+  BLE spec and live status alongside `DEVICE_CLOUD_INFO` — `function`/`status_range`
+  (dpcode → dp_id/type/values from `TuyaBLEDeviceFunction`) and `status` (dp_id →
+  value/type/timestamp from `TuyaBLEDataPoints`). `bytes` values hex-encoded. Secrets and
+  `ble_address` stay obfuscated. Added public `TuyaBLEDataPoints.values()` to avoid exposing
+  the private `_datapoints` dict.
+- **quirks** (`core/quirks.py`): product-id keyed `QuirksRegistry` mirroring core's
+  `QuirksRegistry` (tuya_device_handlers/registry.py). First entry: the Fingerbot button
+  datapoint table (was `FINGERBOT_SWITCH_DP` in `const.py`) — each known Fingerbot
+  product_id registers a `DeviceQuirk(button_switch_dp=...)`, and coordinator
+  `_handle_fingerbot_button` now resolves the DP through the registry. Replaces a hardcoded
+  table with the registry pattern.
+- Tests: `tests/test_event.py` (device-id matching + `_trigger_event`), `tests/test_quirks.py`
+  (registry population, lookup, unknown/missing product), `tests/test_diagnostics.py` (BLE
+  spec/status surfacing, no-BLE skip). Full suite **92 passed**, `compileall` clean.

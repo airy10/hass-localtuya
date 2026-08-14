@@ -88,6 +88,37 @@ async def async_get_device_diagnostics(
     # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()
     if discovery := hass.data[DOMAIN].get(DATA_DISCOVERY):
         data["Discovered_Devices"] = discovery.devices.get(dev_id)
+
+    # Surface the parsed BLE spec (function/status_range) and live status,
+    # mirroring core tuya's customer_device_as_dict (diagnostics include
+    # function/status_range/status for the device).
+    for device_key, tuya_device in hass_localtuya.devices.items():
+        if tuya_device.id != dev_id:
+            continue
+        if ble := tuya_device.ble_device:
+            data["function"] = copy.deepcopy(
+                {
+                    code: {"dp_id": f.dp_id, "type": str(f.type), "values": f.values}
+                    for code, f in (ble.function or {}).items()
+                }
+            )
+            data["status_range"] = copy.deepcopy(
+                {
+                    code: {"dp_id": f.dp_id, "type": str(f.type), "values": f.values}
+                    for code, f in (ble.status_range or {}).items()
+                }
+            )
+            data["status"] = copy.deepcopy(
+                {
+                    str(dp.id): {
+                        "value": dp.value if not isinstance(dp.value, bytes) else dp.value.hex(),
+                        "type": str(dp.type),
+                        "timestamp": dp.timestamp,
+                    }
+                    for dp in ble.datapoints.values()
+                }
+            )
+        break
     return data
 
 

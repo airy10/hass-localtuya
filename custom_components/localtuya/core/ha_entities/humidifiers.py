@@ -7,6 +7,7 @@
 """
 
 from .base import (
+    DeviceCategory,
     DPCode,
     LocalTuyaEntity,
     CONF_DEVICE_CLASS,
@@ -44,10 +45,10 @@ def localtuya_humidifier(modes):
     return data
 
 
-HUMIDIFIERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+HUMIDIFIERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Dehumidifier
     # https://developer.tuya.com/en/docs/iot/categorycs?id=Kaiuz1vcz4dha
-    "cs": (
+    DeviceCategory.CS: (
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             humidifier_current_humidity_dp=DPCode.HUMIDITY_INDOOR,
@@ -65,7 +66,7 @@ HUMIDIFIERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Humidifier
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
-    "jsq": (
+    DeviceCategory.JSQ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             humidifier_current_humidity_dp=DPCode.HUMIDITY_CURRENT,

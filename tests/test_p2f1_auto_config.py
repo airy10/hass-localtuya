@@ -54,6 +54,68 @@ def test_get_mapping_by_device_unknown_category():
     assert get_mapping_by_device(device) == []
 
 
+class MockSpecFn:
+    def __init__(self, dp_id):
+        self.dp_id = dp_id
+
+
+class MockSpecDevice:
+    """BLE device with cloud spec (function/status_range) but no per-product entry."""
+
+    def __init__(self, category, function, status_range):
+        self.category = category
+        self.product_id = "unknown"
+        self.datapoints = MockDatapoints(set())
+        self.function = function
+        self.status_range = status_range
+
+
+def test_derive_mappings_from_spec_matches_category_table():
+    from custom_components.localtuya.core.mappings import (
+        derive_mappings_from_spec,
+    )
+
+    device = MockSpecDevice(
+        "bh",  # Smart Kettle
+        {"start": MockSpecFn(1), "warm": MockSpecFn(2)},
+        {"temp_current": MockSpecFn(3)},
+    )
+    mappings = derive_mappings_from_spec(device)
+    by_dp = {m.dp_id: m for m in mappings}
+    assert 1 in by_dp  # switch Start
+    assert 2 in by_dp  # switch Warm
+    assert by_dp[1].platform == Platform.SWITCH
+    assert by_dp[1].config["friendly_name"] == "Start"
+    # Sensor present in the spec is derived too.
+    assert 3 in by_dp
+    assert by_dp[3].platform == Platform.SENSOR
+    # Codes absent from the device spec are skipped (spec gate).
+    assert 4 not in by_dp
+
+
+def test_derive_mappings_from_spec_unknown_category_empty():
+    from custom_components.localtuya.core.mappings import (
+        derive_mappings_from_spec,
+    )
+
+    device = MockSpecDevice("nope", {"x": MockSpecFn(1)}, {})
+    assert derive_mappings_from_spec(device) == []
+
+
+def test_get_mapping_by_device_unknown_product_derives_from_spec():
+    from custom_components.localtuya.core.mappings import (
+        get_mapping_by_device,
+    )
+
+    device = MockSpecDevice(
+        "bh",
+        {"start": MockSpecFn(1)},
+        {"temp_current": MockSpecFn(3)},
+    )
+    mappings = get_mapping_by_device(device)
+    assert {m.dp_id for m in mappings} == {1, 3}
+
+
 def test_auto_entities_force_add_and_has_id_gating():
     MAPPINGS["testcat"] = TuyaCategoryMapping(
         products={

@@ -27,6 +27,7 @@ from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
 )
+from homeassistant.core import callback
 
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -50,6 +51,7 @@ from .const import (
     CONF_SETTER,
     CONF_OFFSET,
     DOMAIN,
+    LOCALTUYA_DISCOVERY_NEW,
     RESTORE_STATES,
     TRANSPORT_BLE,
     DeviceConfig,
@@ -125,6 +127,49 @@ async def async_setup_entry(
         if async_setup_services:
             await async_setup_services(hass, entities)
 
+    # Runtime discovery: devices that become available after setup (e.g. a BLE
+    # device that paired/bound at runtime) fire LOCALTUYA_DISCOVERY_NEW, so
+    # this platform creates entities on the fly. Mirrors core tuya's
+    # async_discover_device flow (switch.py:933-951).
+    @callback
+    def _async_discover_device(device_keys: list[str]) -> None:
+        """Create entities for devices that became available at runtime."""
+        discovered: list[LocalTuyaEntity] = []
+        for device_key in device_keys:
+            device = hass_entry_data.devices.get(device_key)
+            if device is None or device.ble_device is None:
+                continue
+            dev_entry = config_entry.data[CONF_DEVICES].get(device.id)
+            if dev_entry is None:
+                continue
+            if any(
+                entity.get(CONF_PLATFORM) == domain
+                for entity in dev_entry.get(CONF_ENTITIES, [])
+            ):
+                continue
+            entity_configs = _auto_entities_for_device(device, domain, dev_entry)
+            if not entity_configs:
+                continue
+            for entity_config in entity_configs:
+                for dp_conf in dps_config_fields:
+                    if dp_conf in entity_config:
+                        device.dps_to_request[entity_config[dp_conf]] = None
+                discovered.append(
+                    entity_class(
+                        device,
+                        dev_entry,
+                        entity_config[CONF_ID],
+                        add_entites_callback=async_add_entities,
+                    )
+                )
+        if discovered:
+            device.add_entities(discovered)
+            async_add_entities(discovered)
+
+    config_entry.async_on_unload(
+        async_dispatcher_connect(hass, LOCALTUYA_DISCOVERY_NEW, _async_discover_device)
+    )
+
 
 def get_dps_for_platform(flow_schema):
     """Return config keys for all platform keys that depends on a datapoint."""
@@ -146,6 +191,11 @@ def _auto_entities_for_device(
     if ble_device is None:
         return []
 
+    existing_ids = {
+        ent.get(CONF_ID)
+        for ent in dev_entry.get(CONF_ENTITIES, [])
+        if ent.get(CONF_PLATFORM) == domain
+    }
     generated = []
     for mapping in get_mapping_by_device(ble_device):
         if mapping.platform.value != domain:
@@ -157,6 +207,8 @@ def _auto_entities_for_device(
         config = dict(mapping.config)
         config[CONF_ID] = str(mapping.dp_id)
         config[CONF_PLATFORM] = domain
+        if config[CONF_ID] in existing_ids:
+            continue
         generated.append(config)
 
     if generated:

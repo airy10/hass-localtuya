@@ -7,6 +7,7 @@
 """
 
 from .base import (
+    DeviceCategory,
     DPCode,
     LocalTuyaEntity,
     CONF_DEVICE_CLASS,
@@ -44,10 +45,10 @@ COUNT_DOWN_HOURS = {
     "6h": "6 Hours",
 }
 
-SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Smart panel with switches and zigbee hub ?
     # Not documented
-    "dgnzk": (
+    DeviceCategory.DGNZK: (
         LocalTuyaEntity(
             id=DPCode.SOURCE,
             name="Source",
@@ -99,7 +100,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Multi-functional Sensor
     # https://developer.tuya.com/en/docs/iot/categorydgnbj?id=Kaiuz3yorvzg3
-    "dgnbj": (
+    DeviceCategory.DGNBJ: (
         LocalTuyaEntity(
             id=DPCode.ALARM_VOLUME,
             name="volume",
@@ -129,7 +130,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Heater
-    "kt": (
+    DeviceCategory.KT: (
         LocalTuyaEntity(
             id=(DPCode.C_F, DPCode.TEMP_UNIT_CONVERT),
             name="Temperature Unit",
@@ -137,7 +138,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Heater
-    "rs": (
+    DeviceCategory.RS: (
         LocalTuyaEntity(
             id=(DPCode.C_F, DPCode.TEMP_UNIT_CONVERT),
             name="Temperature Unit",
@@ -153,7 +154,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Coffee maker
     # https://developer.tuya.com/en/docs/iot/categorykfj?id=Kaiuz2p12pc7f
-    "kfj": (
+    DeviceCategory.KFJ: (
         LocalTuyaEntity(
             id=DPCode.CUP_NUMBER,
             name="Cups",
@@ -208,7 +209,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Switch
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-    "kg": (
+    DeviceCategory.KG: (
         LocalTuyaEntity(
             id=DPCode.RELAY_STATUS,
             icon="mdi:circle-double",
@@ -423,7 +424,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Cat litter box
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
-    "msp": (
+    DeviceCategory.MSP: (
         LocalTuyaEntity(
             id=DPCode.LEVEL,
             name="Doorbell song",
@@ -442,7 +443,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # EV Charcher
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
-    "qccdz": (
+    DeviceCategory.QCCDZ: (
         LocalTuyaEntity(
             id=DPCode.WORK_MODE,
             name="Mode",
@@ -480,7 +481,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
-    "qn": (
+    DeviceCategory.QN: (
         LocalTuyaEntity(
             id=DPCode.LEVEL,
             name="Temperature Level",
@@ -504,7 +505,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Generic products, EV Charger
     # https://support.tuya.com/en/help/_detail/K9g77zfmlnwal
-    "qt": (
+    DeviceCategory.QT: (
         LocalTuyaEntity(
             id=DPCode.CHARGE_PATTERN,
             name="Charge Pattern",
@@ -552,7 +553,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Weather Station
-    "qxj": (
+    DeviceCategory.QXJ: (
         LocalTuyaEntity(
             id=DPCode.TEMP_UNIT_CONVERT,
             name="Temperature unit",
@@ -590,7 +591,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Siren Alarm
     # https://developer.tuya.com/en/docs/iot/categorysgbj?id=Kaiuz37tlpbnu
-    "sgbj": (
+    DeviceCategory.SGBJ: (
         LocalTuyaEntity(
             id=DPCode.ALARM_VOLUME,
             name="Volume",
@@ -652,7 +653,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Camera
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
-    "sp": (
+    DeviceCategory.SP: (
         LocalTuyaEntity(
             id=DPCode.IPC_WORK_MODE,
             entity_category=EntityCategory.CONFIG,
@@ -734,7 +735,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Dimmer Switch
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
-    "tgkg": (
+    DeviceCategory.TGKG: (
         LocalTuyaEntity(
             id=DPCode.RELAY_STATUS,
             icon="mdi:circle-double",
@@ -789,7 +790,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Dimmer
     # https://developer.tuya.com/en/docs/iot/tgq?id=Kaof8ke9il4k4
-    "tgq": (
+    DeviceCategory.TGQ: (
         LocalTuyaEntity(
             id=DPCode.LED_TYPE_1,
             entity_category=EntityCategory.CONFIG,
@@ -808,7 +809,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Fingerbot
-    "szjqr": (
+    DeviceCategory.SZJQR: (
         LocalTuyaEntity(
             id=DPCode.MODE,
             entity_category=EntityCategory.CONFIG,
@@ -820,7 +821,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Robot Vacuum
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
-    "sd": (
+    DeviceCategory.SD: (
         LocalTuyaEntity(
             id=DPCode.CISTERN,
             entity_category=EntityCategory.CONFIG,
@@ -886,7 +887,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Fan
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf45vs7vkge
-    "fs": (
+    DeviceCategory.FS: (
         LocalTuyaEntity(
             id=DPCode.MODE,
             entity_category=EntityCategory.CONFIG,
@@ -992,7 +993,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Curtain
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46o5mtfyc
-    "cl": (
+    DeviceCategory.CL: (
         LocalTuyaEntity(
             id=(DPCode.CONTROL_BACK_MODE, DPCode.CONTROL_BACK),
             name="Motor Direction",
@@ -1018,7 +1019,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Humidifier
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
-    "jsq": (
+    DeviceCategory.JSQ: (
         LocalTuyaEntity(
             id=DPCode.SPRAY_MODE,
             entity_category=EntityCategory.CONFIG,
@@ -1081,7 +1082,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Air Purifier
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46h2s6dzm
-    "kj": (
+    DeviceCategory.KJ: (
         LocalTuyaEntity(
             id=DPCode.COUNTDOWN,
             entity_category=EntityCategory.CONFIG,
@@ -1099,7 +1100,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Dehumidifier
     # https://developer.tuya.com/en/docs/iot/categorycs?id=Kaiuz1vcz4dha
-    "cs": (
+    DeviceCategory.CS: (
         LocalTuyaEntity(
             id=DPCode.COUNTDOWN_SET,
             entity_category=EntityCategory.CONFIG,
@@ -1137,7 +1138,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Water Detector
     # https://developer.tuya.com/en/docs/iot/categorysj?id=Kaiuz3iub2sli
-    "sj": (
+    DeviceCategory.SJ: (
         LocalTuyaEntity(
             id=(DPCode.C_F, DPCode.TEMP_UNIT_CONVERT),
             name="Temperature Unit",
@@ -1147,7 +1148,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Water Valve
-    "sfkzq": (
+    DeviceCategory.SFKZQ: (
         LocalTuyaEntity(
             id=DPCode.SMART_WEATHER,
             name="Smart Weather Mode",
@@ -1160,7 +1161,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # sous vide cookers
     # https://developer.tuya.com/en/docs/iot/f?id=K9r2v9hgmyk3h
-    "mzj": (
+    DeviceCategory.MZJ: (
         LocalTuyaEntity(
             id=DPCode.MODE,
             entity_category=EntityCategory.CONFIG,
@@ -1181,7 +1182,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # PIR Detector
     # https://developer.tuya.com/en/docs/iot/categorypir?id=Kaiuz3ss11b80
-    "pir": (
+    DeviceCategory.PIR: (
         LocalTuyaEntity(
             id=DPCode.MOD,
             icon="mdi:cog",
@@ -1212,7 +1213,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Thermostat
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
-    "wk": (
+    DeviceCategory.WK: (
         LocalTuyaEntity(
             id=DPCode.SENSORTYPE,
             entity_category=EntityCategory.CONFIG,
@@ -1224,7 +1225,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Temperature and Humidity Sensor
     # https://developer.tuya.com/en/docs/iot/categorywsdcg?id=Kaiuz3hinij34
-    "wsdcg": (
+    DeviceCategory.WSDCG: (
         LocalTuyaEntity(
             id=(DPCode.C_F, DPCode.TEMP_UNIT_CONVERT),
             name="Temperature Unit",
@@ -1253,7 +1254,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Alarm Host
     # https://developer.tuya.com/en/docs/iot/categorymal?id=Kaiuz33clqxaf
-    "mal": (
+    DeviceCategory.MAL: (
         LocalTuyaEntity(
             id=DPCode.ZONE_ATTRIBUTE,
             entity_category=EntityCategory.CONFIG,
@@ -1312,7 +1313,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Water Meter
     # https://developer.tuya.com/en/docs/iot/f?id=Ka8n052xu7w4c
-    "znsb": (
+    DeviceCategory.ZNSB: (
         LocalTuyaEntity(
             id=DPCode.REPORT_PERIOD_SET,
             entity_category=EntityCategory.CONFIG,
@@ -1335,7 +1336,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # HDMI Sync Box A1
-    "hdmipmtbq": (
+    DeviceCategory.HDMIPMTBQ: (
         LocalTuyaEntity(
             id=DPCode.VIDEO_SCENE,
             entity_category=EntityCategory.CONFIG,
@@ -1403,7 +1404,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Lawn mower
-    "gcj": (
+    DeviceCategory.GCJ: (
         LocalTuyaEntity(
             id=DPCode.MACHINECONTROLCMD,
             name="Control",
@@ -1428,7 +1429,7 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
 }
 # Wireless Switch  # also can come as knob switch. # and scene switch.
 # https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5
-SELECTS["wxkg"] = (
+SELECTS[DeviceCategory.WXKG] = (
     LocalTuyaEntity(
         id=DPCode.WORK_MODE,
         name="Display mode",
@@ -1518,26 +1519,26 @@ SELECTS["wxkg"] = (
         ),
         condition_contains_any=["remote_control", "wireless_switch"],
     ),
-    *SELECTS["kg"],
+    *SELECTS[DeviceCategory.KG],
 )
 
 # Scene Switch
 # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
-SELECTS["cjkg"] = SELECTS["kg"]
+SELECTS[DeviceCategory.CJKG] = SELECTS[DeviceCategory.KG]
 
 # Fan wall switch
 # For Power-on behavior
-SELECTS["fskg"] = SELECTS["kg"]
+SELECTS[DeviceCategory.FSKG] = SELECTS[DeviceCategory.KG]
 
 # Socket (duplicate of `kg`)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-SELECTS["cz"] = SELECTS["kg"]
+SELECTS[DeviceCategory.CZ] = SELECTS[DeviceCategory.KG]
 
 # Power Socket (duplicate of `kg`)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-SELECTS["pc"] = SELECTS["kg"]
+SELECTS[DeviceCategory.PC] = SELECTS[DeviceCategory.KG]
 
-SELECTS["tdq"] = SELECTS["kg"]
+SELECTS[DeviceCategory.TDQ] = SELECTS[DeviceCategory.KG]
 
 # Heater
-SELECTS["rs"] = SELECTS["kt"]
+SELECTS[DeviceCategory.RS] = SELECTS[DeviceCategory.KT]

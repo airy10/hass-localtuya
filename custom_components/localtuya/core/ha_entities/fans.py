@@ -6,6 +6,7 @@
 """
 
 from .base import (
+    DeviceCategory,
     DPCode,
     LocalTuyaEntity,
     CONF_DEVICE_CLASS,
@@ -49,9 +50,9 @@ def localtuya_fan(fwd, rev, min_speed, max_speed, order, dp_type):
     return data
 
 
-FANS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+FANS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Fan
-    "fs": (
+    DeviceCategory.FS: (
         LocalTuyaEntity(
             id=(DPCode.SWITCH_FAN, DPCode.FAN_SWITCH, DPCode.SWITCH),
             name="Fan",
@@ -65,7 +66,7 @@ FANS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Normal switch with fan controller.
-    "tdq": (
+    DeviceCategory.TDQ: (
         LocalTuyaEntity(
             id=(DPCode.SWITCH_FAN, DPCode.FAN_SWITCH),
             name="Fan",
@@ -80,8 +81,8 @@ FANS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
 }
 # Fan with Light
-FANS["fsd"] = FANS["fs"]
+FANS[DeviceCategory.FSD] = FANS[DeviceCategory.FS]
 # Fan wall switch
-FANS["fskg"] = FANS["fs"]
+FANS[DeviceCategory.FSKG] = FANS[DeviceCategory.FS]
 # Air Purifier
-FANS["kj"] = FANS["fs"]
+FANS[DeviceCategory.KJ] = FANS[DeviceCategory.FS]

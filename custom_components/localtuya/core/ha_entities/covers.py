@@ -5,7 +5,7 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
 from homeassistant.components.cover import CoverDeviceClass
 
 # from const.py this is temporarily.
@@ -28,11 +28,11 @@ def localtuya_cover(cmd_set, position_mode=None, inverted=False, timed=25):
     return data
 
 
-COVERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Curtain
     # Note: Multiple curtains isn't documented
     # https://developer.tuya.com/en/docs/iot/categorycl?id=Kaiuz1hnpo7df
-    "cl": (
+    DeviceCategory.CL: (
         LocalTuyaEntity(
             id=DPCode.CONTROL,
             name="Curtain",
@@ -86,7 +86,7 @@ COVERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Garage Door Opener
     # https://developer.tuya.com/en/docs/iot/categoryckmkzq?id=Kaiuz0ipcboee
-    "ckmkzq": (
+    DeviceCategory.CKMKZQ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_1,
             name="Door",
@@ -111,7 +111,7 @@ COVERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Curtain Switch
     # https://developer.tuya.com/en/docs/iot/category-clkg?id=Kaiuz0gitil39
-    "clkg": (
+    DeviceCategory.CLKG: (
         LocalTuyaEntity(
             id=DPCode.CONTROL,
             name="Curtain",
@@ -131,7 +131,7 @@ COVERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Curtain Robot
     # Note: Not documented
-    "jdcljqr": (
+    DeviceCategory.JDCLJQR: (
         LocalTuyaEntity(
             id=DPCode.CONTROL,
             name="Curtain",

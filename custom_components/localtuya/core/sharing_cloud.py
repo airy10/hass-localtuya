@@ -351,6 +351,28 @@ class SharingCloud:
                 self.device_list[dev_id]["dps_data"] = dps_data
         return "ok"
 
+    async def async_get_scenes(self) -> list[Any]:
+        """Return the home scenes of the sharing account.
+
+        Mirrors core tuya's ``manager.query_scenes`` (scene.py:31): scene
+        support requires a sharing session (the legacy ``TuyaCloudApi`` IoT
+        platform has no scene endpoint), so this returns an empty list when
+        no sharing session is available.
+        """
+        manager = await self._get_manager()
+        if manager is None:
+            return []
+        return await self._hass.async_add_executor_job(manager.query_scenes)
+
+    async def async_trigger_scene(self, home_id: str, scene_id: str) -> None:
+        """Trigger a home scene by id (mirrors core ``trigger_scene``)."""
+        manager = await self._get_manager()
+        if manager is None:
+            return
+        await self._hass.async_add_executor_job(
+            manager.trigger_scene, home_id, scene_id
+        )
+
     @property
     def token_validate(self) -> bool:
         """Return whether the sharing session is available (SDK refreshes internally)."""

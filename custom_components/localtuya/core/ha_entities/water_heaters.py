@@ -12,7 +12,7 @@ from homeassistant.components.water_heater import (
 )
 from homeassistant.const import CONF_TEMPERATURE_UNIT
 
-from .base import DPCode, LocalTuyaEntity, CLOUD_VALUE
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CLOUD_VALUE
 from ...const import (
     CONF_TARGET_TEMPERATURE_LOW_DP,
     CONF_TARGET_TEMPERATURE_HIGH_DP,
@@ -63,10 +63,10 @@ def localtuya_water_heater(
     return data
 
 
-WATER_HEATERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+WATER_HEATERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Water Heater
     # https://developer.tuya.com/en/docs/iot/categoryrs?id=Kaiuz0nfferyx
-    "rs": (
+    DeviceCategory.RS: (
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),

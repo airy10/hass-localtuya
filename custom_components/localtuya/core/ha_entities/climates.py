@@ -16,7 +16,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.const import CONF_TEMPERATURE_UNIT
 
-from .base import DPCode, LocalTuyaEntity, CLOUD_VALUE
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CLOUD_VALUE
 from ...const import (
     CONF_ECO_VALUE,
     CONF_HVAC_ACTION_SET,
@@ -118,10 +118,10 @@ MAP_CLIMATE_ACTIONS = {
     "closed": HVACAction.IDLE,
 }
 
-CLIMATES: dict[str, tuple[LocalTuyaEntity, ...]] = {
+CLIMATES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Air conditioner
     # https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n
-    "kt": (
+    DeviceCategory.KT: (
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
@@ -155,7 +155,7 @@ CLIMATES: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46epy4j82
-    "qn": (
+    DeviceCategory.QN: (
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
@@ -210,7 +210,7 @@ CLIMATES: dict[str, tuple[LocalTuyaEntity, ...]] = {
     # ),
     # Thermostat
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
-    "wk": (
+    DeviceCategory.WK: (
         LocalTuyaEntity(
             id=(DPCode.SWITCH, DPCode.MODE),
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
@@ -238,7 +238,7 @@ CLIMATES: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Thermostatic Radiator Valve
     # Not documented
-    "wkf": (
+    DeviceCategory.WKF: (
         LocalTuyaEntity(
             id=(DPCode.SWITCH, DPCode.MODE),
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),

@@ -25,7 +25,7 @@
 """
 
 import json
-from .base import LocalTuyaEntity, CONF_DPS_STRINGS, CLOUD_VALUE, DPType
+from .base import LocalTuyaEntity, DeviceCategory, CONF_DPS_STRINGS, CLOUD_VALUE, DPType
 from enum import Enum
 from homeassistant.const import Platform, CONF_FRIENDLY_NAME, CONF_PLATFORM, CONF_ID
 
@@ -37,6 +37,7 @@ from .binary_sensors import BINARY_SENSORS
 from .buttons import BUTTONS
 from .climates import CLIMATES
 from .covers import COVERS
+from .events import EVENTS
 from .fans import FANS
 from .humidifiers import HUMIDIFIERS
 from .lights import LIGHTS
@@ -48,6 +49,7 @@ from .sirens import SIRENS
 from .switches import SWITCHES
 from .texts import TEXTS
 from .vacuums import VACUUMS
+from .valves import VALVES
 from .locks import LOCKS
 from .water_heaters import WATER_HEATERS
 
@@ -58,6 +60,7 @@ DATA_PLATFORMS = {
     Platform.BUTTON: BUTTONS,
     Platform.CLIMATE: CLIMATES,
     Platform.COVER: COVERS,
+    Platform.EVENT: EVENTS,
     Platform.FAN: FANS,
     Platform.HUMIDIFIER: HUMIDIFIERS,
     Platform.LIGHT: LIGHTS,
@@ -70,6 +73,7 @@ DATA_PLATFORMS = {
     Platform.SWITCH: SWITCHES,
     Platform.TEXT: TEXTS,
     Platform.VACUUM: VACUUMS,
+    Platform.VALVE: VALVES,
     Platform.WATER_HEATER: WATER_HEATERS,
 }
 

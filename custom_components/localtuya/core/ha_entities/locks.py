@@ -6,6 +6,7 @@
 """
 
 from .base import (
+    DeviceCategory,
     DPCode,
     LocalTuyaEntity,
 )
@@ -17,9 +18,9 @@ def localtuya_lock():
     return data
 
 
-LOCKS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+LOCKS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Locks
-    "ms": (
+    DeviceCategory.MS: (
         LocalTuyaEntity(
             id=(DPCode.REMOTE_UNLOCK_SWITCH, DPCode.SWITCH),
             jammed_dp=DPCode.HIJACK,
@@ -28,5 +29,5 @@ LOCKS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
 }
 
-LOCKS["jtmspro"] = LOCKS["ms"]
-LOCKS["jtmsbh"] = LOCKS["ms"]
+LOCKS[DeviceCategory.JTMSPRO] = LOCKS[DeviceCategory.MS]
+LOCKS[DeviceCategory.JTMSBH] = LOCKS[DeviceCategory.MS]

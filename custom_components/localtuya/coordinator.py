@@ -17,6 +17,7 @@ from homeassistant.components import bluetooth
 from homeassistant.helpers.event import async_track_time_interval, async_call_later
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
+    async_dispatcher_send,
     dispatcher_send,
 )
 
@@ -48,11 +49,13 @@ from .const import (
     DOMAIN,
     DeviceConfig,
     FINGERBOT_BUTTON_EVENT,
-    FINGERBOT_SWITCH_DP,
+    LOCALTUYA_DISCOVERY_NEW,
     RESTORE_STATES,
     TRANSPORT_BLE,
     DPType,
+    get_device_key,
 )
+from .core.quirks import QUIRKS_REGISTRY
 
 _LOGGER = logging.getLogger(__name__)
 RECONNECT_INTERVAL = timedelta(seconds=5)
@@ -318,6 +321,17 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """Set the entities associated with this device."""
         self._entities.extend(entities)
 
+    @property
+    def device_key(self) -> str:
+        """Return the device-cache key for this device.
+
+        Matches the key used in ``hass.data[DOMAIN][entry_id].devices``:
+        Ethernet devices key on host/IP, BLE devices on ble_address (falling
+        back to device_id); sub-devices append ``_{node_id}``.
+        """
+        host = get_device_key(self._device_config.device_config)
+        return f"{host}_{self._node_id}" if self._node_id else host
+
     async def async_connect(self, _now=None) -> None:
         """Connect to device if not already connected."""
         if self.is_closing or self.is_connecting:
@@ -577,6 +591,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             self._unsub_fingerbot = device.register_callback(
                 self._handle_fingerbot_button
             )
+            # Notify platforms that this device became available at runtime
+            # (e.g. a BLE device that paired/bound after setup) so they can
+            # create entities without a reload. Mirrors core tuya's
+            # TUYA_DISCOVERY_NEW flow (coordinator.py:120-143).
+            async_dispatcher_send(self.hass, LOCALTUYA_DISCOVERY_NEW, [self.device_key])
             return transport
         except Exception as ex:  # pylint: disable=broad-except
             self.warning(f"Failed to set up BLE device: {str(ex)}")
@@ -614,11 +633,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         ble = self.ble_device
         if ble is None:
             return
-        switch_dp = FINGERBOT_SWITCH_DP.get(ble.product_id)
-        if switch_dp is None:
+        quirk = QUIRKS_REGISTRY.get_quirk_for_device(ble)
+        if quirk is None or quirk.button_switch_dp is None:
             return
         for dp in datapoints:
-            if dp.id == switch_dp and dp.changed_by_device:
+            if dp.id == quirk.button_switch_dp and dp.changed_by_device:
                 self.hass.bus.async_fire(
                     FINGERBOT_BUTTON_EVENT,
                     {CONF_DEVICE_ID: self.id},

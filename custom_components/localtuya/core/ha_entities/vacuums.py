@@ -5,7 +5,7 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CLOUD_VALUE
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CLOUD_VALUE
 
 CONF_POWERGO_DP = "powergo_dp"
 CONF_IDLE_STATUS_VALUE = "idle_status_value"
@@ -60,10 +60,10 @@ def localtuya_vaccuums(
     return data
 
 
-VACUUMS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+VACUUMS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Robot Vacuum
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
-    "sd": (
+    DeviceCategory.SD: (
         LocalTuyaEntity(
             id=DPCode.STATUS,
             icon="mdi:robot-vacuum",

@@ -5,28 +5,28 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
 
 # All descriptions can be found here:
 # https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
-SIRENS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+SIRENS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Multi-functional Sensor
     # https://developer.tuya.com/en/docs/iot/categorydgnbj?id=Kaiuz3yorvzg3
-    "dgnbj": (
+    DeviceCategory.DGNBJ: (
         LocalTuyaEntity(
             id=(DPCode.ALARM_SWITCH, DPCode.ALARMSWITCH),
         ),
     ),
     # Siren Alarm
     # https://developer.tuya.com/en/docs/iot/categorysgbj?id=Kaiuz37tlpbnu
-    "sgbj": (
+    DeviceCategory.SGBJ: (
         LocalTuyaEntity(
             id=(DPCode.ALARM_SWITCH, DPCode.ALARMSWITCH),
         ),
     ),
     # Smart Camera
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
-    "sp": (
+    DeviceCategory.SP: (
         LocalTuyaEntity(
             id=DPCode.SIREN_SWITCH,
         ),

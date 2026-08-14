@@ -5,7 +5,7 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CLOUD_VALUE
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CLOUD_VALUE
 from ...const import CONF_ALARM_SUPPORTED_STATES
 from homeassistant.components.alarm_control_panel import AlarmControlPanelState
 
@@ -29,10 +29,10 @@ def localtuya_alarm(states: dict):
 
 # All descriptions can be found here:
 # https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
-ALARMS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+ALARMS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Alarm Host
     # https://developer.tuya.com/en/docs/iot/categorymal?id=Kaiuz33clqxaf
-    "mal": (
+    DeviceCategory.MAL: (
         LocalTuyaEntity(
             id=DPCode.MASTER_MODE,
             custom_configs=localtuya_alarm(

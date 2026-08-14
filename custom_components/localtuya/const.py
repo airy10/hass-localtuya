@@ -29,6 +29,7 @@ PLATFORMS = {
     "Button": Platform.BUTTON,
     "Climate": Platform.CLIMATE,
     "Cover": Platform.COVER,
+    "Event": Platform.EVENT,
     "Fan": Platform.FAN,
     "Humidifier": Platform.HUMIDIFIER,
     "Light": Platform.LIGHT,
@@ -41,28 +42,19 @@ PLATFORMS = {
     "Switch": Platform.SWITCH,
     "Text": Platform.TEXT,
     "Vacuum": Platform.VACUUM,
+    "Valve": Platform.VALVE,
     "Water Heater": Platform.WATER_HEATER,
 }
 
 # BLE fingerbot button event (fired on HA bus when physical button pressed)
 FINGERBOT_BUTTON_EVENT = "localtuya_fingerbot_button_pressed"
 
-# Fingerbot product IDs and their switch datapoint ids
-FINGERBOT_SWITCH_DP: dict[str, int] = {
-    "3yqdo5yt": 1,  # CUBETOUCH 1s
-    "xhf790if": 1,  # CUBETOUCH II
-    "blliqpsj": 2,  # Fingerbot Plus
-    "ndvkgsrm": 2,
-    "yiihr7zh": 2,
-    "neq16kgd": 2,
-    "ltak7e1p": 2,  # Fingerbot
-    "y6kttvd6": 2,
-    "yrnk7mnn": 2,
-    "nvr2rocq": 2,
-    "bnt7wajf": 2,
-    "rvdceqjh": 2,
-    "5xhbk964": 2,
-}
+# Signal fired when a device becomes available at runtime (e.g. a BLE device
+# that paired/bound after setup), so platforms can create entities on the fly.
+# Mirrors core tuya's TUYA_DISCOVERY_NEW.
+LOCALTUYA_DISCOVERY_NEW = "localtuya_discovery_new"
+
+# Fingerbot switch datapoint ids moved to core/quirks.py (QUIRKS_REGISTRY).
 
 ATTR_CURRENT = "current"
 ATTR_CURRENT_CONSUMPTION = "current_consumption"

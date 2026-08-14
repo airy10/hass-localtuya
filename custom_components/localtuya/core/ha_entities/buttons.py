@@ -6,12 +6,12 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
 
-BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Scene Switch
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
-    "cjkg": (
+    DeviceCategory.CJKG: (
         LocalTuyaEntity(
             id=DPCode.SCENE_1,
             name="Scene 1",
@@ -121,7 +121,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     # Curtain
     # Note: Multiple curtains isn't documented
     # https://developer.tuya.com/en/docs/iot/categorycl?id=Kaiuz1hnpo7df
-    "cl": (
+    DeviceCategory.CL: (
         LocalTuyaEntity(
             id=DPCode.REMOTE_REGISTER,
             name="Pair Remote",
@@ -131,7 +131,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Pet Feeder
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
-    "cwwsq": (
+    DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
             id=DPCode.FACTORY_RESET,
             name="Factory Reset",
@@ -141,7 +141,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Pet Feeder
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
-    "cwwsq": (
+    DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
             id=DPCode.FACTORY_RESET,
             name="Factory Reset",
@@ -151,7 +151,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Cat litter box
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
-    "msp": (
+    DeviceCategory.MSP: (
         LocalTuyaEntity(
             id=DPCode.FACTORY_RESET,
             name="Factory Reset",
@@ -167,7 +167,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Robot Vacuum
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
-    "sd": (
+    DeviceCategory.SD: (
         LocalTuyaEntity(
             id=DPCode.RESET_DUSTER_CLOTH,
             name="Reset Duster Cloth",
@@ -201,14 +201,14 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Wake Up Light II
     # Not documented
-    "hxd": (
+    DeviceCategory.HXD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_USB6,
             name="Snooze",
             icon="mdi:sleep",
         ),
     ),
-    "cz": (
+    DeviceCategory.CZ: (
         LocalTuyaEntity(
             id=DPCode.CLEAR_ENERGY,
             name="Clear Energy",
@@ -218,7 +218,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # EV Charcher
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
-    "qccdz": (
+    DeviceCategory.QCCDZ: (
         LocalTuyaEntity(
             id=DPCode.CLEAR_ENERGY,
             name="Clear Energy",
@@ -227,7 +227,7 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Lawn mower
-    "gcj": (
+    DeviceCategory.GCJ: (
         LocalTuyaEntity(
             id=DPCode.CLEARAPPOINTMENT,
             name="Clear schedule",
@@ -248,4 +248,4 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
 
 # Wireless Switch  # also can come as knob switch.
 # https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5
-BUTTONS["wxkg"] = BUTTONS["cjkg"]
+BUTTONS[DeviceCategory.WXKG] = BUTTONS[DeviceCategory.CJKG]

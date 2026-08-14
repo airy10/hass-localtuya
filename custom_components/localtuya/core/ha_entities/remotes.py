@@ -6,7 +6,7 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, LocalTuyaEntity
+from .base import DPCode, DeviceCategory, LocalTuyaEntity
 
 
 CONF_RECEIVE_DP = "receive_dp"
@@ -18,10 +18,10 @@ CONF_RECEIVE_DP = "receive_dp"
 #     return data
 
 
-REMOTES: dict[str, tuple[LocalTuyaEntity, ...]] = {
+REMOTES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # IR Remote
     # not documented
-    "wnykq": (
+    DeviceCategory.WNYKQ: (
         LocalTuyaEntity(
             id=(DPCode.IR_SEND, DPCode.CONTROL),
             receive_dp=(DPCode.IR_STUDY_CODE, DPCode.STUDY_CODE),

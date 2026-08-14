@@ -7,7 +7,7 @@
 """
 
 from typing import Any
-from .base import DPCode, LocalTuyaEntity, EntityCategory, CLOUD_VALUE
+from .base import DPCode, DeviceCategory, LocalTuyaEntity, EntityCategory, CLOUD_VALUE
 from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 
 from ...const import (
@@ -36,10 +36,10 @@ def localtuya_light(
     return data
 
 
-LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Curtain Switch
     # https://developer.tuya.com/en/docs/iot/category-clkg?id=Kaiuz0gitil39
-    "clkg": (
+    DeviceCategory.CLKG: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_BACKLIGHT,
             name="State light",
@@ -49,7 +49,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Pet Feeder
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
-    "cwwsq": (
+    DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name="Light",
@@ -57,7 +57,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # String Lights
     # https://developer.tuya.com/en/docs/iot/dc?id=Kaof7taxmvadu
-    "dc": (
+    DeviceCategory.DC: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -70,7 +70,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Strip Lights
     # https://developer.tuya.com/en/docs/iot/dd?id=Kaof804aibg2l
-    "dd": (
+    DeviceCategory.DD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -85,7 +85,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Light
     # https://developer.tuya.com/en/docs/iot/categorydj?id=Kaiuyzy3eheyy
-    "dj": (
+    DeviceCategory.DJ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -106,7 +106,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Ceiling Fan Light
     # https://developer.tuya.com/en/docs/iot/fsd?id=Kaof8eiei4c2v
-    "fsd": (
+    DeviceCategory.FSD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -125,7 +125,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Fan Switch
-    "fskg": (
+    DeviceCategory.FSKG: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name="Light",
@@ -145,7 +145,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Ambient Light
     # https://developer.tuya.com/en/docs/iot/ambient-light?id=Kaiuz06amhe6g
-    "fwd": (
+    DeviceCategory.FWD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -159,7 +159,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Motion Sensor Light
     # https://developer.tuya.com/en/docs/iot/gyd?id=Kaof8a8hycfmy
-    "gyd": (
+    DeviceCategory.GYD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -172,7 +172,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Humidifier Light
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
-    "jsq": (
+    DeviceCategory.JSQ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -184,7 +184,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Switch
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-    "kg": (
+    DeviceCategory.KG: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_BACKLIGHT,
             name="State light",
@@ -194,7 +194,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Air Purifier
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46h2s6dzm
-    "kj": (
+    DeviceCategory.KJ: (
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name="State light",
@@ -204,7 +204,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Air conditioner
     # https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n
-    "kt": (
+    DeviceCategory.KT: (
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name="State light",
@@ -215,7 +215,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     # Unknown light product
     # Found as VECINO RGBW as provided by diagnostics
     # Not documented
-    "mbd": (
+    DeviceCategory.MBD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -228,7 +228,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     # Unknown product with light capabilities
     # Fond in some diffusers, plugs and PIR flood lights
     # Not documented
-    "qjdcz": (
+    DeviceCategory.QJDCZ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -240,7 +240,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
-    "qn": (
+    DeviceCategory.QN: (
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name="State light",
@@ -250,7 +250,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Smart Camera
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
-    "sp": (
+    DeviceCategory.SP: (
         LocalTuyaEntity(
             id=DPCode.FLOODLIGHT_SWITCH,
             brightness=DPCode.FLOODLIGHT_LIGHTNESS,
@@ -266,7 +266,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Dimmer Switch
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
-    "tgkg": (
+    DeviceCategory.TGKG: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED_1,
             brightness=DPCode.BRIGHT_VALUE_1,
@@ -293,7 +293,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Dimmer
     # https://developer.tuya.com/en/docs/iot/tgq?id=Kaof8ke9il4k4
-    "tgq": (
+    DeviceCategory.TGQ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             brightness=(DPCode.BRIGHT_VALUE_V2, DPCode.BRIGHT_VALUE),
@@ -328,7 +328,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Wake Up Light II
     # Not documented
-    "hxd": (
+    DeviceCategory.HXD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name="light",
@@ -340,7 +340,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Solar Light
     # https://developer.tuya.com/en/docs/iot/tynd?id=Kaof8j02e1t98
-    "tyndj": (
+    DeviceCategory.TYNDJ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -353,7 +353,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Ceiling Light
     # https://developer.tuya.com/en/docs/iot/ceiling-light?id=Kaiuz03xxfc4r
-    "xdd": (
+    DeviceCategory.XDD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -370,7 +370,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Remote Control
     # https://developer.tuya.com/en/docs/iot/ykq?id=Kaof8ljn81aov
-    "ykq": (
+    DeviceCategory.YKQ: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_CONTROLLER,
             name=None,
@@ -382,7 +382,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
     # Fan
     # https://developer.tuya.com/en/docs/iot/categoryfs?id=Kaiuz1xweel1c
-    "fs": (
+    DeviceCategory.FS: (
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name=None,
@@ -401,31 +401,31 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
 }
 
 # HDMI Sync Box A1
-LIGHTS["hdmipmtbq"] = (
-    *LIGHTS["tgkg"],
-    *LIGHTS["dj"],
+LIGHTS[DeviceCategory.HDMIPMTBQ] = (
+    *LIGHTS[DeviceCategory.TGKG],
+    *LIGHTS[DeviceCategory.DJ],
 )
 
 # Dimmer
-LIGHTS["tdq"] = LIGHTS["tgkg"]
+LIGHTS[DeviceCategory.TDQ] = LIGHTS[DeviceCategory.TGKG]
 
 # Scene Switch
 # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
-LIGHTS["cjkg"] = LIGHTS["tgkg"]
+LIGHTS[DeviceCategory.CJKG] = LIGHTS[DeviceCategory.TGKG]
 
 # Wireless Switch  # also can come as knob switch.
 # https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5
-LIGHTS["wxkg"] = LIGHTS["tgkg"]
+LIGHTS[DeviceCategory.WXKG] = LIGHTS[DeviceCategory.TGKG]
 
 
 # Socket (duplicate of `kg`)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-LIGHTS["cz"] = LIGHTS["kg"]
+LIGHTS[DeviceCategory.CZ] = LIGHTS[DeviceCategory.KG]
 
 # Power Socket (duplicate of `kg`)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-LIGHTS["pc"] = LIGHTS["kg"]
+LIGHTS[DeviceCategory.PC] = LIGHTS[DeviceCategory.KG]
 
 # Dehumidifier
 # https://developer.tuya.com/en/docs/iot/categorycs?id=Kaiuz1vcz4dha
-LIGHTS["cs"] = LIGHTS["jsq"]
+LIGHTS[DeviceCategory.CS] = LIGHTS[DeviceCategory.JSQ]

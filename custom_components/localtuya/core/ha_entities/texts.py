@@ -8,4 +8,4 @@
 
 from .base import LocalTuyaEntity
 
-TEXTS: dict[str, tuple[LocalTuyaEntity, ...]] = {}
+TEXTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {}

@@ -24,6 +24,7 @@ from homeassistant.const import (
     CONF_REGION,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
+    Platform,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -411,6 +412,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     await async_remove_orphan_entities(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS.values())
+
+    # Scenes are cloud-discovered (not per-DP configurable), so they are not
+    # part of the PLATFORMS entity-type selector; forward the platform
+    # separately, mirroring core tuya (const.py:61 lists Platform.SCENE).
+    await hass.config_entries.async_forward_entry_setups(entry, (Platform.SCENE,))
 
     # Note: entry.async_on_unload items are called in LIFO order!
 
