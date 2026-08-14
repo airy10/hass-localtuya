@@ -46,6 +46,7 @@ __all__ = [
     "InversionWrapper",
     "TimedCoverMathWrapper",
     "InvertedBooleanWrapper",
+    "BinarySensorWrapper",
     "ClimateTempWrapper",
     "HumidityCoefficientWrapper",
     "FanSpeedPercentageWrapper",
@@ -328,6 +329,35 @@ class InvertedBooleanWrapper(DecoratorWrapper[bool]):
 
     def _to_raw(self, value: bool) -> Any:
         return not value
+
+
+class BinarySensorWrapper(DecoratorWrapper[bool]):
+    """Wraps a raw DP value and reports True when it matches ``on_values``.
+
+    Mirrors core's ``DPCodeInSetWrapper`` (binary_sensor): the on/off
+    conversion lives in the wrapper so the entity's ``is_on`` is a thin
+    ``_read_wrapper`` call. The raw value is compared as a lowercase string
+    against the comma-separated ``on_values``, so ``True``/``"true"``/``1``
+    and ``"alarm"``/``"open"`` encodings all resolve consistently.
+    """
+
+    def __init__(self, inner: DPCodeWrapper[Any], on_values: str | None = None) -> None:
+        super().__init__(inner)
+        self._on_values = {
+            value.lower() for value in (on_values or "true,1,pir,on").split(",") if value
+        }
+
+    def read_device_status(self, device: Any) -> bool | None:
+        """Read the raw value and report whether it is an on-value."""
+        status = getattr(device, "status", {}) or {}
+        raw = None
+        if self.dpcode is not None and self.dpcode in status:
+            raw = status[self.dpcode]
+        elif self.dp_id is not None and str(self.dp_id) in status:
+            raw = status[str(self.dp_id)]
+        if raw is None:
+            return None
+        return str(raw).lower() in self._on_values
 
 
 class ClimateTempWrapper(DecoratorWrapper[float]):

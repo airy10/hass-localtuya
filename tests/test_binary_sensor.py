@@ -35,7 +35,8 @@ async def test_button():
     entity_1, *_ = entities
     assert type(entity_1) is LocalTuyaBinarySensor
 
-    assert entity_1.state == "off"
+    # Core parity: no value yet -> is_on is None (not "off").
+    assert entity_1.is_on is None
 
     device.status_updated(DPS_STATUS)
 

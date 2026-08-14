@@ -19,6 +19,7 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import override
 
 import voluptuous as vol
 from homeassistant.components.button import DOMAIN, ButtonEntity
@@ -62,7 +63,8 @@ class LocalTuyaButton(LocalTuyaEntity, ButtonEntity):
                 self._device, self._dp_id
             ) or RawDPWrapper(self._dp_id)
 
-    async def async_press(self):
+    @override
+    async def async_press(self) -> None:
         """Press the button."""
         await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
 

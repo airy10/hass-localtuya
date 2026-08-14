@@ -23,6 +23,8 @@ SYNC CHECKLIST (when the core component is updated):
 from enum import StrEnum
 import logging
 from functools import partial
+from typing import override
+
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -109,43 +111,51 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
         self._dpcode_wrapper = DictSelectorWrapper(inner, self._states)
 
     @property
+    @override
     def alarm_state(self) -> AlarmControlPanelState | None:
         """Return the state of the device."""
         return self._read_wrapper(self._dpcode_wrapper)
 
     @property
+    @override
     def changed_by(self) -> str | None:
         """Last change triggered by."""
         return None  # self._attr_changed_by
 
     @property
+    @override
     def code_format(self) -> CodeFormat | None:
         """Code format or None if no code is required."""
         return None  # self._attr_code_format
 
     @property
+    @override
     def code_arm_required(self) -> bool:
         """Whether the code is required for arm actions."""
         return True  # self._attr_code_arm_required
 
+    @override
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send Disarm command."""
         await self._async_send_wrapper_updates(
             self._dpcode_wrapper, AlarmControlPanelState.DISARMED
         )
 
+    @override
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send Home command."""
         await self._async_send_wrapper_updates(
             self._dpcode_wrapper, AlarmControlPanelState.ARMED_HOME
         )
 
+    @override
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send Arm command."""
         await self._async_send_wrapper_updates(
             self._dpcode_wrapper, AlarmControlPanelState.ARMED_AWAY
         )
 
+    @override
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Send SOS command."""
         await self._async_send_wrapper_updates(

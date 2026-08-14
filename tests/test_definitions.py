@@ -8,6 +8,7 @@ from custom_components.localtuya.const import (
     CONF_COLOR_TEMP_MAX_KELVIN,
     CONF_COLOR_TEMP_MIN_KELVIN,
     CONF_COLOR_TEMP_REVERSE,
+    CONF_STATE_ON,
     TRANSPORT_BLE,
     TRANSPORT_ETHERNET,
 )
@@ -34,6 +35,7 @@ from custom_components.localtuya.core.definitions import (
     resolve,
 )
 from custom_components.localtuya.core.dp_wrapper_decorators import (
+    BinarySensorWrapper,
     BrightnessWrapper,
     ColorTempWrapper,
     StringColorWrapper,
@@ -542,6 +544,29 @@ def test_water_heater_definition_resolves_wrappers():
     assert definition.switch_wrapper.dpcode == DPCode.SWITCH
     assert definition.target_temp_wrapper.dpcode == DPCode.TEMP_SET
     assert definition.mode_wrapper.dpcode == DPCode.MODE
+
+
+def test_binary_sensor_definition_wraps_with_on_value():
+    """The binary sensor on/off conversion lives in the wrapper (core parity)."""
+    specs = {
+        "gas_sensor_state": {
+            "dp_id": 9,
+            "type": "Enum",
+            "values": {"range": ["alarm", "normal"]},
+        },
+    }
+    desc = LocalTuyaEntity(
+        id=DPCode.GAS_SENSOR_STATE, custom_configs={CONF_STATE_ON: "alarm"}
+    )
+    definition = get_binary_sensor_definition(_device(specs), desc)
+    assert definition is not None
+    assert isinstance(definition.dpcode_wrapper, BinarySensorWrapper)
+    assert definition.dpcode_wrapper.read_device_status(
+        SimpleNamespace(status={"gas_sensor_state": "alarm"})
+    ) is True
+    assert definition.dpcode_wrapper.read_device_status(
+        SimpleNamespace(status={"gas_sensor_state": "normal"})
+    ) is False
 
 
 def test_select_number_and_raw_definitions_resolve_primary():

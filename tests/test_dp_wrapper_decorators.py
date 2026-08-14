@@ -12,6 +12,7 @@ import pytest
 from custom_components.localtuya.const import DictSelector
 from custom_components.localtuya.core.dp_wrappers import RawDPWrapper
 from custom_components.localtuya.core.dp_wrapper_decorators import (
+    BinarySensorWrapper,
     BrightnessWrapper,
     ClimateTempWrapper,
     ColorTempWrapper,
@@ -106,6 +107,23 @@ def test_inverted_boolean_wrapper():
     wrapper = InvertedBooleanWrapper(_raw())
     assert wrapper.read_device_status(_device({"1": True})) is False
     assert wrapper.get_update_commands(_device({}), True)[0]["value"] is False
+
+
+def test_binary_sensor_wrapper_matches_on_values():
+    wrapper = BinarySensorWrapper(_raw(), "alarm")
+    assert wrapper.read_device_status(_device({"1": "alarm"})) is True
+    assert wrapper.read_device_status(_device({"1": "normal"})) is False
+    assert wrapper.read_device_status(_device({})) is None
+
+
+def test_binary_sensor_wrapper_default_on_values():
+    """Default on-values cover the common bool/string/int encodings."""
+    wrapper = BinarySensorWrapper(_raw())
+    assert wrapper.read_device_status(_device({"1": True})) is True
+    assert wrapper.read_device_status(_device({"1": "pir"})) is True
+    assert wrapper.read_device_status(_device({"1": 1})) is True
+    assert wrapper.read_device_status(_device({"1": 0})) is False
+    assert wrapper.read_device_status(_device({"1": "off"})) is False
 
 
 def test_climate_temp_wrapper_precision_and_unit_convert():

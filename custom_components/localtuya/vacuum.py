@@ -24,6 +24,8 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import Any, override
+
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -135,6 +137,7 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             ) if self.has_config(CONF_FAN_SPEED_DP) else None
 
     @property
+    @override
     def supported_features(self) -> VacuumEntityFeature:
         """Flag supported features."""
         supported_features = (
@@ -158,25 +161,30 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         return supported_features
 
     @property
-    def fan_speed(self):
+    @override
+    def fan_speed(self) -> str | None:
         """Return the fan speed of the vacuum cleaner."""
         return self._read_wrapper(self._fan_speed_wrapper)
 
     @property
-    def fan_speed_list(self) -> list:
+    @override
+    def fan_speed_list(self) -> list[str]:
         """Return the list of available fan speeds."""
         return self._fan_speed_list
 
     @property
+    @override
     def activity(self) -> VacuumActivity | None:
         """Return Tuya vacuum device state."""
         return self._state
 
-    async def async_start(self, **kwargs):
+    @override
+    async def async_start(self, **kwargs: Any) -> None:
         """Start the device."""
         await self._device.set_dp(True, self._config[CONF_POWERGO_DP])
 
-    async def async_stop(self, **kwargs):
+    @override
+    async def async_stop(self, **kwargs: Any) -> None:
         """Stop the device."""
         if (
             self.has_config(CONF_STOP_STATUS)
@@ -189,14 +197,16 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             await self._device.set_dp(False, self._config[CONF_POWERGO_DP])
             # _LOGGER.error("Missing command for stop in commands set.")
 
-    async def async_pause(self, **kwargs):
+    @override
+    async def async_pause(self, **kwargs: Any) -> None:
         """Pause the device."""
         if self.has_config(CONF_PAUSE_DP):
             return await self._device.set_dp(True, self._config[CONF_PAUSE_DP])
 
         await self.async_stop()
 
-    async def async_return_to_base(self, **kwargs):
+    @override
+    async def async_return_to_base(self, **kwargs: Any) -> None:
         """Return device to dock."""
         if self.has_config(CONF_RETURN_MODE):
             await self._device.set_dp(
@@ -205,20 +215,26 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         else:
             _LOGGER.error("Missing command for return home in commands set.")
 
-    async def async_clean_spot(self, **kwargs):
+    @override
+    async def async_clean_spot(self, **kwargs: Any) -> None:
         """Perform a spot clean-up."""
         return None
 
-    async def async_locate(self, **kwargs):
+    @override
+    async def async_locate(self, **kwargs: Any) -> None:
         """Locate the device."""
         if self.has_config(CONF_LOCATE_DP):
             await self._device.set_dp(True, self._config[CONF_LOCATE_DP])
 
-    async def async_set_fan_speed(self, fan_speed, **kwargs):
+    @override
+    async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
         """Set fan speed."""
         await self._async_send_wrapper_updates(self._fan_speed_wrapper, fan_speed)
 
-    async def async_send_command(self, command, params=None, **kwargs):
+    @override
+    async def async_send_command(
+        self, command: str, params: dict[str, Any] | list[Any] | None = None, **kwargs: Any
+    ) -> None:
         """Send raw command."""
         if command == "set_mode" and "mode" in params:
             mode = params["mode"]

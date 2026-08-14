@@ -22,6 +22,8 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import Any, override
+
 from .config_flow import col_to_select
 from homeassistant.helpers.selector import ObjectSelector
 
@@ -162,45 +164,54 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
         )
 
     @property
-    def is_on(self) -> bool:
+    @override
+    def is_on(self) -> bool | None:
         """Return the device is on or off."""
         return self._read_wrapper(self._switch_wrapper)
 
     @property
+    @override
     def mode(self) -> str | None:
         """Return the current mode."""
         return self._read_wrapper(self._mode_wrapper)
 
     @property
+    @override
     def target_humidity(self) -> int | None:
         """Return the humidity we try to reach."""
         return self._read_wrapper(self._target_humidity_wrapper)
 
     @property
+    @override
     def current_humidity(self) -> int | None:
         """Return the current humidity."""
         return self._read_wrapper(self._current_humidity_wrapper)
 
-    async def async_turn_on(self, **kwargs):
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the device on."""
         await self._async_send_wrapper_updates(self._switch_wrapper, True)
 
-    async def async_turn_off(self, **kwargs):
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the device off."""
         await self._async_send_wrapper_updates(self._switch_wrapper, False)
 
+    @override
     async def async_set_humidity(self, humidity: int) -> None:
         """Set new target humidity."""
         await self._async_send_wrapper_updates(
             self._target_humidity_wrapper, humidity
         )
 
-    async def async_set_mode(self, mode):
+    @override
+    async def async_set_mode(self, mode: str) -> None:
         """Set new target preset mode."""
         await self._async_send_wrapper_updates(self._mode_wrapper, mode)
 
     @property
-    def available_modes(self):
+    @override
+    def available_modes(self) -> list[str] | None:
         """Return the list of presets that this device supports."""
         if self._mode_wrapper is not None:
             return self._mode_wrapper.options

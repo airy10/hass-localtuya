@@ -24,6 +24,7 @@ import asyncio
 import logging
 import time
 from functools import partial
+from typing import Any, override
 
 import voluptuous as vol
 from homeassistant.components.cover import (
@@ -149,7 +150,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         self._set_position_wrapper = set_inner
 
     @property
-    def supported_features(self):
+    @override
+    def supported_features(self) -> CoverEntityFeature:
         """Flag supported features."""
         supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
         if not isinstance(self._open_cmd, bool):
@@ -178,24 +180,28 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         return self._current_state_action
 
     @property
-    def current_cover_position(self):
+    @override
+    def current_cover_position(self) -> int | None:
         """Return cover current position."""
         if self._config[CONF_POSITIONING_MODE] == MODE_NONE:
             return None
         return self._current_cover_position
 
     @property
-    def is_opening(self):
+    @override
+    def is_opening(self) -> bool:
         """Return if cover is opening."""
         return self._current_state in (STATE_OPENING, STATE_SET_OPENING)
 
     @property
-    def is_closing(self):
+    @override
+    def is_closing(self) -> bool:
         """Return if cover is closing."""
         return self._current_state in (STATE_CLOSING, STATE_SET_CLOSING)
 
     @property
-    def is_closed(self):
+    @override
+    def is_closed(self) -> bool | None:
         """Return true if cover is closed."""
         if isinstance(self._open_cmd, bool):
             return self._current_cover_position == 0
@@ -203,7 +209,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             return None
         return self.current_cover_position == 0 and self._current_state == STATE_STOPPED
 
-    async def async_open_cover(self, **kwargs):
+    @override
+    async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
         self.debug("Launching command %s to cover ", self._open_cmd)
         await self._device.set_dp(self._open_cmd, self._dp_id)
@@ -221,7 +228,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             )
         self.update_state(STATE_OPENING)
 
-    async def async_close_cover(self, **kwargs):
+    @override
+    async def async_close_cover(self, **kwargs: Any) -> None:
         """Close cover."""
         self.debug("Launching command %s to cover ", self._close_cmd)
         await self._device.set_dp(self._close_cmd, self._dp_id)
@@ -239,7 +247,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             )
         self.update_state(STATE_CLOSING)
 
-    async def async_set_cover_position(self, **kwargs):
+    @override
+    async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Move the cover to a specific position."""
         # Update device values IF the device is moving at the moment.
         if self._current_state != STATE_STOPPED:
@@ -281,7 +290,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         except asyncio.CancelledError:
             self._current_task = None
 
-    async def async_stop_cover(self, **kwargs):
+    @override
+    async def async_stop_cover(self, **kwargs: Any) -> None:
         """Stop the cover."""
         if self._current_task is not None:
             self._current_task.cancel()

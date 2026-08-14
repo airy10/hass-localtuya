@@ -22,6 +22,8 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import Any, override
+
 from .config_flow import col_to_select
 
 import homeassistant.helpers.config_validation as cv
@@ -151,12 +153,14 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
             else None
         )
 
-    async def async_set_direction(self, direction):
+    @override
+    async def async_set_direction(self, direction: str) -> None:
         """Set the direction of the fan."""
         await self._async_send_wrapper_updates(self._direction_wrapper, direction)
         self.schedule_update_ha_state()
 
-    async def async_set_percentage(self, percentage):
+    @override
+    async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed of the fan, as a percentage."""
         if percentage is not None:
             if percentage == 0:
@@ -166,17 +170,18 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
             await self._async_send_wrapper_updates(self._speed_wrapper, percentage)
             self.schedule_update_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the fan off."""
         await self._async_send_wrapper_updates(self._switch_wrapper, False)
         self.schedule_update_ha_state()
 
+    @override
     async def async_turn_on(
         self,
-        speed: str = None,
-        percentage: int = None,
-        preset_mode: str = None,
-        **kwargs,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: Any,
     ) -> None:
         """Turn on the fan."""
         await self._async_send_wrapper_updates(self._switch_wrapper, True)
@@ -185,32 +190,38 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         else:
             self.schedule_update_ha_state()
 
+    @override
     async def async_oscillate(self, oscillating: bool) -> None:
         """Oscillate the fan."""
         await self._async_send_wrapper_updates(self._oscillate_wrapper, oscillating)
         self.schedule_update_ha_state()
 
     @property
-    def is_on(self):
+    @override
+    def is_on(self) -> bool | None:
         """Return true if fan is on."""
         return self._read_wrapper(self._switch_wrapper)
 
     @property
-    def current_direction(self):
+    @override
+    def current_direction(self) -> str | None:
         """Return the current direction of the fan."""
         return self._read_wrapper(self._direction_wrapper)
 
     @property
-    def oscillating(self):
+    @override
+    def oscillating(self) -> bool | None:
         """Return true if the fan is oscillating."""
         return self._read_wrapper(self._oscillate_wrapper)
 
     @property
-    def percentage(self):
+    @override
+    def percentage(self) -> int | None:
         """Return the current speed."""
         return self._read_wrapper(self._speed_wrapper)
 
     @property
+    @override
     def supported_features(self) -> FanEntityFeature:
         """Flag supported features."""
         features = FanEntityFeature(0)
@@ -230,6 +241,7 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         return features
 
     @property
+    @override
     def speed_count(self) -> int:
         """Speed count for the fan."""
         if self._use_ordered_list:

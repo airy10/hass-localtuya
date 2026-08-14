@@ -15,14 +15,16 @@ SYNC CHECKLIST (when the core component is updated):
        manual ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the
        fallback provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
      - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
-     - ``is_on`` compares the raw value against the config ``CONF_STATE_ON``
-       (core compares against a fixed ``state_on``).
+     - the on-value comes from ``CONF_STATE_ON`` (the localtuya equivalent of
+       core's ``on_value``) and the conversion lives in ``BinarySensorWrapper``;
+       ``reset_timer`` is localtuya-only.
 """
 
 import logging
 import voluptuous as vol
 
 from functools import partial
+from typing import override
 
 from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 from homeassistant.helpers.event import async_call_later
@@ -37,6 +39,7 @@ from homeassistant.components.binary_sensor import (
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_STATE_ON, CONF_RESET_TIMER
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import BinarySensorWrapper
 from .core.definitions import get_binary_sensor_definition
 
 
@@ -70,7 +73,7 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
     ):
         """Initialize the Tuya binary sensor."""
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
-        self._is_on = False
+        self._reset_override = False
 
         self._reset_timer: float = self._config.get(CONF_RESET_TIMER, 0)
         self._reset_timer_interval: CALLBACK_TYPE | None = None
@@ -80,15 +83,22 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
                 definition.dpcode_wrapper if definition is not None else None
             )
         else:
-            self._dpcode_wrapper = dp_wrapper_by_id(
-                self._device, self._dp_id
-            ) or RawDPWrapper(self._dp_id)
+            inner = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+                self._dp_id
+            )
+            self._dpcode_wrapper = BinarySensorWrapper(
+                inner, self._config.get(CONF_STATE_ON)
+            )
 
     @property
-    def is_on(self):
+    @override
+    def is_on(self) -> bool | None:
         """Return true if sensor is on."""
-        return self._is_on
+        if self._reset_override:
+            return False
+        return self._read_wrapper(self._dpcode_wrapper)
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -107,14 +117,8 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
         """Device status was updated."""
         super().status_updated()
 
-        state = str(self.dp_value(self._dp_id)).lower()
-        # users may set wrong on states, But we assume that must devices use this on states.
-        if state in self._config[CONF_STATE_ON].lower().split(","):
-            self._is_on = True
-        else:
-            self._is_on = False
-
-        if self._reset_timer and self._is_on:
+        self._reset_override = False
+        if self._reset_timer and self.is_on:
             if self._reset_timer_interval is not None:
                 self._reset_timer_interval()
                 self._reset_timer_interval = None
@@ -125,7 +129,7 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
                 # "_update_handler" logic, if status hasn't changed "status_updated" will not be called.
                 # Maybe we can find better solution then this workaround?
                 self._status[self._dp_id] = "reset_state_binary_sensor"
-                self._is_on = False
+                self._reset_override = True
                 self.async_write_ha_state()
 
             self._reset_timer_interval = async_call_later(

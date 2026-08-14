@@ -22,6 +22,7 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import override
 
 import voluptuous as vol
 from homeassistant.components.number import DOMAIN, NumberEntity, DEVICE_CLASSES_SCHEMA
@@ -139,6 +140,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
             self._default_value = float(default_value)
 
     @property
+    @override
     def native_value(self) -> float:
         """Return the entity value to represent the entity state."""
         if not self._config.get(CONF_OFFSET) and not self._config.get(CONF_SCALING):
@@ -146,6 +148,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         self._state = self.scale(self._state)
         return self._state
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -161,30 +164,36 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         )
 
     @property
+    @override
     def native_min_value(self) -> float:
         """Return the minimum value."""
         return self._min_value
 
     @property
+    @override
     def native_max_value(self) -> float:
         """Return the maximum value."""
         return self._max_value
 
     @property
+    @override
     def native_step(self) -> float:
         """Return the maximum value."""
         return self._step_size
 
     @property
+    @override
     def native_unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
         return self._config.get(CONF_UNIT_OF_MEASUREMENT)
 
     @property
+    @override
     def device_class(self):
         """Return the class of this device."""
         return self._config.get(CONF_DEVICE_CLASS)
 
+    @override
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         if not self._config.get(CONF_OFFSET) and not self._config.get(CONF_SCALING):

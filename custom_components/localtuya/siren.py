@@ -22,6 +22,7 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import Any, override
 
 import voluptuous as vol
 from homeassistant.components.siren import DOMAIN, SirenEntity, SirenEntityFeature
@@ -71,13 +72,15 @@ class LocalTuyaSiren(LocalTuyaEntity, SirenEntity):
             ) or RawDPWrapper(self._dp_id)
 
     @property
-    def is_on(self):
+    @override
+    def is_on(self) -> bool | None:
         """Return true if siren is on."""
         state = self._read_wrapper(self._dpcode_wrapper)
         if isinstance(state, bool):
             return state
         return self._is_on
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -92,11 +95,13 @@ class LocalTuyaSiren(LocalTuyaEntity, SirenEntity):
             self._device, updated_status_properties, dp_timestamps
         )
 
-    async def async_turn_on(self, **kwargs):
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the siren on."""
         await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
 
-    async def async_turn_off(self, **kwargs):
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the siren off."""
         await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
 

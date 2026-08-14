@@ -24,9 +24,11 @@ from ..const import (
     CONF_COLOR_TEMP_MAX_KELVIN,
     CONF_COLOR_TEMP_MIN_KELVIN,
     CONF_COLOR_TEMP_REVERSE,
+    CONF_STATE_ON,
 )
 from .dp_wrappers import DPCodeWrapper, dp_wrapper_by_code
 from .dp_wrapper_decorators import (
+    BinarySensorWrapper,
     BrightnessWrapper,
     ColorTempWrapper,
     ColorTypeData,
@@ -402,8 +404,21 @@ def get_sensor_definition(device: Any, description: Any) -> DPCodeDefinition | N
 def get_binary_sensor_definition(
     device: Any, description: Any
 ) -> DPCodeDefinition | None:
-    """Resolve a binary sensor's primary DP wrapper."""
-    return _primary_dp_definition(device, description)
+    """Resolve a binary sensor's primary DP wrapper.
+
+    Mirrors core's ``get_default_definition``: the on/off conversion is owned
+    by the wrapper (``BinarySensorWrapper``, equivalent to core's
+    ``DPCodeInSetWrapper``) rather than the entity, so ``is_on`` is a thin
+    ``_read_wrapper`` call.
+    """
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (wrapper := resolve(device, conf.get("id"))) is None:
+        return None
+    configs = getattr(description, "entity_configs", {}) or {}
+    on_values = configs.get(CONF_STATE_ON)
+    return DPCodeDefinition(
+        dpcode_wrapper=BinarySensorWrapper(wrapper, on_values)
+    )
 
 
 def get_siren_definition(device: Any, description: Any) -> DPCodeDefinition | None:

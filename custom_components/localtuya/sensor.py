@@ -22,6 +22,8 @@ SYNC CHECKLIST (when the core component is updated):
 import logging
 import base64
 from functools import partial
+from typing import override
+
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -142,7 +144,8 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             self._attr_options = self._dpcode_wrapper.options
 
     @property
-    def native_value(self):
+    @override
+    def native_value(self) -> str | int | float | None:
         """Return the value reported by the sensor."""
         if (
             not self.has_config(CONF_SCALING)
@@ -152,6 +155,7 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             return self._read_wrapper(self._dpcode_wrapper)
         return self._state
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -167,12 +171,14 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         )
 
     @property
+    @override
     def state_class(self) -> str | None:
         """Return state class."""
         return getattr(self, "_attr_state_class", self._config.get(CONF_STATE_CLASS))
 
     @property
-    def native_unit_of_measurement(self):
+    @override
+    def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement of this entity, if any."""
         return getattr(
             self,
@@ -279,7 +285,8 @@ class LocalTuyaRSSISensor(LocalTuyaSensor):
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
-    def native_value(self):
+    @override
+    def native_value(self) -> int | None:
         """Return the signal strength."""
         return self._device.rssi
 

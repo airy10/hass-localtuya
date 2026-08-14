@@ -23,6 +23,8 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import Any, override
+
 from .config_flow import col_to_select
 
 import voluptuous as vol
@@ -107,10 +109,12 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
             return None
 
     @property
-    def is_on(self):
+    @override
+    def is_on(self) -> bool | None:
         """Return true if switch is on."""
         return self._read_wrapper(self._dpcode_wrapper)
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -127,11 +131,13 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
             self._device, updated_status_properties, dp_timestamps
         )
 
-    async def async_turn_on(self, **kwargs):
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
         await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
 
-    async def async_turn_off(self, **kwargs):
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
         await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
 

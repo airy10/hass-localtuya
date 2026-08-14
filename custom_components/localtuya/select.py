@@ -22,6 +22,7 @@ SYNC CHECKLIST (when the core component is updated):
 
 import logging
 from functools import partial
+from typing import override
 
 import voluptuous as vol
 from homeassistant.components.select import DOMAIN, SelectEntity
@@ -99,10 +100,12 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         self._dpcode_wrapper = DictSelectorWrapper(base_wrapper, self._options)
 
     @property
+    @override
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
         return self._read_wrapper(self._dpcode_wrapper)
 
+    @override
     async def _process_device_update(
         self,
         updated_status_properties: list[str],
@@ -118,15 +121,18 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         )
 
     @property
+    @override
     def options(self) -> list:
         """Return the list of values."""
         return self._dpcode_wrapper.options
 
     @property
+    @override
     def device_class(self):
         """Return the class of this device."""
         return self._config.get(CONF_DEVICE_CLASS)
 
+    @override
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
         self.debug("Sending Option: " + option)
