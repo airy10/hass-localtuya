@@ -12,12 +12,16 @@ SYNC CHECKLIST (when the core component is updated):
      (``base.py`` + ``common.py``) against this file.
   2. Port: new wrapper classes, changes to ``skip_update``/``find_dpcode``/
      ``get_update_commands``/``read_device_status``.
-  3. Our deliberate deltas (keep, they are intentional):
-     - wrappers additionally carry ``dp_id``: our entities are config-driven
-       by DP id, so ``dp_wrapper_by_id()`` resolves a wrapper from the
-       numeric DP id instead of only the dpcode.
-     - ``get_update_commands`` returns ``{"code", "dp_id", "value"}`` so both
-       the core-style dpcode commands and our DP-id transport writes work.
+3. Our deliberate deltas (keep, they are intentional):
+      - wrappers additionally carry ``dp_id``: our entities are config-driven
+        by DP id, so ``dp_wrapper_by_id()`` resolves a wrapper from the
+        numeric DP id instead of only the dpcode.
+      - ``get_update_commands`` returns ``{"code", "dp_id", "value"}`` so both
+        the core-style dpcode commands and our DP-id transport writes work.
+      - ``RawDPWrapper`` and ``BitmapMaskWrapper`` are localtuya-only (no
+        core equivalent): config-driven entities can point at DPs with no
+        cloud spec, so we fall back to a raw wrapper, and ``bitmap_mask``
+        entities wrap any wrapper with a bitmask.
 """
 
 from __future__ import annotations
@@ -48,6 +52,8 @@ __all__ = [
     "DPCodeJsonWrapper",
     "DPCodeRawWrapper",
     "DPCodeStringWrapper",
+    "RawDPWrapper",
+    "BitmapMaskWrapper",
     "SetValueOutOfRangeError",
     "dp_wrapper_by_id",
     "dp_wrapper_by_code",
@@ -330,6 +336,90 @@ class DPCodeStringWrapper[T = str](
     """Simple wrapper for StringTypeInformation values."""
 
     _DPTYPE = StringTypeInformation
+
+
+class RawDPWrapper(DPCodeWrapper[Any]):
+    """Wrapper for a DP with no cloud spec (localtuya fallback).
+
+    Entities are config-driven by DP id and may reference DPs the cloud
+    spec does not describe. This wrapper reads/writes the raw dp_id-keyed
+    status value directly, without type conversion.
+    """
+
+    # Number bounds are unknown without a spec; entities fall back to their
+    # configured min/max/step defaults when these are None.
+    min_value: float | None = None
+    max_value: float | None = None
+    value_step: float | None = None
+
+    def __init__(self, dp_id: int | str) -> None:
+        """Init RawDPWrapper."""
+        super().__init__(dpcode=str(dp_id), dp_id=dp_id)
+
+    def skip_update(
+        self,
+        device: Any,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None = None,
+    ) -> bool:
+        """Never skip state writes for a spec-less DP.
+
+        dpcodes cannot be mapped for an unknown DP, so there is nothing to
+        compare against; always reflect the device state.
+        """
+        return False
+
+    def _convert_value_to_raw_value(self, device: Any, value: Any) -> Any:
+        """No conversion is available without a spec; pass through."""
+        return value
+
+
+class BitmapMaskWrapper(DPCodeWrapper[bool]):
+    """Wrapper that applies a configured bitmask to a bitmap DP.
+
+    Localtuya entities can configure a ``bitmap_mask`` to read/write a
+    single bit (or bits) of a raw bitmap DP. This wraps the inner wrapper
+    (cloud spec or RawDPWrapper) and applies the mask on every read/write.
+    """
+
+    def __init__(self, inner: DPCodeWrapper[Any], mask: bytes) -> None:
+        """Init BitmapMaskWrapper."""
+        super().__init__(dpcode=inner.dpcode, dp_id=inner.dp_id)
+        self._inner = inner
+        self._mask = mask
+
+    def _bitmap_value(self, device: Any) -> bytes:
+        """Return the current DP value as bytes, zero-padded to mask length."""
+        value = device.status.get(str(self.dp_id))
+        if not isinstance(value, bytes):
+            value = b""
+        mask_len = len(self._mask)
+        return value.ljust(mask_len, b"\x00")[:mask_len]
+
+    def read_device_status(self, device: Any) -> bool:
+        """Return True if any masked bit is set."""
+        return any(
+            v & m
+            for v, m in zip(self._bitmap_value(device), self._mask, strict=True)
+        )
+
+    def _convert_value_to_raw_value(self, device: Any, value: bool) -> bytes:
+        """Apply the mask to the current DP value for on/off writes."""
+        return bytes(
+            (v | m) if value else (v & ~m)
+            for v, m in zip(self._bitmap_value(device), self._mask, strict=True)
+        )
+
+    def skip_update(
+        self,
+        device: Any,
+        updated_status_properties: list[str],
+        dp_timestamps: dict[str, int] | None = None,
+    ) -> bool:
+        """Delegate skip decisions to the inner wrapper."""
+        return self._inner.skip_update(
+            device, updated_status_properties, dp_timestamps
+        )
 
 
 _WRAPPERS_BY_DPTYPE: dict[DPType, type[DPCodeWrapper]] = {

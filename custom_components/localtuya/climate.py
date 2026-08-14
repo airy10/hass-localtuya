@@ -33,7 +33,7 @@ from homeassistant.const import (
 )
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from .entity import LocalTuyaEntity, async_setup_entry
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .const import (
     CONF_CURRENT_HUMIDITY_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -223,9 +223,11 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             self._config.get(CONF_HUMIDITY_COEFFICIENT, 1.0)
         )
         self._hvac_switch_dp = self._config.get(CONF_HVAC_SWITCH_DP)
+        # Switch DP always resolves (RawDPWrapper fallback) so on/off
+        # delegation matches core parity; temps stay config-driven.
         self._switch_wrapper = dp_wrapper_by_id(
             device, self._hvac_switch_dp or self._dp_id
-        )
+        ) or RawDPWrapper(self._hvac_switch_dp or self._dp_id)
 
         # HVAC Modes
         self._hvac_mode_dp = self._config.get(CONF_HVAC_MODE_DP)
@@ -287,10 +289,9 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def _is_on(self):
         """Return if the device is on."""
-        if self._switch_wrapper:
-            state = self._read_wrapper(self._switch_wrapper)
-            if isinstance(state, bool):
-                return state
+        state = self._read_wrapper(self._switch_wrapper)
+        if isinstance(state, bool):
+            return state
         if self._hvac_switch_dp:
             return self.dp_value(self._hvac_switch_dp) == self._state_on
         return self._state and self._state != self._state_off
@@ -560,19 +561,11 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Turn the device on, retaining current HVAC (if supported)."""
-        if self._switch_wrapper:
-            await self._async_send_wrapper_updates(self._switch_wrapper, True)
-        else:
-            await self._device.set_dp(self._state_on, self._hvac_switch_dp or self._dp_id)
+        await self._async_send_wrapper_updates(self._switch_wrapper, True)
 
     async def async_turn_off(self) -> None:
         """Turn the device off, retaining current HVAC (if supported)."""
-        if self._switch_wrapper:
-            await self._async_send_wrapper_updates(self._switch_wrapper, False)
-        else:
-            await self._device.set_dp(
-                self._state_off, self._hvac_switch_dp or self._dp_id
-            )
+        await self._async_send_wrapper_updates(self._switch_wrapper, False)
 
     def connection_made(self):
         """The connection has made with the device and status retrieved. configure entity based on it."""

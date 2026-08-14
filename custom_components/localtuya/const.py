@@ -99,6 +99,10 @@ CONF_RESET_DPIDS = "reset_dpids"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 CONF_DEVICE_SLEEP_TIME = "device_sleep_time"
 
+# Per-device cloud spec (``dps_data``) persisted into the config entry at setup
+# time, so wrappers can be rehydrated locally when the cloud is offline.
+DEVICE_CLOUD_DATA = "device_cloud_data"
+
 # Cloud auth method (Smart Life QR sharing SDK vs. legacy IoT Platform login)
 AUTH_METHOD_SHARING = "sharing"
 AUTH_METHOD_IOT = "iot"
@@ -255,8 +259,6 @@ ENTITY_CATEGORY = {
 CONF_ENTITY_ENABLED_DEFAULT = "entity_enabled_default"
 
 # Entity callbacks
-CONF_GETTER = "getter"
-CONF_SETTER = "setter"
 CONF_IS_AVAILABLE = "is_available"
 
 # Bitmap-mask switch (bit-packed DP, e.g. CO2 detector alarm bits)

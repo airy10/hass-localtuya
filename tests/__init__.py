@@ -47,10 +47,18 @@ async def init(config: dict[str, dict[str, Any]], entity_domain, entity_class):
         hass.data.setdefault("localtuya", {entry.entry_id: {}})
 
         dump_device = coordinator.TuyaDevice(hass, entry, config[DEVICE_NAME])
-        dump_device.status_updated = lambda x: [
-            [e._status.update(x), e.connection_made(), e.status_updated()]
-            for e in get_entites(dump_device)
-        ]
+        # Mirror the production coordinator.status_updated (str-keys the
+        # status, updates the coordinator _status that feeds device.status,
+        # then updates the entities).
+        def _status_updated(x):
+            x = {str(dp_id): value for dp_id, value in x.items()}
+            dump_device._status.update(x)
+            return [
+                [e._status.update(x), e.connection_made(), e.status_updated()]
+                for e in get_entites(dump_device)
+            ]
+
+        dump_device.status_updated = _status_updated
 
         localtuya_hass_data = coordinator.HassLocalTuyaData(
             tuya_api, {HOST: dump_device}

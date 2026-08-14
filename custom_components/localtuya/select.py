@@ -16,7 +16,7 @@ from .const import (
     CONF_RESTORE_ON_RECONNECT,
     DictSelector,
 )
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 
 
 def flow_schema(dps):
@@ -46,7 +46,9 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
         self._state_friendly = ""
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+            self._dp_id
+        )
 
         # Set Display options
         options = {}
@@ -60,9 +62,7 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
             config_options = {}
         if not config_options:
             # Cloud spec (core enum range) as default options source.
-            if self._dpcode_wrapper is not None and getattr(
-                self._dpcode_wrapper, "options", None
-            ):
+            if getattr(self._dpcode_wrapper, "options", None):
                 config_options = {opt: opt for opt in self._dpcode_wrapper.options}
         for k, v in config_options.items():
             options[k] = str(v) if v else k.replace("_", "").capitalize()
@@ -72,10 +72,9 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
     @property
     def current_option(self) -> str:
         """Return the selected entity option to represent the entity state."""
-        if self._dpcode_wrapper:
-            value = self._read_wrapper(self._dpcode_wrapper)
-            if value is not None:
-                return self._options.to_ha(value, value)
+        value = self._read_wrapper(self._dpcode_wrapper)
+        if value is not None:
+            return self._options.to_ha(value, value)
         return self._state_friendly
 
     async def _process_device_update(
@@ -88,8 +87,6 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         Returns True if the Home Assistant state should be written,
         or False if the state write should be skipped.
         """
-        if self._dpcode_wrapper is None:
-            return True
         return not self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
         )
@@ -108,10 +105,7 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         """Change the selected option."""
         option_value = self._options.to_tuya(option)
         self.debug("Sending Option: " + option + " -> " + option_value)
-        if self._dpcode_wrapper:
-            await self._async_send_wrapper_updates(self._dpcode_wrapper, option_value)
-        else:
-            await self._device.set_dp(option_value, self._dp_id)
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, option_value)
 
     def status_updated(self):
         """Device status was updated."""

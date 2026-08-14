@@ -43,6 +43,7 @@ from .const import (
     CONF_SHARING_DATA,
     CONF_USER_ID,
     DATA_DISCOVERY,
+    DEVICE_CLOUD_DATA,
     DOMAIN,
     PLATFORMS,
 )
@@ -455,6 +456,33 @@ async def _async_connect_cloud(
             entry.title,
         )
         entry.async_start_reauth(hass)
+        return
+
+    if result[0] != True:
+        return
+
+    # Persist cloud specs for devices configured before DEVICE_CLOUD_DATA
+    # existed, so their wrappers can still be rehydrated when the cloud is
+    # offline on a later restart.
+    missing = [
+        dev_id
+        for dev_id, dev_cfg in entry.data.get(CONF_DEVICES, {}).items()
+        if DEVICE_CLOUD_DATA not in dev_cfg and dev_id in tuya_api.device_list
+    ]
+    if not missing:
+        return
+    await asyncio.gather(
+        *(tuya_api.async_get_device_functions(dev_id) for dev_id in missing),
+        return_exceptions=True,
+    )
+    new_data = entry.data.copy()
+    for dev_id in missing:
+        if cloud_spec := tuya_api.device_list.get(dev_id):
+            new_data[CONF_DEVICES][dev_id] = {
+                **new_data[CONF_DEVICES][dev_id],
+                DEVICE_CLOUD_DATA: cloud_spec,
+            }
+    hass.config_entries.async_update_entry(entry, data=new_data)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

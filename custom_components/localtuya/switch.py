@@ -14,7 +14,7 @@ from homeassistant.components.switch import (
 from homeassistant.const import CONF_DEVICE_CLASS
 
 from .entity import LocalTuyaEntity, async_setup_entry
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import BitmapMaskWrapper, RawDPWrapper, dp_wrapper_by_id
 from .const import (
     ATTR_CURRENT,
     ATTR_CURRENT_CONSUMPTION,
@@ -64,7 +64,10 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
         self._bitmap_mask = self._parse_bitmap_mask()
-        self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id)
+        wrapper = dp_wrapper_by_id(device, self._dp_id) or RawDPWrapper(self._dp_id)
+        if self._bitmap_mask:
+            wrapper = BitmapMaskWrapper(wrapper, self._bitmap_mask)
+        self._dpcode_wrapper = wrapper
 
     def _parse_bitmap_mask(self) -> bytes | None:
         """Parse the configured bitmap mask (hex string) into bytes."""
@@ -79,27 +82,10 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
             )
             return None
 
-    def _bitmap_value(self) -> bytes:
-        """Return the current DP value as bytes, zero-padded to the mask length."""
-        value = self.dp_value(self._dp_id)
-        if not isinstance(value, bytes):
-            value = b""
-        mask_len = len(self._bitmap_mask)
-        return value.ljust(mask_len, b"\x00")[:mask_len]
-
     @property
     def is_on(self):
         """Return true if switch is on."""
-        if self._getter:
-            return self._getter()
-        if self._bitmap_mask:
-            return any(
-                v & m
-                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
-            )
-        if self._dpcode_wrapper:
-            return self._read_wrapper(self._dpcode_wrapper)
-        return self._state
+        return self._read_wrapper(self._dpcode_wrapper)
 
     @property
     def extra_state_attributes(self):
@@ -131,45 +117,17 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         Returns True if the Home Assistant state should be written,
         or False if the state write should be skipped.
         """
-        if self._dpcode_wrapper is None:
-            return True
         return not self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
         )
 
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
-        if self._setter:
-            await self._async_call_setter(True)
-            return
-        if self._bitmap_mask:
-            new_value = bytes(
-                v | m
-                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
-            )
-            await self._device.set_dp(new_value, self._dp_id)
-            return
-        if self._dpcode_wrapper:
-            await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
-            return
-        await self._device.set_dp(True, self._dp_id)
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
 
     async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
-        if self._setter:
-            await self._async_call_setter(False)
-            return
-        if self._bitmap_mask:
-            new_value = bytes(
-                v & ~m
-                for v, m in zip(self._bitmap_value(), self._bitmap_mask, strict=True)
-            )
-            await self._device.set_dp(new_value, self._dp_id)
-            return
-        if self._dpcode_wrapper:
-            await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
-            return
-        await self._device.set_dp(False, self._dp_id)
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
 
     # Default value is the "OFF" state
     def entity_default_value(self):

@@ -46,6 +46,7 @@ from .const import (
     CONF_NO_CLOUD,
     CONF_TUYA_IP,
     DATA_DISCOVERY,
+    DEVICE_CLOUD_DATA,
     DOMAIN,
     DeviceConfig,
     FINGERBOT_BUTTON_EVENT,
@@ -175,12 +176,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 if isinstance(f.values, dict) and "h" in f.values:
                     return f.values
         # Ethernet: cloud dps_data holds the same type spec (JSON string).
-        try:
-            dps_data = self._hass_entry.cloud_data.device_list.get(
-                self.id, {}
-            ).get("dps_data", {})
-        except AttributeError:
-            return None
+        dps_data = self._cloud_device_data().get("dps_data", {})
         for dp_data in dps_data.values():
             if not dp_data:
                 continue
@@ -250,7 +246,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         BLE passthroughs to the BLE library status (already dpcode-keyed);
         Ethernet maps the dp_id-keyed coordinator status back to dpcodes via
-        the cloud dps_data.
+        the cloud dps_data, then merges the raw dp_id-keyed entries so
+        spec-less wrappers (RawDPWrapper/BitmapMaskWrapper) can read DPs
+        the cloud spec does not describe.
         """
         if ble := self.ble_device:
             return ble.status
@@ -258,16 +256,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         for dp_id, data in self._cloud_dpspec_view().items():
             if code := data.get("code"):
                 result[code] = self._status.get(str(data.get("dp_id")))
+        result.update(self._status)
         return result
 
     def _cloud_dpspec_view(self) -> dict:
         """Build a dpcode-keyed spec view from the Ethernet cloud dps_data."""
-        try:
-            dps_data = self._hass_entry.cloud_data.device_list.get(
-                self.id, {}
-            ).get("dps_data", {})
-        except AttributeError:
-            return {}
+        dps_data = self._cloud_device_data().get("dps_data", {})
         view = {}
         for dp_id, data in dps_data.items():
             if not data or not isinstance(data, dict):
@@ -275,6 +269,25 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             if code := data.get("code"):
                 view[code] = {**data, "dp_id": dp_id}
         return view
+
+    def _cloud_device_data(self) -> dict:
+        """Return the cloud spec for this device, live or rehydrated.
+
+        Reads the cloud device_list when the cloud is available, falling
+        back to the persisted ``DEVICE_CLOUD_DATA`` snapshot stored at
+        config time (so DP specs keep working when the cloud is offline).
+        """
+        try:
+            device_data = self._hass_entry.cloud_data.device_list.get(self.id, {})
+        except AttributeError:
+            device_data = {}
+        if not device_data:
+            return self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {})
+        if not device_data.get("dps_data"):
+            device_data["dps_data"] = (
+                self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}).get("dps_data")
+            )
+        return device_data
 
     def dp_type(self, code: str):
         """Return the cloud capability spec for a DP code, or None.

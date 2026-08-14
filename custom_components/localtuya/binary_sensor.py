@@ -17,7 +17,7 @@ from homeassistant.components.binary_sensor import (
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_STATE_ON, CONF_RESET_TIMER
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 
 
 CONF_STATE_OFF = "state_off"
@@ -53,7 +53,9 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
 
         self._reset_timer: float = self._config.get(CONF_RESET_TIMER, 0)
         self._reset_timer_interval: CALLBACK_TYPE | None = None
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+            self._dp_id
+        )
 
     @property
     def is_on(self):
@@ -70,8 +72,6 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
         Returns True if the Home Assistant state should be written,
         or False if the state write should be skipped.
         """
-        if self._dpcode_wrapper is None:
-            return True
         return not self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
         )

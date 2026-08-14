@@ -1,6 +1,5 @@
 """Code shared between all platforms."""
 
-import inspect
 import logging
 from typing import Any, Coroutine, Callable
 
@@ -40,7 +39,6 @@ from .const import (
     ATTR_STATE,
     CONF_DEFAULT_VALUE,
     CONF_ENTITY_ENABLED_DEFAULT,
-    CONF_GETTER,
     CONF_ID,
     CONF_ICONS,
     CONF_IS_AVAILABLE,
@@ -48,7 +46,6 @@ from .const import (
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
-    CONF_SETTER,
     CONF_OFFSET,
     DOMAIN,
     LOCALTUYA_DISCOVERY_NEW,
@@ -258,12 +255,8 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         # Default value is available to be provided by Platform entities if required
         self._default_value = self._config.get(CONF_DEFAULT_VALUE)
 
-        # Optional per-DP callbacks, passed as kwargs at construction or via the
-        # entity config dict (e.g. synthetic configs). When set, the getter
-        # computes the entity state, the setter writes the DP and is_available
-        # gates availability on top of the connection status.
-        self._getter = kwargs.get("getter") or self._config.get(CONF_GETTER)
-        self._setter = kwargs.get("setter") or self._config.get(CONF_SETTER)
+        # Optional per-DP callback: is_available gates availability on top of
+        # the connection status.
         self._is_available = kwargs.get("is_available") or self._config.get(
             CONF_IS_AVAILABLE
         )
@@ -446,10 +439,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         Override in subclasses and update entity specific state.
         """
-        if self._getter:
-            state = self._getter()
-        else:
-            state = self.dp_value(self._dp_id)
+        state = self.dp_value(self._dp_id)
         self._state = state
 
         # Keep record in last_state as long as not during connection/re-connection,
@@ -495,12 +485,6 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         or False if the state write should be skipped.
         """
         return True
-
-    async def _async_call_setter(self, value) -> None:
-        """Invoke the configured setter callback, awaiting it if it returns an awaitable."""
-        result = self._setter(value)
-        if inspect.isawaitable(result):
-            await result
 
     def status_restored(self, stored_state: State) -> None:
         """Device status was restored.

@@ -367,3 +367,104 @@ synthetic-config fallbacks, percentage/humidity math).
 - Tests: `tests/test_event.py` (device-id matching + `_trigger_event`), `tests/test_quirks.py`
   (registry population, lookup, unknown/missing product), `tests/test_diagnostics.py` (BLE
   spec/status surfacing, no-BLE skip). Full suite **92 passed**, `compileall` clean.
+
+### 7.6 Spec persistence — save the cloud spec, rehydrate it locally (COMPLETE)
+
+**Goal.** Core tuya's `async_turn_on/off` etc. are one-liners (`_async_send_wrapper_updates`)
+because core *always* has a `_dpcode_wrapper` — its cloud spec (`function`/`status_range`) is
+always available. Ours carries fallback branches (`_setter`/`_getter`, `_bitmap_mask`, raw
+`set_dp`) because `dp_wrapper_by_id(device, dp_id)` returns `None` whenever the spec is missing
+(cloud not configured, not yet fetched, or offline). If we **persist the cloud spec at device
+setup time** and **rehydrate it at init**, the wrapper resolves for every cloud-set-up device,
+the branches collapse, and we get core parity for the common case while keeping the manual
+paths for local-only devices.
+
+**Architecture map (verified, 2026-08-14).**
+
+- The entity's `device` is always the coordinator `TuyaDevice` (`entity.py:234-239`), regardless
+  of transport. For BLE, `TuyaDevice.ble_device` (`coordinator.py:152-157`) exposes the
+  `TuyaBLEDevice`, which carries `function`/`status_range` populated from cloud credentials
+  (`ble_manager.py:154-159` → `tuya_ble.py:384`). For Ethernet there is no device object: the
+  pytuya protocol is hidden inside `EthernetTransport` and the core-compatible surface is
+  *synthesized* by `TuyaDevice.function/status_range` (`coordinator.py:224-245`) from
+  `_cloud_dpspec_view()` (`coordinator.py:263-277`), which reads
+  `cloud_data.device_list[id]["dps_data"]`.
+- `dp_wrapper_by_id` (`core/dp_wrappers.py:346-369`) scans `device.status_range`/`device.function`
+  and returns `None` when the spec is absent → that is exactly when our fallback branches run.
+- The full cloud spec *is* fetched during config flow: `async_get_device_functions(dev_id)`
+  (`config_flow.py:1001` auto-configure, `:1754` validate_input) returns dp_id →
+  {code, type, values, range, accessMode, ...} and stores it in-memory at
+  `cloud_data.device_list[dev_id]["dps_data"]` (`cloud_api.py:403-405`). But the config entry
+  only ever receives the flattened `CONF_DPS_STRINGS` (`config_flow.py:1468-1485`) — type/range/
+  values are thrown away. `DEVICE_CLOUD_DATA` is written to the entry only in the mass-configure
+  path (`config_flow.py:1315`) and is never read back at runtime.
+- No on-disk spec cache exists. The only `Store` usages are sharing-token
+  (`sharing_cloud.py:100`) and remote codes (`remote.py:153`).
+- Choke-point for rehydration: `__init__.py async_setup_entry` between `async_prepare_ble()`
+  (`:411`) and `async_forward_entry_setups` (`:414`) — every `TuyaDevice` exists, BLE
+  `TuyaBLEDevice`s are initialized, and no wrapper has been built yet. BLE can then receive
+  saved specs via `TuyaBLEDevice.append_functions()` (`tuya_ble.py:388-414`); Ethernet via a
+  fallback in `_cloud_dpspec_view()` that reads the persisted entry data.
+
+**Design (3 parts).**
+
+1. **Save** — persist the full per-device spec (the `dps_data` dict) into the config entry
+   under `entry.data[CONF_DEVICES][dev_id][DEVICE_CLOUD_DATA]["dps_data"]` at every setup path
+   where it is available: `async_step_auto_configure_device` (single-device, currently drops it),
+   `validate_input` (manual add), and the mass-configure path (already stores it).
+2. **Rehydrate** — at the `__init__.py` choke-point, for each device: if the live cloud spec is
+   missing but persisted data exists, inject it. BLE: `ble.append_functions(functions,
+   status_range)` (derived from `dps_data`). Ethernet: `_cloud_dpspec_view()` falls back to the
+   persisted `DEVICE_CLOUD_DATA` before returning `{}`.
+3. **Backfill** — for entries created *before* this feature (no persisted spec), at init: if
+   cloud is configured and the device is in `device_list`, call `async_get_device_functions`
+   once and persist the result (lazy migration).
+
+**Payoff (implemented).** For every simple single-wrapper platform, `_dpcode_wrapper` is now
+never `None`: the constructor resolves `dp_wrapper_by_id(device, dp_id) or RawDPWrapper(dp_id)`
+(`RawDPWrapper` = raw dp_id-keyed read/write with no type conversion, for spec-less/local-only
+DPs), and switch additionally wraps the wrapper in `BitmapMaskWrapper` when `bitmap_mask` is
+configured (reads `any(v & m ...)`, writes `bytes(v | m)` / `bytes(v & ~m)`). The coordinator
+`status` property merges the raw dp_id-keyed entries after the dpcode view so both wrapper kinds
+read correctly. Entity bodies (`is_on`, `native_value`, `current_option`, `alarm_state`,
+`is_closed`, `async_turn_on/off`, `_process_device_update`, ...) collapse to the core one-liners
+for switch, siren, valve, select, number, button, sensor, binary_sensor, alarm_control_panel;
+the only remaining config-driven branches are the user-facing scaling/offset/state_on/options
+handling that has no core equivalent. `_setter`/`_getter` were removed (dead code).
+
+**Multi-DP platforms (fan, light, climate, humidifier, cover, vacuum) — collapsed (2026-08-14).**
+Each configured DP resolves `dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)`, guarded
+`if <dp configured> else None` (never `RawDPWrapper(None)`); the primary switch DP resolves
+unconditionally. This makes every wrapper non-`None` whenever its DP is configured, so the
+`if wrapper/else raw set_dp` branches collapse to unconditional
+`_async_send_wrapper_updates`/`_read_wrapper` calls:
+
+- **fan** — all four DPs collapsed (switch, speed, oscillate, direction); percentage↔speed
+  scaling, direction fwd/rev mapping, and `speed_count`/ordered-list handling stay config-driven.
+- **humidifier** — all four DPs collapsed (switch, target/current humidity, mode); mode keeps the
+  `_available_modes` `DictSelector` conversion on read (writes `to_tuya`); `_current_mode` cache
+  and its `status_updated` override removed (dead).
+- **vacuum** — fan-speed DP collapsed; `fan_speed` falls back to the `_fan_speed` cache when the
+  wrapper has no value. Action DPs (power/stop/pause/locate/mode) intentionally stay config-driven
+  `set_dp` — core resolves these via cloud spec actions we do not replicate.
+- **light** — switch DP collapsed (`is_on`/`async_turn_on`/`async_turn_off`); brightness/
+  color-mode/color-temp DPs keep their optional wrapper-or-cache reads (write_only), and color
+  writes stay batched `set_dps`. The color data DP is deliberately excluded (config-driven
+  v1/v2/base64 string encoding that no vendored wrapper decodes).
+- **climate** — switch DP collapsed (`async_turn_on/off`, `_is_on` reads the wrapper with a bool
+  check then the config `_state_on` comparison); temps/presets/swing stay config-driven.
+- **cover** — set-position DP collapsed (`async_set_cover_position` writes via wrapper); the read
+  path stays config-driven (inversion, timed math, bool/str decoding).
+
+Remaining `if self._x_wrapper:` guards are only where the wrapper is *optional* (DP not
+configured): light brightness/color-temp, climate `_hvac_switch_dp` fallback. Config-driven
+conversions with no core equivalent (percentage scaling, DictSelector maps, timed cover math,
+inversion) are the genuine LocalTuya delta and are kept in the entities.
+
+**Tests.** Save (entry data contains dps_data after flow), rehydrate (BLE `append_functions`
+called / Ethernet spec view falls back), backfill (init fetches + persists when missing);
+`tests/test_dp_wrappers_raw_bitmap.py` (16 unit tests for `RawDPWrapper`/`BitmapMaskWrapper`);
+`tests/test_switch.py::test_switch_bitmap_mask` (bitmap write/read integration); wrapper
+delegation tests in `tests/test_wrapper_delegation.py` cover all six multi-DP platforms with a
+`dp_wrapper_by_id` patch (the `or RawDPWrapper` fallback only triggers when the patch returns
+`None`). Full suite: **110 passed**.

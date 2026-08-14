@@ -45,10 +45,7 @@ class LocalTuyaText(LocalTuyaEntity, TextEntity):
     @property
     def native_value(self) -> str | None:
         """Return the value reported by the text."""
-        if self._getter:
-            state = self._getter()
-        else:
-            state = self.dp_value(self._dp_id)
+        state = self.dp_value(self._dp_id)
         if state is None:
             return None
         return str(state)
@@ -60,9 +57,6 @@ class LocalTuyaText(LocalTuyaEntity, TextEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Change the value."""
-        if self._setter:
-            await self._async_call_setter(value)
-            return
         await self._device.set_dp(value, self._dp_id)
 
     # Default value is an empty string

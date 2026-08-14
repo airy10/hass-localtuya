@@ -312,7 +312,7 @@ async def test_humidifier_wrapper_reads_and_writes():
     assert entity.is_on is True
     assert entity.target_humidity == 50
     assert entity.current_humidity == 48
-    assert entity.mode == "auto"
+    assert entity.mode == "Auto"
     await entity.async_set_humidity(60)
     assert target_wrapper.sent == [60]
     await entity.async_set_mode("Auto")

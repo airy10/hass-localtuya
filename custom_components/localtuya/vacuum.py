@@ -13,7 +13,7 @@ from homeassistant.components.vacuum import (
 )
 
 from .entity import LocalTuyaEntity, async_setup_entry
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .const import (
     CONF_CLEAN_AREA_DP,
     CONF_CLEAN_RECORD_DP,
@@ -118,10 +118,12 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
         # Core resolves action/fan_speed/activity wrappers; ours reads the
         # config status lists and writes config values, so only fan speed is
-        # wrapper-delegated (enum options match the config list).
-        self._fan_speed_wrapper = dp_wrapper_by_id(
-            device, self._config.get(CONF_FAN_SPEED_DP)
-        )
+        # wrapper-delegated (enum options match the config list). DPs with no
+        # cloud spec fall back to a raw wrapper.
+        self._fan_speed_wrapper = (
+            dp_wrapper_by_id(device, self._config.get(CONF_FAN_SPEED_DP))
+            or RawDPWrapper(self._config.get(CONF_FAN_SPEED_DP))
+        ) if self.has_config(CONF_FAN_SPEED_DP) else None
 
     @property
     def supported_features(self) -> VacuumEntityFeature:
@@ -149,11 +151,8 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     @property
     def fan_speed(self):
         """Return the fan speed of the vacuum cleaner."""
-        if self._fan_speed_wrapper:
-            speed = self._read_wrapper(self._fan_speed_wrapper)
-            if speed is not None:
-                return speed
-        return self._fan_speed
+        speed = self._read_wrapper(self._fan_speed_wrapper)
+        return speed if speed is not None else self._fan_speed
 
     @property
     def fan_speed_list(self) -> list:
@@ -214,10 +213,7 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     async def async_set_fan_speed(self, fan_speed, **kwargs):
         """Set fan speed."""
-        if self._fan_speed_wrapper:
-            await self._async_send_wrapper_updates(self._fan_speed_wrapper, fan_speed)
-        else:
-            await self._device.set_dp(fan_speed, self._config[CONF_FAN_SPEED_DP])
+        await self._async_send_wrapper_updates(self._fan_speed_wrapper, fan_speed)
 
     async def async_send_command(self, command, params=None, **kwargs):
         """Send raw command."""

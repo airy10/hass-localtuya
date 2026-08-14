@@ -16,7 +16,7 @@ from homeassistant.components.cover import (
 from homeassistant.const import CONF_DEVICE_CLASS
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .const import (
     CONF_COMMANDS_SET,
     CONF_CURRENT_POSITION_DP,
@@ -108,10 +108,12 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         self._current_task = None
         # Core resolves set/current position wrappers; our read path is
         # config-driven (inversion, timed math, bool/str decoding) so only
-        # the set-position write is delegated to the wrapper when available.
-        self._set_position_wrapper = dp_wrapper_by_id(
-            device, self._config.get(CONF_SET_POSITION_DP)
-        )
+        # the set-position write is delegated to the wrapper (raw fallback
+        # when the DP has no cloud spec).
+        self._set_position_wrapper = (
+            dp_wrapper_by_id(device, self._config.get(CONF_SET_POSITION_DP))
+            or RawDPWrapper(self._config.get(CONF_SET_POSITION_DP))
+        ) if self.has_config(CONF_SET_POSITION_DP) else None
 
     @property
     def supported_features(self):
@@ -232,14 +234,9 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             if self._position_inverted:
                 converted_position = 100 - converted_position
             if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
-                if self._set_position_wrapper:
-                    await self._async_send_wrapper_updates(
-                        self._set_position_wrapper, converted_position
-                    )
-                else:
-                    await self._device.set_dp(
-                        converted_position, self._config[CONF_SET_POSITION_DP]
-                    )
+                await self._async_send_wrapper_updates(
+                    self._set_position_wrapper, converted_position
+                )
             # Give it a moment, to make sure hass updated current pos.
             await asyncio.sleep(0.1)
             self.update_state(STATE_SET_CMD, int(kwargs[ATTR_POSITION]))

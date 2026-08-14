@@ -96,6 +96,7 @@ from .const import (
     TRANSPORT_BLE,
     TRANSPORT_ETHERNET,
     CONF_DEVICE_SLEEP_TIME,
+    DEVICE_CLOUD_DATA,
 )
 from .core.sharing_cloud import SharingCloud, decode_uuid_from_advertisement
 from .discovery import discover
@@ -112,7 +113,6 @@ SELECTED_DEVICE = "selected_device"
 EXPORT_CONFIG = "export_config"
 
 TUYA_CATEGORY = "category"
-DEVICE_CLOUD_DATA = "device_cloud_data"
 
 # Using list method so we can translate options.
 CONFIGURE_MENU = [CONF_ADD_DEVICE, "add_ble_device", CONF_EDIT_DEVICE, CONF_CONFIGURE_CLOUD]
@@ -867,6 +867,8 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 self.device_data[CONF_PROTOCOL_VERSION] = valid_data[
                     CONF_PROTOCOL_VERSION
                 ]
+                if cloud_device_data := valid_data.get(DEVICE_CLOUD_DATA):
+                    self.device_data[DEVICE_CLOUD_DATA] = cloud_device_data
 
                 return await self.async_step_device_setup_method()
                 # return await self.async_step_pick_entity_type()
@@ -1001,6 +1003,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             await self.cloud_data.async_get_device_functions(dev_id)
             device_data = self.cloud_data.device_list.get(dev_id, device_data)
             category = device_data.get(TUYA_CATEGORY, "")
+            self.device_data[DEVICE_CLOUD_DATA] = device_data
 
         localtuya_data = {
             DEVICE_CLOUD_DATA: device_data,
@@ -1750,8 +1753,10 @@ async def validate_input(
     # Get DP descriptions from the cloud, if the device is there.
     cloud_dp_codes = {}
     cloud_data = entry_runtime.cloud_data
+    cloud_device_data = {}
     if (dev_id := data.get(CONF_DEVICE_ID)) in cloud_data.device_list:
         cloud_dp_codes = await cloud_data.async_get_device_functions(dev_id)
+        cloud_device_data = cloud_data.device_list[dev_id]
 
     # Indicate an error if no datapoints found as the rest of the flow
     # won't work in this case
@@ -1769,6 +1774,7 @@ async def validate_input(
     return {
         CONF_DPS_STRINGS: dps_string_list(detected_dps, cloud_dp_codes),
         CONF_PROTOCOL_VERSION: conf_protocol,
+        DEVICE_CLOUD_DATA: cloud_device_data,
     }
 
 

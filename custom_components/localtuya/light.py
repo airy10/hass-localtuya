@@ -24,7 +24,7 @@ from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .const import (
     CONF_BRIGHTNESS_LOWER,
     CONF_BRIGHTNESS_UPPER,
@@ -293,12 +293,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._scenes = DictSelector({})
         self._cached_status = {}
 
-        # Cloud spec wrappers for the configured DPs (core parity). The color
-        # data DP is intentionally excluded: core decodes it via a JSON
-        # wrapper, but our color format is a config-driven string (v1/v2/
-        # base64) that no vendored wrapper can decode. None when the DP is
-        # unknown so reads/writes fall back to config handling.
-        self._switch_wrapper = dp_wrapper_by_id(device, self._dp_id)
+        # Cloud spec wrappers for the configured DPs (core parity); DPs with
+        # no cloud spec fall back to a raw wrapper so switch reads/writes
+        # always delegate through the wrapper layer. The color data DP is
+        # intentionally excluded: core decodes it via a JSON wrapper, but our
+        # color format is a config-driven string (v1/v2/base64) that no
+        # vendored wrapper can decode.
+        self._switch_wrapper = dp_wrapper_by_id(
+            device, self._dp_id
+        ) or RawDPWrapper(self._dp_id)
         self._brightness_wrapper = dp_wrapper_by_id(
             device, self._config.get(CONF_BRIGHTNESS)
         )
@@ -390,18 +393,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def is_on(self):
         """Return true if light is on."""
-        if self._switch_wrapper:
-            return self._read_wrapper(self._switch_wrapper)
-        return self._state
+        return self._read_wrapper(self._switch_wrapper)
 
     async def async_turn_on(self, **kwargs):
         """Turn on or control the light."""
         states = {}
         if not self.is_on or self._write_only:
-            if self._switch_wrapper:
-                await self._async_send_wrapper_updates(self._switch_wrapper, True)
-            else:
-                states[self._dp_id] = True
+            await self._async_send_wrapper_updates(self._switch_wrapper, True)
         features = self.supported_features
         color_modes = self.supported_color_modes
         brightness = None
@@ -491,10 +489,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
-        if self._switch_wrapper:
-            await self._async_send_wrapper_updates(self._switch_wrapper, False)
-        else:
-            await self._device.set_dp(False, self._dp_id)
+        await self._async_send_wrapper_updates(self._switch_wrapper, False)
 
     @property
     def brightness(self):

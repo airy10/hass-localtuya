@@ -22,7 +22,7 @@ from .const import (
     CONF_SCALING,
     CONF_STEPSIZE,
 )
-from .core.dp_wrappers import dp_wrapper_by_id
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,17 +73,27 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
 
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id)
+        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+            self._dp_id
+        )
         wrapper = self._dpcode_wrapper
 
         if CONF_MIN_VALUE in self._config:
             self._min_value = self.scale(self._config[CONF_MIN_VALUE])
         else:
-            self._min_value = wrapper.min_value if wrapper else self.scale(DEFAULT_MIN)
+            self._min_value = (
+                wrapper.min_value
+                if wrapper.min_value is not None
+                else self.scale(DEFAULT_MIN)
+            )
         if CONF_MAX_VALUE in self._config:
             self._max_value = self.scale(self._config[CONF_MAX_VALUE])
         else:
-            self._max_value = wrapper.max_value if wrapper else self.scale(DEFAULT_MAX)
+            self._max_value = (
+                wrapper.max_value
+                if wrapper.max_value is not None
+                else self.scale(DEFAULT_MAX)
+            )
         if CONF_STEPSIZE in self._config:
             self._step_size = self.scale(
                 self._config[CONF_STEPSIZE], scale_only=True
@@ -91,7 +101,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         else:
             self._step_size = (
                 wrapper.value_step
-                if wrapper
+                if wrapper.value_step is not None
                 else self.scale(DEFAULT_STEP, scale_only=True)
             )
 
@@ -103,7 +113,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
     @property
     def native_value(self) -> float:
         """Return the entity value to represent the entity state."""
-        if self._dpcode_wrapper:
+        if not self._config.get(CONF_OFFSET) and not self._config.get(CONF_SCALING):
             return self._read_wrapper(self._dpcode_wrapper)
         self._state = self.scale(self._state)
         return self._state
@@ -118,8 +128,6 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         Returns True if the Home Assistant state should be written,
         or False if the state write should be skipped.
         """
-        if self._dpcode_wrapper is None:
-            return True
         return not self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
         )
@@ -151,12 +159,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        if self._setter:
-            await self._async_call_setter(value)
-            return
-        if self._dpcode_wrapper and not self._config.get(CONF_OFFSET) and not self._config.get(
-            CONF_SCALING
-        ):
+        if not self._config.get(CONF_OFFSET) and not self._config.get(CONF_SCALING):
             await self._async_send_wrapper_updates(self._dpcode_wrapper, value)
             return
         offset = self._config.get(CONF_OFFSET)

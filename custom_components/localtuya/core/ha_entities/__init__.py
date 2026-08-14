@@ -28,6 +28,7 @@ import json
 from .base import LocalTuyaEntity, DeviceCategory, CONF_DPS_STRINGS, CLOUD_VALUE, DPType
 from enum import Enum
 from homeassistant.const import Platform, CONF_FRIENDLY_NAME, CONF_PLATFORM, CONF_ID
+from ...const import DEVICE_CLOUD_DATA
 
 import logging
 
@@ -78,9 +79,6 @@ DATA_PLATFORMS = {
 }
 
 _LOGGER = logging.getLogger(__name__)
-
-TUYA_CATEGORY = "category"
-DEVICE_CLOUD_DATA = "device_cloud_data"
 
 
 def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dict]:
