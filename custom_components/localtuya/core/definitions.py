@@ -28,10 +28,13 @@ from ..const import (
 )
 from .dp_wrappers import DPCodeWrapper, dp_wrapper_by_code
 from .dp_wrapper_decorators import (
+    Base64Utf8RawEventWrapper,
+    Base64Utf8StringEventWrapper,
     BinarySensorWrapper,
     BrightnessWrapper,
     ColorTempWrapper,
     ColorTypeData,
+    SimpleEventEnumWrapper,
     StringColorWrapper,
 )
 
@@ -40,6 +43,7 @@ __all__ = [
     "CoverDefinition",
     "ClimateDefinition",
     "DPCodeDefinition",
+    "EventDefinition",
     "FanDefinition",
     "HumidifierDefinition",
     "LightDefinition",
@@ -53,6 +57,7 @@ __all__ = [
     "get_button_definition",
     "get_climate_definition",
     "get_cover_definition",
+    "get_event_definition",
     "get_fan_definition",
     "get_humidifier_definition",
     "get_light_definition",
@@ -421,6 +426,29 @@ def get_binary_sensor_definition(
     return DPCodeDefinition(
         dpcode_wrapper=BinarySensorWrapper(wrapper, on_values)
     )
+
+
+@dataclass
+class EventDefinition:
+    """Resolved wrapper for an event entity (mirrors core EventDefinition)."""
+
+    event_wrapper: DPCodeWrapper | None
+
+
+def get_event_definition(device: Any, description: Any) -> EventDefinition | None:
+    """Resolve an event entity's wrapper; None if the DP is absent.
+
+    The wrapper decorator is chosen per-description (``wrapper_class`` in the
+    description conf), mirroring core's ``wrapper_class`` field: enum DPs use
+    ``SimpleEventEnumWrapper``, base64 STRING DPs use
+    ``Base64Utf8StringEventWrapper`` and base64 RAW DPs use
+    ``Base64Utf8RawEventWrapper``.
+    """
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    wrapper_class = conf.get("wrapper_class") or SimpleEventEnumWrapper
+    if (wrapper := resolve(device, conf.get("id"), wrapper_class)) is None:
+        return None
+    return EventDefinition(event_wrapper=wrapper)
 
 
 def get_siren_definition(device: Any, description: Any) -> DPCodeDefinition | None:

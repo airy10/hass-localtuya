@@ -5,6 +5,7 @@ tests verify read (raw -> HA) and write (HA -> raw) through the public
 ``read_device_status`` / ``get_update_commands`` interface.
 """
 
+import base64
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +13,8 @@ import pytest
 from custom_components.localtuya.const import DictSelector
 from custom_components.localtuya.core.dp_wrappers import RawDPWrapper
 from custom_components.localtuya.core.dp_wrapper_decorators import (
+    Base64Utf8RawEventWrapper,
+    Base64Utf8StringEventWrapper,
     BinarySensorWrapper,
     BrightnessWrapper,
     ClimateTempWrapper,
@@ -25,6 +28,7 @@ from custom_components.localtuya.core.dp_wrapper_decorators import (
     InvertedPercentageWrapper,
     PercentageWrapper,
     ScalingIntegerWrapper,
+    SimpleEventEnumWrapper,
     StringColorWrapper,
     TimedCoverMathWrapper,
 )
@@ -124,6 +128,47 @@ def test_binary_sensor_wrapper_default_on_values():
     assert wrapper.read_device_status(_device({"1": 1})) is True
     assert wrapper.read_device_status(_device({"1": 0})) is False
     assert wrapper.read_device_status(_device({"1": "off"})) is False
+
+
+def test_simple_event_enum_wrapper():
+    inner = SimpleNamespace(
+        dpcode="switch_mode1",
+        options=["single_click", "double_click"],
+        read_device_status=lambda device: device.status.get("switch_mode1"),
+    )
+    wrapper = SimpleEventEnumWrapper(inner)
+    assert wrapper.options == ["single_click", "double_click"]
+    assert wrapper.read_device_status(
+        _device({"switch_mode1": "double_click"})
+    ) == ("double_click", None)
+    assert wrapper.read_device_status(_device({})) is None
+
+
+def test_base64_utf8_string_event_wrapper():
+    inner = SimpleNamespace(
+        dpcode="alarm_message",
+        read_device_status=lambda device: device.status.get("alarm_message"),
+    )
+    wrapper = Base64Utf8StringEventWrapper(inner)
+    assert wrapper.options == ["triggered"]
+    encoded = base64.b64encode(b"hello").decode("ascii")
+    assert wrapper.read_device_status(_device({"alarm_message": encoded})) == (
+        "triggered",
+        {"message": "hello"},
+    )
+
+
+def test_base64_utf8_raw_event_wrapper():
+    inner = SimpleNamespace(
+        dpcode="doorbell_pic",
+        read_device_status=lambda device: device.status.get("doorbell_pic"),
+    )
+    wrapper = Base64Utf8RawEventWrapper(inner)
+    assert wrapper.options == ["triggered"]
+    assert wrapper.read_device_status(_device({"doorbell_pic": b"hello"})) == (
+        "triggered",
+        {"message": "hello"},
+    )
 
 
 def test_climate_temp_wrapper_precision_and_unit_convert():

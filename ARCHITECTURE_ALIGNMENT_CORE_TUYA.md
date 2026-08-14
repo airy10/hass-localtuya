@@ -43,7 +43,7 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
 | State delivery | MQTT push → `dispatcher_send(TUYA_HA_SIGNAL_UPDATE_ENTITY_{device.id})` → `_handle_state_update` → per-platform `_process_device_update` with `skip_update` echo suppression + `dp_timestamps` | `dispatcher_send(localtuya_{device.id})` → `_update_handler` (`entity.py:236-256`) → `status_updated()`; **no skip_update / echo suppression** |
 | Services | `services.py`: `get/set_feeder_meal_plan` (device-registry resolved) | `set_dp`, `update_dps`, `reload` (`__init__.py:58`, `services.yaml`) |
 | Diagnostics | Entry + device, `customer_device_as_dict` (function/status_range/status/local_strategy/quirk), redaction | Entry + device, obfuscation, `cloud_devices` + `Discovered_Devices` (`diagnostics.py:33,64`) |
-| Platforms | 18: alarm_control_panel, binary_sensor, button, camera, climate, cover, **event**, fan, humidifier, light, number, **scene**, select, sensor, siren, switch, vacuum, **valve** | 18: alarm_control_panel, binary_sensor, button, climate, cover, fan, humidifier, light, lock, number, remote, select, sensor, siren, switch, text, vacuum, water_heater. **No camera / event / scene / valve; has extra lock / remote / text / water_heater** |
+| Platforms | 18: alarm_control_panel, binary_sensor, button, camera, climate, cover, **event**, fan, humidifier, light, number, **scene**, select, sensor, siren, switch, vacuum, **valve** | 18: alarm_control_panel, binary_sensor, button, climate, cover, fan, humidifier, light, lock, number, remote, select, sensor, siren, switch, text, vacuum, water_heater. **No camera; event / scene / valve ported (see §7.5); has extra lock / remote / text / water_heater** |
 | Entity base | `TuyaEntity` (`entity.py:15-109`): unique_id `tuya.{device.id}{desc.key}`, `available = device.online`, has_entity_name | `LocalTuyaEntity` (`entity.py:175+`): RestoreEntity + ContextualLogger, config-driven `_dp_id`, per-DP getter/setter/is_available |
 | Entity classes | **Thin delegators** over `definition.X_wrapper` (e.g. `switch.py:954-997`: is_on/turn_on/_process_update all go through wrapper) | **Thick config-driven** classes touching raw DPs (`switch.py:50-151`: getter/setter/bitmap branching + `set_dp`) — target: wrapper-delegating bodies with config as construction source |
 | Device registry link | `get_device_info()` (`util.py:66-92`): identifiers `(tuya, device.id)`, manufacturer/model/model_id | `device_info` (`entity.py:278-297`): identifiers `(localtuya, local_{id})`, model = config model |
@@ -68,9 +68,9 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
    devices without reload. Our BLE auto-entity path only fills empty entity lists at setup.
 5. **`DeviceCategory` + unified `DPCode` enums** — core has both as the shared vocabulary.
    We have `DPCode` but no `DeviceCategory`; category strings are duplicated per table.
-6. **Camera / event / scene / valve platforms** — core supports these (RTSP via
-   `get_device_stream_allocate`, doorbell/button events, cloud scenes, irrigation valves).
-   We have none. (Our extra lock/remote/text/water_heater have no core equivalent either.)
+6. **Camera platform** — core supports RTSP via `get_device_stream_allocate`.
+   We have none. (Event/valve/scene are ported — see §7.5; our extra
+   lock/remote/text/water_heater have no core equivalent either.)
 7. **Quirks registry** — core ships a product-id-keyed quirk system loaded from
    `config/tuya_quirks/`. Ported into `core/quirks.py` (§7.10); only the
    type-information-cls and feeder-schedule quirk kinds are omitted (no localtuya
@@ -335,15 +335,16 @@ synthetic-config fallbacks, percentage/humidity math).
 
 ### 7.5 Phase 5 — Capability platforms, diagnostics & quirks (DONE)
 
-- **event** (`event.py` + `core/ha_entities/events.py`): BLE Fingerbot devices already fire
-  `localtuya_fingerbot_button_pressed` on the HA bus (coordinator `_handle_fingerbot_button`);
-  the new `LocalTuyaEvent(LocalTuyaEntity, EventEntity)` platform wraps that bus event as an
-  `event` entity — `_attr_device_class = EventDeviceClass.BUTTON`, `_attr_event_types =
-  ["pressed"]`, subscribed in `async_added_to_hass`, mirroring core's event platform (which
-  turns doorbell/button DP updates into `EventEntity` triggers). Registered as
-  `"Event": Platform.EVENT` in `PLATFORMS` with an (intentionally empty) `EVENTS` table in
-  `DATA_PLATFORMS` — event entities are per-DP-configurable, not derived from category
-  tables, so the table stays empty.
+- **event** (`event.py` + `core/ha_entities/events.py`): `LocalTuyaEvent(LocalTuyaEntity,
+  EventEntity)` now mirrors core's DP-driven event platform. `get_event_definition` resolves
+  the event wrapper per-description (`SimpleEventEnumWrapper` for enum DPs,
+  `Base64Utf8StringEventWrapper` / `Base64Utf8RawEventWrapper` for base64 doorbell
+  message/picture DPs), `_process_device_update` fires `_trigger_event`, and the `EVENTS`
+  table now maps `DeviceCategory.SP` (doorbell `alarm_message` + `doorbell_pic`) and
+  `DeviceCategory.WXKG` (`switch_mode1..9` numbered buttons). The BLE Fingerbot
+  `localtuya_fingerbot_button_pressed` bus event (no DP) remains the fallback for the manual
+  config path (`description is None`). Registered as `"Event": Platform.EVENT` in
+  `PLATFORMS`.
 - **valve** (`valve.py` + `core/ha_entities/valves.py`): `LocalTuyaValve(LocalTuyaEntity,
   ValveEntity)` with `_attr_supported_features = OPEN | CLOSE`, `is_closed = not is_open`,
   `async_open_valve`/`async_close_valve` via `_async_send_wrapper_updates`, and verbatim core

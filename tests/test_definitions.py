@@ -19,6 +19,7 @@ from custom_components.localtuya.core.definitions import (
     get_button_definition,
     get_climate_definition,
     get_cover_definition,
+    get_event_definition,
     get_fan_definition,
     get_humidifier_definition,
     get_light_definition,
@@ -35,9 +36,12 @@ from custom_components.localtuya.core.definitions import (
     resolve,
 )
 from custom_components.localtuya.core.dp_wrapper_decorators import (
+    Base64Utf8RawEventWrapper,
+    Base64Utf8StringEventWrapper,
     BinarySensorWrapper,
     BrightnessWrapper,
     ColorTempWrapper,
+    SimpleEventEnumWrapper,
     StringColorWrapper,
 )
 from custom_components.localtuya.core.dp_wrappers import (
@@ -576,6 +580,45 @@ def test_binary_sensor_definition_wraps_with_on_value():
     assert definition.dpcode_wrapper.read_device_status(
         SimpleNamespace(status={"gas_sensor_state": "normal"})
     ) is False
+
+
+def test_event_definition_resolves_wrapper_by_type():
+    """Event wrappers are chosen per-description (core's wrapper_class field)."""
+    specs = {
+        "switch_mode1": {
+            "dp_id": 1,
+            "type": "Enum",
+            "values": {"range": ["single_click", "double_click"]},
+        },
+        "alarm_message": {"dp_id": 2, "type": "String", "values": None},
+        "doorbell_pic": {"dp_id": 3, "type": "Raw", "values": None},
+    }
+
+    enum_desc = LocalTuyaEntity(id=DPCode.SWITCH_MODE1)
+    enum_def = get_event_definition(_device(specs), enum_desc)
+    assert enum_def is not None
+    assert isinstance(enum_def.event_wrapper, SimpleEventEnumWrapper)
+    assert enum_def.event_wrapper.options == ["single_click", "double_click"]
+
+    string_desc = LocalTuyaEntity(
+        id=DPCode.ALARM_MESSAGE, wrapper_class=Base64Utf8StringEventWrapper
+    )
+    string_def = get_event_definition(_device(specs), string_desc)
+    assert string_def is not None
+    assert isinstance(string_def.event_wrapper, Base64Utf8StringEventWrapper)
+    assert string_def.event_wrapper.options == ["triggered"]
+
+    raw_desc = LocalTuyaEntity(
+        id=DPCode.DOORBELL_PIC, wrapper_class=Base64Utf8RawEventWrapper
+    )
+    raw_def = get_event_definition(_device(specs), raw_desc)
+    assert raw_def is not None
+    assert isinstance(raw_def.event_wrapper, Base64Utf8RawEventWrapper)
+
+
+def test_event_definition_gates_on_absent_dp():
+    desc = LocalTuyaEntity(id=DPCode.ALARM_MESSAGE)
+    assert get_event_definition(_device({}), desc) is None
 
 
 def test_select_number_and_raw_definitions_resolve_primary():

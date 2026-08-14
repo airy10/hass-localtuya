@@ -47,6 +47,9 @@ __all__ = [
     "TimedCoverMathWrapper",
     "InvertedBooleanWrapper",
     "BinarySensorWrapper",
+    "SimpleEventEnumWrapper",
+    "Base64Utf8StringEventWrapper",
+    "Base64Utf8RawEventWrapper",
     "ClimateTempWrapper",
     "HumidityCoefficientWrapper",
     "FanSpeedPercentageWrapper",
@@ -358,6 +361,49 @@ class BinarySensorWrapper(DecoratorWrapper[bool]):
         if raw is None:
             return None
         return str(raw).lower() in self._on_values
+
+
+class SimpleEventEnumWrapper(DecoratorWrapper[tuple[str, None]]):
+    """Wraps an enum DP as an event (core's ``SimpleEventEnumWrapper``).
+
+    Reports the raw enum value as the event type with no attributes; the
+    event types exposed to HA are the enum range.
+    """
+
+    @property
+    def options(self) -> list[str]:
+        return list(getattr(self._inner, "options", []) or [])
+
+    def _to_ha(self, raw: Any) -> tuple[str, None]:
+        return (raw, None)
+
+
+class Base64Utf8StringEventWrapper(DecoratorWrapper[tuple[str, dict[str, Any]]]):
+    """Wraps a base64/UTF-8 STRING DP as a ``triggered`` event (core parity).
+
+    The decoded message is exposed in the event attributes under ``message``.
+    """
+
+    @property
+    def options(self) -> list[str]:
+        return ["triggered"]
+
+    def _to_ha(self, raw: Any) -> tuple[str, dict[str, Any]]:
+        return ("triggered", {"message": base64.b64decode(raw).decode("utf-8")})
+
+
+class Base64Utf8RawEventWrapper(DecoratorWrapper[tuple[str, dict[str, Any]]]):
+    """Wraps a base64/UTF-8 RAW DP as a ``triggered`` event (core parity).
+
+    The decoded message is exposed in the event attributes under ``message``.
+    """
+
+    @property
+    def options(self) -> list[str]:
+        return ["triggered"]
+
+    def _to_ha(self, raw: Any) -> tuple[str, dict[str, Any]]:
+        return ("triggered", {"message": raw.decode("utf-8")})
 
 
 class ClimateTempWrapper(DecoratorWrapper[float]):
