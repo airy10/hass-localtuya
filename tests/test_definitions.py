@@ -417,6 +417,11 @@ FAN_SPECS = {
         "values": {"range": ["forward", "reverse"]},
     },
     "switch_horizontal": {"dp_id": 4, "type": "Boolean", "values": None},
+    "fan_mode": {
+        "dp_id": 5,
+        "type": "Enum",
+        "values": {"range": ["normal", "nature", "sleep"]},
+    },
 }
 
 
@@ -427,6 +432,7 @@ def test_fan_definition_resolves_wrappers_by_dpcode():
         fan_speed_control=(DPCode.FAN_SPEED_PERCENT, DPCode.FAN_SPEED),
         fan_direction=DPCode.FAN_DIRECTION,
         fan_oscillating_control=(DPCode.SWITCH_HORIZONTAL, DPCode.SWITCH_VERTICAL),
+        fan_mode=(DPCode.FAN_MODE, DPCode.MODE),
     )
     definition = get_fan_definition(_device(FAN_SPECS), desc)
 
@@ -437,6 +443,9 @@ def test_fan_definition_resolves_wrappers_by_dpcode():
     assert definition.speed_wrapper.dpcode == DPCode.FAN_SPEED
     assert isinstance(definition.direction_wrapper, DPCodeEnumWrapper)
     assert definition.oscillate_wrapper.dpcode == DPCode.SWITCH_HORIZONTAL
+    assert isinstance(definition.mode_wrapper, DPCodeEnumWrapper)
+    assert definition.mode_wrapper.dpcode == DPCode.FAN_MODE
+    assert definition.mode_wrapper.options == ["normal", "nature", "sleep"]
 
 
 def test_fan_definition_gates_on_absent_switch():

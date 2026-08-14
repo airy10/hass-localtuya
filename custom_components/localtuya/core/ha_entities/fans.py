@@ -34,6 +34,8 @@ FAN_SPEED_DP = (
     DPCode.FAN_SPEED_ENUM,
 )
 
+FAN_MODE_DP = (DPCode.FAN_MODE, DPCode.MODE)
+
 FANS_OSCILLATING = (DPCode.SWITCH_HORIZONTAL, DPCode.SWITCH_VERTICAL)
 
 
@@ -60,6 +62,7 @@ FANS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             fan_speed_control=FAN_SPEED_DP,
             fan_direction=DPCode.FAN_DIRECTION,
             fan_oscillating_control=FANS_OSCILLATING,
+            fan_mode=FAN_MODE_DP,
             custom_configs=localtuya_fan(
                 DIRECTION_FORWARD, DIRECTION_REVERSE, 1, 100, "disabled", "int"
             ),
@@ -74,6 +77,7 @@ FANS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             fan_speed_control=FAN_SPEED_DP,
             fan_direction=DPCode.FAN_DIRECTION,
             fan_oscillating_control=FANS_OSCILLATING,
+            fan_mode=FAN_MODE_DP,
             custom_configs=localtuya_fan(
                 DIRECTION_FORWARD, DIRECTION_REVERSE, 1, 100, "disabled", "int"
             ),

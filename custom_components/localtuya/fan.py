@@ -111,6 +111,9 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
             dir_inner = (
                 definition.direction_wrapper if definition is not None else None
             )
+            mode_inner = (
+                definition.mode_wrapper if definition is not None else None
+            )
         else:
             # Manual config-driven path: cloud spec wrappers fall back to a
             # raw wrapper. Speed/direction conversion lives in the decorators.
@@ -133,6 +136,10 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
                 dp_wrapper_by_id(device, dir_dp) or RawDPWrapper(dir_dp)
             ) if self.has_config(CONF_FAN_DIRECTION) else None
 
+            # No manual fan_mode flow option; preset modes are only available
+            # through the definition-driven (cloud) path.
+            mode_inner = None
+
         self._speed_wrapper = (
             FanSpeedPercentageWrapper(
                 speed_inner,
@@ -151,6 +158,10 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
             )
             if dir_inner is not None
             else None
+        )
+        self._mode_wrapper = mode_inner
+        self._attr_preset_modes = (
+            self._mode_wrapper.options if self._mode_wrapper is not None else None
         )
 
     @override
@@ -177,6 +188,12 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         self.schedule_update_ha_state()
 
     @override
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set the preset mode of the fan."""
+        await self._async_send_wrapper_updates(self._mode_wrapper, preset_mode)
+        self.schedule_update_ha_state()
+
+    @override
     async def async_turn_on(
         self,
         percentage: int | None = None,
@@ -184,11 +201,22 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         **kwargs: Any,
     ) -> None:
         """Turn on the fan."""
-        await self._async_send_wrapper_updates(self._switch_wrapper, True)
-        if percentage is not None:
-            await self.async_set_percentage(percentage)
-        else:
-            self.schedule_update_ha_state()
+        if self._switch_wrapper is None:
+            return
+
+        commands = self._switch_wrapper.get_update_commands(self._device, True)
+
+        if percentage is not None and self._speed_wrapper is not None:
+            commands.extend(
+                self._speed_wrapper.get_update_commands(self._device, percentage)
+            )
+
+        if preset_mode is not None and self._mode_wrapper is not None:
+            commands.extend(
+                self._mode_wrapper.get_update_commands(self._device, preset_mode)
+            )
+        await self._async_send_commands(commands)
+        self.schedule_update_ha_state()
 
     @override
     async def async_oscillate(self, oscillating: bool) -> None:
@@ -222,6 +250,12 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
 
     @property
     @override
+    def preset_mode(self) -> str | None:
+        """Return the current preset_mode."""
+        return self._read_wrapper(self._mode_wrapper)
+
+    @property
+    @override
     def supported_features(self) -> FanEntityFeature:
         """Flag supported features."""
         features = FanEntityFeature(0)
@@ -234,6 +268,9 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
 
         if self._direction_wrapper is not None:
             features |= FanEntityFeature.DIRECTION
+
+        if self._mode_wrapper is not None:
+            features |= FanEntityFeature.PRESET_MODE
 
         features |= FanEntityFeature.TURN_OFF
         features |= FanEntityFeature.TURN_ON

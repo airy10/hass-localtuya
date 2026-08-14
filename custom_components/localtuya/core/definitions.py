@@ -196,12 +196,13 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
 
 @dataclass
 class FanDefinition:
-    """Resolved wrappers for a fan entity."""
+    """Resolved wrappers for a fan entity (mirrors core FanDefinition)."""
 
     switch_wrapper: DPCodeWrapper | None
     speed_wrapper: DPCodeWrapper | None
     oscillate_wrapper: DPCodeWrapper | None
     direction_wrapper: DPCodeWrapper | None
+    mode_wrapper: DPCodeWrapper | None
 
 
 def get_fan_definition(device: Any, description: Any) -> FanDefinition | None:
@@ -214,6 +215,7 @@ def get_fan_definition(device: Any, description: Any) -> FanDefinition | None:
         speed_wrapper=resolve(device, conf.get("fan_speed_control")),
         oscillate_wrapper=resolve(device, conf.get("fan_oscillating_control")),
         direction_wrapper=resolve(device, conf.get("fan_direction")),
+        mode_wrapper=resolve(device, conf.get("fan_mode")),
     )
 
 
