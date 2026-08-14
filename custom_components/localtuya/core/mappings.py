@@ -1,10 +1,11 @@
-"""Per-product entity mapping tables for automatic entity generation.
+"""Per-product entity mapping tables for BLE auto-entity generation.
 
 This module mirrors the ``ha_tuya_ble`` per-product mapping tables
-(``get_mapping_by_device``) but produces entity config dicts in the
-localtuya config-driven format, so BLE devices (and any cloud-spec device)
-can auto-create entities from their ``category``/``product_id`` without
-manual numeric-DP configuration.
+(``get_mapping_by_device``) and produces entity config dicts in the localtuya
+config-driven format, so BLE devices with a known product can auto-create
+entities from their ``category``/``product_id`` without manual numeric-DP
+configuration. Category-table derivation (the shared, definition-driven path)
+lives in ``entity.py::_described_entity_specs`` and applies to both transports.
 
 Each mapping entry carries the platform, the datapoint id, the entity config
 dict (in the same shape as ``CONF_ENTITIES`` entries), and optional gating
@@ -14,7 +15,6 @@ metadata (``force_add``, ``dp_type``, ``is_available``).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Callable
 
 from homeassistant.const import (
@@ -397,97 +397,21 @@ MAPPINGS: dict[str, TuyaCategoryMapping] = {
 
 
 def get_mapping_by_device(device) -> list[TuyaEntityMapping]:
-    """Return the entity mappings for a device based on its category/product.
+    """Return the per-product entity mappings for a device.
 
     Mirrors ``ha_tuya_ble``'s ``get_mapping_by_device``: resolve the category
     table, then the per-product override, falling back to the category-level
-    mapping when the product is unknown. When no per-product entry exists,
-    mappings are derived on the fly from the device's cloud spec
-    (``function``/``status_range``) and the ``ha_entities`` category tables,
-    so any device with cloud metadata gets automatic entities.
+    mapping when the product is unknown. Returns an empty list when no
+    hardcoded mapping exists — the shared category-table derivation
+    (``entity.py::_described_entity_specs``) then supplies entities from the
+    ``ha_entities`` tables for both transports.
     """
     category = MAPPINGS.get(device.category)
-    if category is not None and category.products is not None:
-        product_mapping = category.products.get(device.product_id)
-        if product_mapping is not None:
-            return product_mapping
-        if category.mapping is not None:
-            return category.mapping
-    return derive_mappings_from_spec(device)
-
-
-def derive_mappings_from_spec(device) -> list[TuyaEntityMapping]:
-    """Derive entity mappings from the device cloud spec + category tables.
-
-    For each entity in the ``ha_entities`` category tables matching the
-    device's ``category``, resolve the entity's DPCode config fields against
-    the device's ``function``/``status_range`` (which map dpcode -> dp_id and
-    type) and emit a ``TuyaEntityMapping``. Entities whose primary DP is not
-    present in the device spec are skipped, mirroring core tuya's
-    ``get_default_definition`` spec gate (``switch.py:938-943``).
-    """
-    from .ha_entities import DATA_PLATFORMS
-    from .ha_entities.base import LocalTuyaEntity
-
-    spec = _device_spec(device)
-    if not spec or not device.category:
+    if category is None:
         return []
-
-    derived: list[TuyaEntityMapping] = []
-    for platform, table in DATA_PLATFORMS.items():
-        for entity in table.get(device.category, ()):
-            mapping = _mapping_from_entity(entity, platform, spec)
-            if mapping is not None:
-                derived.append(mapping)
-    return derived
-
-
-def _device_spec(device) -> dict[str, Any]:
-    """Return dpcode -> dp_id for the device from cloud metadata."""
-    spec: dict[str, Any] = {}
-    for source in (getattr(device, "function", {}), getattr(device, "status_range", {})):
-        for code, fn in source.items():
-            spec[code] = fn.dp_id
-    return spec
-
-
-def _mapping_from_entity(
-    entity: LocalTuyaEntity, platform: Platform, spec: dict[str, Any]
-) -> TuyaEntityMapping | None:
-    """Build a mapping from a category-table entity, resolving DPs via spec."""
-    config: dict[str, Any] = {}
-    for key, value in entity.data.items():
-        if value not in (None, "", "None"):
-            config[key] = value
-    primary_id: str | None = None
-
-    for key, value in entity.localtuya_conf.items():
-        if isinstance(value, str):
-            code = value
-        elif isinstance(value, Enum):
-            code = value.value
-        else:  # tuple of alternative DPCodes; first one present wins
-            code = None
-            for alt in value:
-                if isinstance(alt, Enum) and alt.value in spec:
-                    code = alt.value
-                    break
-        if code is None or code not in spec:
-            if key == "id":
-                return None
-            continue
-        dp_id = spec[code]
-        if key == "id":
-            primary_id = str(dp_id)
-        config[key] = str(dp_id)
-
-    if primary_id is None:
-        return None
-
-    config[CONF_ENTITY_ENABLED_DEFAULT] = True
-    return TuyaEntityMapping(
-        dp_id=int(primary_id),
-        platform=platform,
-        config=config,
-        force_add=False,
-    )
+    if category.products is not None:
+        if (product_mapping := category.products.get(device.product_id)) is not None:
+            return product_mapping
+    if category.mapping is not None:
+        return category.mapping
+    return []

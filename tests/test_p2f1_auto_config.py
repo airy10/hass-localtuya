@@ -1,6 +1,4 @@
-"""Tests for P2-F1 auto-configuration (per-product mapping + auto entity gen)."""
-
-import pytest
+"""Tests for auto-configuration (per-product mapping + unified entity resolver)."""
 
 from homeassistant.const import Platform
 
@@ -10,7 +8,10 @@ from custom_components.localtuya.core.mappings import (
     TuyaEntityMapping,
     get_mapping_by_device,
 )
-from custom_components.localtuya.entity import _auto_entities_for_device
+from custom_components.localtuya.entity import (
+    _auto_entities_for_device,
+    _entity_specs_for_device,
+)
 
 
 class MockDatapoints:
@@ -28,9 +29,17 @@ class MockBleDevice:
         self.datapoints = MockDatapoints(dp_ids)
 
 
+class MockSpecFn:
+    def __init__(self, dp_id):
+        self.dp_id = dp_id
+
+
 class MockTuyaDevice:
-    def __init__(self, ble_device=None):
+    def __init__(self, ble_device=None, category=None, function=None, status_range=None):
         self._ble = ble_device
+        self.category = category
+        self.function = function or {}
+        self.status_range = status_range or {}
 
     @property
     def ble_device(self):
@@ -44,7 +53,7 @@ def test_get_mapping_by_device_known_product():
     assert all(m.platform in (Platform.SENSOR, Platform.SWITCH) for m in mappings)
 
 
-def test_get_mapping_by_device_unknown_product_falls_back():
+def test_get_mapping_by_device_unknown_product_empty():
     device = MockBleDevice("co2bj", "unknown", set())
     assert get_mapping_by_device(device) == []
 
@@ -52,68 +61,6 @@ def test_get_mapping_by_device_unknown_product_falls_back():
 def test_get_mapping_by_device_unknown_category():
     device = MockBleDevice("nope", "x", set())
     assert get_mapping_by_device(device) == []
-
-
-class MockSpecFn:
-    def __init__(self, dp_id):
-        self.dp_id = dp_id
-
-
-class MockSpecDevice:
-    """BLE device with cloud spec (function/status_range) but no per-product entry."""
-
-    def __init__(self, category, function, status_range):
-        self.category = category
-        self.product_id = "unknown"
-        self.datapoints = MockDatapoints(set())
-        self.function = function
-        self.status_range = status_range
-
-
-def test_derive_mappings_from_spec_matches_category_table():
-    from custom_components.localtuya.core.mappings import (
-        derive_mappings_from_spec,
-    )
-
-    device = MockSpecDevice(
-        "bh",  # Smart Kettle
-        {"start": MockSpecFn(1), "warm": MockSpecFn(2)},
-        {"temp_current": MockSpecFn(3)},
-    )
-    mappings = derive_mappings_from_spec(device)
-    by_dp = {m.dp_id: m for m in mappings}
-    assert 1 in by_dp  # switch Start
-    assert 2 in by_dp  # switch Warm
-    assert by_dp[1].platform == Platform.SWITCH
-    assert by_dp[1].config["friendly_name"] == "Start"
-    # Sensor present in the spec is derived too.
-    assert 3 in by_dp
-    assert by_dp[3].platform == Platform.SENSOR
-    # Codes absent from the device spec are skipped (spec gate).
-    assert 4 not in by_dp
-
-
-def test_derive_mappings_from_spec_unknown_category_empty():
-    from custom_components.localtuya.core.mappings import (
-        derive_mappings_from_spec,
-    )
-
-    device = MockSpecDevice("nope", {"x": MockSpecFn(1)}, {})
-    assert derive_mappings_from_spec(device) == []
-
-
-def test_get_mapping_by_device_unknown_product_derives_from_spec():
-    from custom_components.localtuya.core.mappings import (
-        get_mapping_by_device,
-    )
-
-    device = MockSpecDevice(
-        "bh",
-        {"start": MockSpecFn(1)},
-        {"temp_current": MockSpecFn(3)},
-    )
-    mappings = get_mapping_by_device(device)
-    assert {m.dp_id for m in mappings} == {1, 3}
 
 
 def test_auto_entities_force_add_and_has_id_gating():
@@ -171,3 +118,38 @@ def test_auto_entities_injects_config_id_and_platform():
     for e in entities:
         assert e["id"] == str(e["dp_id"]) if "dp_id" in e else "id" in e
         assert e["platform"] == "sensor"
+
+
+# --- unified resolver (_entity_specs_for_device) ---
+
+
+def test_entity_specs_for_device_ble_per_product_first():
+    device = MockTuyaDevice(
+        MockBleDevice("co2bj", "59s19z5m", {1, 2, 11, 13}),
+        category="co2bj",
+    )
+    specs = _entity_specs_for_device(device, "sensor", {})
+    assert specs
+    assert all(description is None for _, description in specs)
+
+
+def test_entity_specs_for_device_ble_falls_back_to_category_tables():
+    device = MockTuyaDevice(
+        MockBleDevice("kg", "unknown", set()),
+        category="kg",
+        status_range={"switch": {"dp_id": 1, "type": "Boolean", "values": None}},
+    )
+    specs = _entity_specs_for_device(device, "switch", {})
+    assert specs
+    assert all(description is not None for _, description in specs)
+
+
+def test_entity_specs_for_device_ethernet_uses_category_tables():
+    device = MockTuyaDevice(
+        None,
+        category="kg",
+        status_range={"switch": {"dp_id": 1, "type": "Boolean", "values": None}},
+    )
+    specs = _entity_specs_for_device(device, "switch", {})
+    assert specs
+    assert all(description is not None for _, description in specs)

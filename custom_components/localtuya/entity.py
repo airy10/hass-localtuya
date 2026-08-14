@@ -93,17 +93,10 @@ async def async_setup_entry(
 
         if not entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
-            if device.ble_device is not None:
-                # BLE: per-product mappings + category-table derivation.
-                entities_to_setup = [
-                    (config, None)
-                    for config in _auto_entities_for_device(device, domain, dev_entry)
-                ]
-            else:
-                # Ethernet/cloud: derive entities from the category tables
-                # (core-tuya model: category → description → wrappers). Manual
-                # dps config and BLE product mappings remain the fallbacks.
-                entities_to_setup = _described_entity_specs(device, domain)
+            # No manual entities: resolve via the single runtime resolver —
+            # BLE per-product overrides first, then the shared category-table
+            # derivation (definition-driven, both transports).
+            entities_to_setup = _entity_specs_for_device(device, domain, dev_entry)
 
         if entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
@@ -158,19 +151,24 @@ async def async_setup_entry(
                 for entity in dev_entry.get(CONF_ENTITIES, [])
             ):
                 continue
-            entity_configs = _auto_entities_for_device(device, domain, dev_entry)
-            if not entity_configs:
-                continue
-            for entity_config in entity_configs:
+            for entity_config, description in _entity_specs_for_device(
+                device, domain, dev_entry
+            ):
                 for dp_conf in dps_config_fields:
                     if dp_conf in entity_config:
                         device.dps_to_request[entity_config[dp_conf]] = None
+                kwargs = {
+                    "add_entites_callback": async_add_entities,
+                    "config": entity_config,
+                }
+                if description is not None:
+                    kwargs["description"] = description
                 discovered.append(
                     entity_class(
                         device,
                         dev_entry,
                         entity_config[CONF_ID],
-                        add_entites_callback=async_add_entities,
+                        **kwargs,
                     )
                 )
         if discovered:
@@ -338,6 +336,30 @@ def _described_entity_specs(device, domain: str) -> list[tuple[dict, Any]]:
             continue
         specs.append((config, description))
     return specs
+
+
+def _entity_specs_for_device(
+    device: TuyaDevice, domain: str, dev_entry: dict
+) -> list[tuple[dict, Any]]:
+    """Resolve ``(config, description)`` specs for a device with no manual entities.
+
+    The single runtime resolver for auto-configured entities: BLE devices first
+    consult their per-product hardcoded overrides (``mappings.py``), then fall
+    back to the shared category-table derivation; Ethernet/cloud devices use
+    the category tables directly. Both transports end on the same
+    ``_described_entity_specs`` path, so wrappers resolve by dpcode from the
+    description (core parity) with manual ``dps`` as the fallback.
+    """
+    if device.ble_device is None:
+        return _described_entity_specs(device, domain)
+
+    specs = [
+        (config, None)
+        for config in _auto_entities_for_device(device, domain, dev_entry)
+    ]
+    if specs:
+        return specs
+    return _described_entity_specs(device, domain)
 
 
 class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):

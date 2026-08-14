@@ -522,9 +522,9 @@ Phase 7 porting checklist.
   resolve core-named wrappers by dpcode (tuple-alternative + spec gate),
   mirroring core's `get_default_definition`.
 - `entity.py` — `entity_config_from_description` adapter, `descriptions_for_
-  platform`, and description-driven `async_setup_entry` (Ethernet derives via
-  `_described_entity_specs`; BLE via `_auto_entities_for_device` →
-  `derive_mappings_from_spec`).
+  platform`, and the single `_entity_specs_for_device` resolver (BLE
+  per-product overrides first, then `_described_entity_specs` for both
+  transports).
 - `config_flow.py` — `async_step_auto_configure_device` / `setup_localtuya_devices`
   persist the cloud data (category + specs) with an empty entity list; the
   runtime resolves live. Manual `dps` and "no cloud" stay escape hatches.
@@ -565,9 +565,9 @@ action DPs, sensor base64 sub-sensors, …).
 
 ## 8. Next work
 
-The definition-driven runtime (Phases 0–7) is complete, and the now-unused
-`gen_localtuya_entities` flattening helper has been removed. Remaining,
-optional follow-ups: (1) drop the manual `dps` path entirely once cloud
-auto-config proves stable, (2) reconcile the BLE
-`_auto_entities_for_device`/`derive_mappings_from_spec` path with the shared
-`_described_entity_specs` path into a single runtime resolver.
+The definition-driven runtime (Phases 0–7) is complete: the now-unused
+`gen_localtuya_entities` flattening helper has been removed, and the BLE
+per-product path has been unified with the shared category-table resolver
+(`entity.py::_entity_specs_for_device` — BLE per-product overrides first,
+then `_described_entity_specs` for both transports). The manual `dps` path is
+intentionally kept as the fallback/escape hatch.
