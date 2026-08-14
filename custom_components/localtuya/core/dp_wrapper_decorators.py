@@ -456,9 +456,12 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
     """Wraps a light color DP: string (v1/v2/base64) <-> (hue, sat, brightness).
 
     Encapsulates the light platform's color encode/decode (``__to_color*`` /
-    ``__from_color*``). ``use_raw`` selects the base64 4-byte HHSL format;
-    otherwise the v2/hex vs RGB-encoded format is chosen per-value from the
-    current raw string length, mirroring the entity's prior behaviour.
+    ``__from_color*``). Brightness is normalized to the Home Assistant 0..255
+    scale on read and accepted in 0..255 on write (like core's
+    ``ColorDataWrapper``), remapping through the device's lower..upper range
+    internally. ``use_raw`` selects the base64 4-byte HHSL format; otherwise
+    the v2/hex vs RGB-encoded format is chosen per-value from the current raw
+    string length, mirroring the entity's prior behaviour.
     """
 
     def __init__(
@@ -466,10 +469,12 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
         inner: DPCodeWrapper[Any],
         color_type_data: ColorTypeData | None,
         upper_brightness: int,
+        lower_brightness: int = 0,
         use_raw: bool = False,
     ) -> None:
         super().__init__(inner)
         self._color_type_data = color_type_data
+        self._lower_brightness = lower_brightness
         self._upper_brightness = upper_brightness
         self._use_raw = use_raw
 
@@ -484,22 +489,38 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
         current = self._read_inner(device)
         return self._write_inner(device, self.encode(hue, sat, brightness, current))
 
+    def _brightness_to_ha(self, value: int) -> int:
+        """Remap a raw device brightness to the Home Assistant 0..255 scale."""
+        return map_range(value, self._lower_brightness, self._upper_brightness)
+
+    def _brightness_to_raw(self, value: int) -> int:
+        """Remap a Home Assistant 0..255 brightness to the device scale."""
+        return map_range(value, 0, 255, self._lower_brightness, self._upper_brightness)
+
     def decode(self, color: str) -> tuple[float, float, int] | None:
-        """Decode a string color to (hue, sat, brightness)."""
+        """Decode a string color to (hue, sat, brightness) in HA units (0..255).
+
+        Brightness is format-specific, mirroring core's per-``v_type`` scaling:
+        the v2 and base64 formats store the device-scale value (remapped through
+        ``lower..upper``), while the v1/rgb-encoded format stores a 2-hex value
+        that is already on the 0..255 scale.
+        """
         if self._use_raw:
-            return self._from_color_raw(color)
-        if self._is_rgb_encoded(color):
+            hue, sat, value = self._from_color_raw(color)
+            value = self._brightness_to_ha(value)
+        elif self._is_rgb_encoded(color):
             hue = int(color[6:10], 16)
             sat = int(color[10:12], 16)
             value = int(color[12:14], 16)
             if self._color_type_data:
-                return (
-                    self._color_type_data.remap_h_to(hue),
-                    self._color_type_data.remap_s_to(sat),
-                    value,
-                )
-            return hue, sat * 100 / 255, value
-        return self._from_color_v2(color)
+                hue = self._color_type_data.remap_h_to(hue)
+                sat = self._color_type_data.remap_s_to(sat)
+            else:
+                sat = sat * 100 / 255
+        else:
+            hue, sat, value = self._from_color_v2(color)
+            value = self._brightness_to_ha(value)
+        return hue, sat, value
 
     def encode(
         self,
@@ -508,12 +529,13 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
         brightness: int,
         current: str | None = None,
     ) -> str:
-        """Encode (hue, sat, brightness) to a string."""
+        """Encode (hue, sat, brightness 0..255) to a string."""
         if self._use_raw:
-            return self._to_color_raw(hue, sat, brightness)
+            return self._to_color_raw(hue, sat, self._brightness_to_raw(brightness))
         if self._is_rgb_encoded(current):
+            # v1/rgb-encoded: the 2-hex value field is already 0..255.
             rgb = color_util.color_hsv_to_RGB(
-                hue, sat, int(brightness * 100 / self._upper_brightness)
+                hue, sat, int(brightness * 100 / 255)
             )
             if self._color_type_data:
                 h = self._color_type_data.remap_h_from(hue)
@@ -524,7 +546,7 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
             return "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
                 round(rgb[0]), round(rgb[1]), round(rgb[2]), h, s, brightness
             )
-        return self._to_color_v2(hue, sat, brightness)
+        return self._to_color_v2(hue, sat, self._brightness_to_raw(brightness))
 
     def _to_color_raw(self, hue: float, sat: float, brightness: int) -> str:
         return base64.b64encode(

@@ -144,9 +144,9 @@ def test_color_temp_wrapper():
 
 def test_string_color_wrapper_v2_roundtrip():
     wrapper = StringColorWrapper(_raw(), None, upper_brightness=1000)
-    encoded = wrapper.encode(4, 100.0, 12)
-    assert encoded == "000403e8000c"
-    assert wrapper.decode(encoded) == (4, 100.0, 12)
+    encoded = wrapper.encode(4, 100.0, 128)
+    assert encoded == "000403e801f6"
+    assert wrapper.decode(encoded) == (4, 100.0, 128)
 
 
 def test_string_color_wrapper_rgb_encoded_decode():
@@ -154,16 +154,26 @@ def test_string_color_wrapper_rgb_encoded_decode():
     hue, sat, value = wrapper.decode("0319090087db1c")
     assert hue == 135
     assert sat == pytest.approx(219 * 100 / 255)
+    # v1/rgb-encoded value field is already on the 0..255 scale.
+    assert value == 28
+
+
+def test_string_color_wrapper_rgb_encoded_roundtrip():
+    wrapper = StringColorWrapper(_raw(), None, upper_brightness=1000)
+    encoded = wrapper.encode(135, 100.0, 28, current="0319090087db1c")
+    hue, sat, value = wrapper.decode(encoded)
+    assert hue == 135
+    assert sat == 100.0
     assert value == 28
 
 
 def test_string_color_wrapper_base64_roundtrip():
     wrapper = StringColorWrapper(_raw(), None, upper_brightness=1000, use_raw=True)
-    encoded = wrapper.encode(135, 219, 500)
+    encoded = wrapper.encode(135, 219, 128)
     hue, sat, value = wrapper.decode(encoded)
     assert hue == 135
     assert sat == 219
-    assert value == pytest.approx(500)
+    assert value == 128
 
 
 def test_decorator_composition():

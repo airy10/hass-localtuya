@@ -5,6 +5,7 @@ import voluptuous as vol
 
 from dataclasses import dataclass
 from functools import partial
+from typing import Any, override
 from homeassistant.helpers import selector
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -28,7 +29,6 @@ from .core.dp_wrapper_decorators import (
     ColorTempWrapper,
     ColorTypeData,
     StringColorWrapper,
-    map_range,
 )
 from .const import (
     CONF_BRIGHTNESS_LOWER,
@@ -305,7 +305,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if self.has_config(CONF_COLOR):
                 inner = dp_wrapper_by_id(device, color_dp) or RawDPWrapper(color_dp)
                 self._color_data_wrapper = StringColorWrapper(
-                    inner, self._color_type_data, self._upper_brightness
+                    inner,
+                    self._color_type_data,
+                    self._upper_brightness,
+                    self._lower_brightness,
                 )
             else:
                 self._color_data_wrapper = None
@@ -390,11 +393,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         return attributes
 
     @property
-    def is_on(self):
+    @override
+    def is_on(self) -> bool | None:
         """Return true if light is on."""
         return self._read_wrapper(self._switch_wrapper)
 
-    async def async_turn_on(self, **kwargs):
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on or control the light."""
         commands = []
         if not self.is_on or self._write_only:
@@ -429,14 +434,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             or self._brightness_wrapper is not None
             or self._color_data_wrapper is not None
         ):
-            brightness = map_range(
-                int(kwargs[ATTR_BRIGHTNESS]),
-                0,
-                255,
-                self._lower_brightness,
-                self._upper_brightness,
-            )
-            brightness = max(brightness, self._lower_brightness)
+            brightness = int(kwargs[ATTR_BRIGHTNESS])
 
             if self.is_color_mode and self._color_data_wrapper is not None:
                 hsv = self._read_wrapper(self._color_data_wrapper)
@@ -451,14 +449,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 if self._brightness_wrapper is not None:
                     commands.extend(
                         self._brightness_wrapper.get_update_commands(
-                            self._device, int(kwargs[ATTR_BRIGHTNESS])
+                            self._device, brightness
                         )
                     )
                 color_mode = self._modes.white
 
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
-                brightness = self._upper_brightness
+                brightness = 255
             hs = kwargs[ATTR_HS_COLOR]
             if (
                 hs[1] == 0
@@ -481,7 +479,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in color_modes:
             if brightness is None:
-                brightness = self._upper_brightness
+                brightness = 255
             if self._color_temp_wrapper is not None:
                 commands.extend(
                     self._color_temp_wrapper.get_update_commands(
@@ -498,7 +496,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
-                brightness = self._upper_brightness
+                brightness = 255
             color_mode = self._modes.white
             if self._brightness_wrapper is not None:
                 commands.extend(
@@ -514,48 +512,49 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         await self._async_send_commands(commands)
 
-    async def async_turn_off(self, **kwargs):
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
         await self._async_send_wrapper_updates(self._switch_wrapper, False)
 
     @property
-    def brightness(self):
-        """Return the brightness of the light."""
-        if self._color_data_wrapper is not None and self.is_color_mode:
-            hsv = self._read_wrapper(self._color_data_wrapper)
-            return (
-                None
-                if hsv is None
-                else round(
-                    map_range(hsv[2], self._lower_brightness, self._upper_brightness)
-                )
-            )
-        if self._brightness_wrapper is not None and (
-            self.is_color_mode or self.is_white_mode
-        ):
+    @override
+    def brightness(self) -> int | None:
+        """Return the brightness of this light between 0..255."""
+        # If the light is currently in color mode,
+        # extract the brightness from the color data
+        if self.is_color_mode and self._color_data_wrapper:
+            hsv_data = self._read_wrapper(self._color_data_wrapper)
+            return None if hsv_data is None else round(hsv_data[2])
+
+        # Only color/white modes report brightness; scene/music modes have no
+        # meaningful value (localtuya has modes core does not).
+        if self.is_color_mode or self.is_white_mode:
             return self._read_wrapper(self._brightness_wrapper)
         return None
 
     @property
-    def color_temp_kelvin(self):
+    @override
+    def color_temp_kelvin(self) -> int | None:
         """Return the color temperature value in Kelvin."""
-        if self._color_temp_wrapper is None:
-            return None
         return self._read_wrapper(self._color_temp_wrapper)
 
     @property
-    def hs_color(self):
+    @override
+    def hs_color(self) -> tuple[float, float] | None:
         """Return the hs_color of the light."""
         if self._color_data_wrapper is None:
             return None
         if self.is_color_mode:
-            hsv = self._read_wrapper(self._color_data_wrapper)
-            return None if hsv is None else [hsv[0], hsv[1]]
+            hsv_data = self._read_wrapper(self._color_data_wrapper)
+            return None if hsv_data is None else (hsv_data[0], hsv_data[1])
+        # HS-only devices report white as a zero-saturation color (localtuya
+        # reads color data only in color mode, since it also has scene/music).
         if (
             ColorMode.HS in self.supported_color_modes
             and ColorMode.COLOR_TEMP not in self.supported_color_modes
         ):
-            return [0, 0]
+            return (0, 0)
         return None
 
     @property

@@ -149,6 +149,7 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
             conf.get("color"),
             StringColorWrapper,
             color_type_data=color_type_data,
+            lower_brightness=lower,
             upper_brightness=upper,
         ),
         color_mode_wrapper=resolve(device, conf.get("color_mode")),

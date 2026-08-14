@@ -160,6 +160,21 @@ def test_light_description_driven_resolution():
     assert entity._color_data_wrapper._inner.dpcode == DPCode.COLOUR_DATA
 
 
+async def test_light_brightness_from_color_data_is_0_255():
+    """Color-data brightness is normalized to HA 0..255 by the wrapper."""
+    device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaLight)
+    entity = get_entites(device)[0]
+
+    # colour mode with a v2 colour_data whose raw V channel is 1000 (full).
+    device.status_updated({"21": "colour", "24": "000403e803e8"})
+    assert entity.is_color_mode
+    assert entity.brightness == 255
+
+    # raw V channel 500 -> HA 128 (via the 0..1000 device range).
+    device.status_updated({"24": "000403e801f4"})
+    assert entity.brightness == 128
+
+
 async def test_work_mode_cloud_derivation():
     """US "color" and "dynamic_mod" work_mode values classify via cloud range."""
     with patch.object(
