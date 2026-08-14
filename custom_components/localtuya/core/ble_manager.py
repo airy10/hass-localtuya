@@ -43,17 +43,22 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
         cloud_api: TuyaCloudApi,
         device_id: str,
         local_key: str | None = None,
+        persisted_cloud_data: dict | None = None,
     ) -> None:
         """Initialize the manager.
 
         ``cloud_api`` is the already-configured ``TuyaCloudApi`` instance
         (``HassLocalTuyaData.cloud_data``). ``device_id`` / ``local_key`` come
-        from the device config entry.
+        from the device config entry. ``persisted_cloud_data`` is the
+        ``DEVICE_CLOUD_DATA`` snapshot stored at setup time; when it holds the
+        resolved credentials/specs it is used instead of the cloud, so BLE
+        devices reconnect without cloud reachability.
         """
         self._hass = hass
         self._cloud_api = cloud_api
         self._device_id = device_id
         self._local_key = local_key
+        self._persisted: dict[str, Any] = persisted_cloud_data or {}
         self._data: dict[str, Any] = {}
         self._credentials_cache: dict[str, dict[str, Any]] = {}
 
@@ -91,6 +96,10 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
             credentials["status_range"],
         )
 
+        # Keep the resolved credentials available for the coordinator to
+        # persist back into DEVICE_CLOUD_DATA (offline reconnect support).
+        self._data = credentials
+
         if result is None:
             missing = [
                 field
@@ -111,12 +120,53 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
                 missing,
                 sorted(credentials.keys()),
             )
-        elif save_data:
-            self._data = credentials
 
         return result
 
     async def _resolve_credentials(
+        self, address: str, force_update: bool
+    ) -> dict[str, Any] | None:
+        """Resolve device credentials, preferring the persisted snapshot.
+
+        The persisted ``DEVICE_CLOUD_DATA`` snapshot is used when it already
+        holds the identity + specs, so reconnects work without the cloud; the
+        cloud is only queried when the snapshot is incomplete or a refresh is
+        forced.
+        """
+        if not force_update and (persisted := self._credentials_from_persisted()):
+            return persisted
+        return await self._resolve_credentials_from_cloud(address, force_update)
+
+    def _credentials_from_persisted(self) -> dict[str, Any] | None:
+        """Build credentials from the persisted DEVICE_CLOUD_DATA snapshot.
+
+        Returns None when the snapshot does not hold the identity fields or
+        the ``ble_specs`` (functions/status_range), so the caller falls back
+        to the cloud.
+        """
+        persisted = self._persisted or {}
+        if not (
+            persisted.get("uuid")
+            and persisted.get("category")
+            and persisted.get("product_id")
+            and "ble_specs" in persisted
+        ):
+            return None
+        ble_specs = persisted.get("ble_specs") or {}
+        return {
+            "uuid": persisted.get("uuid"),
+            "local_key": persisted.get("local_key") or self._local_key,
+            "device_id": persisted.get("id") or self._device_id,
+            "category": persisted.get("category"),
+            "product_id": persisted.get("product_id"),
+            "device_name": persisted.get("name"),
+            "product_model": persisted.get("model"),
+            "product_name": persisted.get("product_name"),
+            "functions": ble_specs.get("functions"),
+            "status_range": ble_specs.get("status_range"),
+        }
+
+    async def _resolve_credentials_from_cloud(
         self, address: str, force_update: bool
     ) -> dict[str, Any] | None:
         """Resolve the device credentials from the cloud."""
@@ -173,5 +223,5 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
 
     @property
     def data(self) -> dict[str, Any]:
-        """Return the last resolved credentials (if ``save_data`` was used)."""
+        """Return the last resolved credentials (for offline persistence)."""
         return self._data

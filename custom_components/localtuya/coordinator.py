@@ -593,6 +593,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 self._hass_entry.cloud_data,
                 self._device_config.id,
                 self.local_key,
+                self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}),
             )
             device = TuyaBLEDevice(manager, ble_device)
             await device.initialize()
@@ -603,6 +604,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     f"skipping connection"
                 )
                 return None
+            # Persist the resolved credentials/specs so future reconnects
+            # work without the cloud (BLE parity with Ethernet).
+            if manager.data:
+                await self._persist_ble_specs(manager.data)
             transport = create_transport(
                 "ble",
                 device=device,
@@ -889,6 +894,47 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
             self.info(f"Local-key has been updated")
+
+    async def _persist_ble_specs(self, credentials: dict) -> None:
+        """Persist resolved BLE credentials/specs for offline reconnects.
+
+        Stores the identity (uuid/category/product_id/...) and the
+        functions/status_range specs into the persisted ``DEVICE_CLOUD_DATA``
+        so ``ble_manager`` can reconnect without cloud reachability after the
+        initial setup. No-op when the snapshot is already up to date.
+        """
+        ble_specs = {
+            "functions": credentials.get("functions"),
+            "status_range": credentials.get("status_range"),
+        }
+        cloud_data = dict(
+            self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}) or {}
+        )
+        merged = {**cloud_data}
+        for src_key, dst_key in (
+            ("uuid", "uuid"),
+            ("category", "category"),
+            ("product_id", "product_id"),
+            ("device_id", "id"),
+            ("device_name", "name"),
+            ("product_model", "model"),
+            ("product_name", "product_name"),
+            ("local_key", "local_key"),
+        ):
+            if credentials.get(src_key):
+                merged[dst_key] = credentials[src_key]
+        merged["ble_specs"] = ble_specs
+        if merged == cloud_data:
+            return
+
+        new_data = self._entry.data.copy()
+        devices = dict(new_data.get(CONF_DEVICES, {}))
+        dev_entry = dict(devices.get(self.id, {}))
+        dev_entry[DEVICE_CLOUD_DATA] = merged
+        devices[self.id] = dev_entry
+        new_data[CONF_DEVICES] = devices
+        self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+        self.info("Persisted BLE credentials/specs for offline reconnect")
 
     def filter_subdevices(self):
         """Remove closed subdevices that are closed."""

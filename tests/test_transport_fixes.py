@@ -481,3 +481,82 @@ def test_color_type_data_remaps_hue_from_cloud_spec():
     )
     assert default_type.remap_h_from(240) == 240
     assert default_type.remap_s_from(50) == 500
+
+
+# ---------------------------------------------------------------------------
+# BLE offline reconnect: persist credentials/specs and read them back first
+# ---------------------------------------------------------------------------
+
+
+def _persisted_cloud_data() -> dict:
+    """A complete DEVICE_CLOUD_DATA snapshot (post-setup, post-writeback)."""
+    return {
+        "id": "dev123",
+        "name": "Bedroom strip",
+        "uuid": "uuid-abc",
+        "local_key": "0123456789abcdef",
+        "category": "dd",
+        "product_id": "prod-1",
+        "product_name": "Strip",
+        "model": "model-1",
+        "ble_specs": {
+            "functions": [
+                {"dp_id": 20, "code": "switch_led", "type": "Boolean", "values": None}
+            ],
+            "status_range": [],
+        },
+    }
+
+
+def _make_manager(persisted=None):
+    from custom_components.localtuya.core.ble_manager import TuyaBLEDeviceManager
+
+    cloud = SimpleNamespace(device_list={})
+    return TuyaBLEDeviceManager(
+        SimpleNamespace(), cloud, "dev123", "0123456789abcdef", persisted
+    )
+
+
+async def test_ble_credentials_read_persisted_without_cloud():
+    """A complete persisted snapshot avoids any cloud call."""
+    manager = _make_manager(_persisted_cloud_data())
+    manager._resolve_credentials_from_cloud = AsyncMock()
+
+    creds = await manager._resolve_credentials("AA:BB:CC:DD:EE:FF", False)
+
+    manager._resolve_credentials_from_cloud.assert_not_awaited()
+    assert creds["uuid"] == "uuid-abc"
+    assert creds["category"] == "dd"
+    assert creds["functions"][0]["code"] == "switch_led"
+
+
+async def test_ble_credentials_fall_back_to_cloud_when_snapshot_incomplete():
+    """An incomplete snapshot (no ble_specs) falls back to the cloud."""
+    manager = _make_manager({"uuid": "uuid-abc", "category": "dd", "product_id": "p"})
+    manager._resolve_credentials_from_cloud = AsyncMock(
+        return_value={"uuid": "uuid-abc"}
+    )
+
+    creds = await manager._resolve_credentials("AA:BB:CC:DD:EE:FF", False)
+
+    manager._resolve_credentials_from_cloud.assert_awaited_once()
+    assert creds["uuid"] == "uuid-abc"
+
+
+async def test_ble_credentials_force_update_skips_persisted():
+    """force_update bypasses the persisted snapshot and hits the cloud."""
+    manager = _make_manager(_persisted_cloud_data())
+    manager._resolve_credentials_from_cloud = AsyncMock(
+        return_value={"uuid": "fresh-uuid"}
+    )
+
+    creds = await manager._resolve_credentials("AA:BB:CC:DD:EE:FF", True)
+
+    manager._resolve_credentials_from_cloud.assert_awaited_once()
+    assert creds["uuid"] == "fresh-uuid"
+
+
+def test_ble_credentials_from_persisted_missing_identity_returns_none():
+    """Missing identity fields mean the snapshot cannot be used offline."""
+    manager = _make_manager({"ble_specs": {"functions": [], "status_range": []}})
+    assert manager._credentials_from_persisted() is None
