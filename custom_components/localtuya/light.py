@@ -21,6 +21,7 @@ from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.definitions import get_light_definition
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.dp_wrapper_decorators import (
     BrightnessWrapper,
@@ -205,9 +206,18 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         device,
         config_entry,
         lightid,
+        description=None,
         **kwargs,
     ):
-        """Initialize the Tuya light."""
+        """Initialize the Tuya light.
+
+        When ``description`` (a ``LocalTuyaEntity`` from the category tables)
+        is given, the core wrappers are resolved by dpcode via
+        ``get_light_definition``; otherwise the manual config-driven ``dps``
+        path is used. color_mode/scene stay raw config-driven reads (localtuya
+        string-based mode classification + scene payloads have no core
+        equivalent).
+        """
         super().__init__(device, config_entry, lightid, _LOGGER, **kwargs)
         # Light is an active device (mains powered). It should be able
         # to respond at any time. But Tuya BLE bulbs are write-only.
@@ -231,46 +241,74 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._scenes = DictSelector({})
         self._cached_status = {}
 
-        # Cloud spec wrappers for the configured DPs (core parity); DPs with
-        # no cloud spec fall back to a raw wrapper so reads/writes always
-        # delegate through the wrapper layer. Color/brightness/color_temp
-        # conversion lives in the decorators.
-        self._switch_wrapper = dp_wrapper_by_id(
-            device, self._dp_id
-        ) or RawDPWrapper(self._dp_id)
-
-        brightness_dp = self._config.get(CONF_BRIGHTNESS)
-        if self.has_config(CONF_BRIGHTNESS):
-            inner = dp_wrapper_by_id(device, brightness_dp) or RawDPWrapper(
-                brightness_dp
-            )
-            self._brightness_wrapper = BrightnessWrapper(
-                inner, self._lower_brightness, self._upper_brightness
-            )
-        else:
-            self._brightness_wrapper = None
-
         min_kelvin = int(
             self._config.get(CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_MIN_KELVIN)
         )
         max_kelvin = int(
             self._config.get(CONF_COLOR_TEMP_MAX_KELVIN, DEFAULT_MAX_KELVIN)
         )
-        color_temp_dp = self._config.get(CONF_COLOR_TEMP)
-        if self.has_config(CONF_COLOR_TEMP):
-            inner = dp_wrapper_by_id(device, color_temp_dp) or RawDPWrapper(
-                color_temp_dp
+        self._attr_min_color_temp_kelvin = min_kelvin
+        self._attr_max_color_temp_kelvin = max_kelvin
+
+        if description is not None:
+            # Definition-driven: resolve the core wrappers by dpcode.
+            definition = get_light_definition(device, description)
+            self._switch_wrapper = (
+                definition.switch_wrapper if definition is not None else None
             )
-            self._color_temp_wrapper = ColorTempWrapper(
-                inner,
-                min_kelvin,
-                max_kelvin,
-                self._lower_brightness,
-                self._upper_brightness,
-                self._config.get(CONF_COLOR_TEMP_REVERSE, DEFAULT_COLOR_TEMP_REVERSE),
+            self._brightness_wrapper = (
+                definition.brightness_wrapper if definition is not None else None
+            )
+            self._color_data_wrapper = (
+                definition.color_data_wrapper if definition is not None else None
+            )
+            self._color_temp_wrapper = (
+                definition.color_temp_wrapper if definition is not None else None
             )
         else:
-            self._color_temp_wrapper = None
+            # Manual config-driven path: cloud-spec wrappers for the configured
+            # DPs (core parity); DPs with no cloud spec fall back to a raw
+            # wrapper. Color/brightness/color_temp conversion lives in the
+            # decorators.
+            self._switch_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
+
+            brightness_dp = self._config.get(CONF_BRIGHTNESS)
+            if self.has_config(CONF_BRIGHTNESS):
+                inner = dp_wrapper_by_id(device, brightness_dp) or RawDPWrapper(
+                    brightness_dp
+                )
+                self._brightness_wrapper = BrightnessWrapper(
+                    inner, self._lower_brightness, self._upper_brightness
+                )
+            else:
+                self._brightness_wrapper = None
+
+            color_temp_dp = self._config.get(CONF_COLOR_TEMP)
+            if self.has_config(CONF_COLOR_TEMP):
+                inner = dp_wrapper_by_id(device, color_temp_dp) or RawDPWrapper(
+                    color_temp_dp
+                )
+                self._color_temp_wrapper = ColorTempWrapper(
+                    inner,
+                    min_kelvin,
+                    max_kelvin,
+                    self._lower_brightness,
+                    self._upper_brightness,
+                    self._config.get(CONF_COLOR_TEMP_REVERSE, DEFAULT_COLOR_TEMP_REVERSE),
+                )
+            else:
+                self._color_temp_wrapper = None
+
+            color_dp = self._config.get(CONF_COLOR)
+            if self.has_config(CONF_COLOR):
+                inner = dp_wrapper_by_id(device, color_dp) or RawDPWrapper(color_dp)
+                self._color_data_wrapper = StringColorWrapper(
+                    inner, self._color_type_data, self._upper_brightness
+                )
+            else:
+                self._color_data_wrapper = None
 
         # Work mode is read/written as a raw string (config-driven string
         # comparison), so it always resolves to a raw wrapper by dp_id.
@@ -284,20 +322,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             dp_wrapper_by_id(device, scene_dp) or RawDPWrapper(scene_dp)
         ) if self.has_config(CONF_SCENE) else None
 
-        color_dp = self._config.get(CONF_COLOR)
-        if self.has_config(CONF_COLOR):
-            inner = dp_wrapper_by_id(device, color_dp) or RawDPWrapper(color_dp)
-            self._color_data_wrapper = StringColorWrapper(
-                inner, self._color_type_data, self._upper_brightness
-            )
-        else:
-            self._color_data_wrapper = None
-
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
-
-        self._attr_min_color_temp_kelvin = min_kelvin
-        self._attr_max_color_temp_kelvin = max_kelvin
 
     def connection_made(self):
         """The connection has made with the device and status retrieved, Configure the entity based on its reserved status."""

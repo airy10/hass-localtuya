@@ -14,6 +14,7 @@ from homeassistant.components.switch import (
 from homeassistant.const import CONF_DEVICE_CLASS
 
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.definitions import get_switch_definition
 from .core.dp_wrappers import BitmapMaskWrapper, RawDPWrapper, dp_wrapper_by_id
 from .const import (
     ATTR_CURRENT,
@@ -58,14 +59,26 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         device,
         config_entry,
         switchid,
+        description=None,
         **kwargs,
     ):
-        """Initialize the Tuya switch."""
+        """Initialize the Tuya switch.
+
+        When ``description`` (a ``LocalTuyaEntity`` from the category tables)
+        is given, the wrapper is resolved by dpcode via ``get_switch_definition``;
+        otherwise the manual config-driven ``dps`` path is used.
+        """
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
         self._bitmap_mask = self._parse_bitmap_mask()
-        wrapper = dp_wrapper_by_id(device, self._dp_id) or RawDPWrapper(self._dp_id)
-        if self._bitmap_mask:
+
+        if description is not None:
+            definition = get_switch_definition(device, description)
+            wrapper = definition.switch_wrapper if definition is not None else None
+        else:
+            wrapper = dp_wrapper_by_id(device, self._dp_id) or RawDPWrapper(self._dp_id)
+
+        if self._bitmap_mask and wrapper is not None:
             wrapper = BitmapMaskWrapper(wrapper, self._bitmap_mask)
         self._dpcode_wrapper = wrapper
 
@@ -117,6 +130,8 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         Returns True if the Home Assistant state should be written,
         or False if the state write should be skipped.
         """
+        if self._dpcode_wrapper is None:
+            return True
         return not self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
         )

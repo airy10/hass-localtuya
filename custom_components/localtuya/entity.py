@@ -1,6 +1,7 @@
 """Code shared between all platforms."""
 
 import logging
+from enum import Enum
 from typing import Any, Coroutine, Callable
 
 from homeassistant.core import HomeAssistant, State
@@ -84,8 +85,8 @@ async def async_setup_entry(
         if device_key not in hass_entry_data.devices:
             continue
 
-        entities_to_setup = [
-            entity
+        entities_to_setup: list[tuple[dict, Any]] = [
+            (entity, None)
             for entity in dev_entry[CONF_ENTITIES]
             if entity[CONF_PLATFORM] == domain
         ]
@@ -93,27 +94,40 @@ async def async_setup_entry(
         if not entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
             if device.ble_device is not None:
-                entities_to_setup = _auto_entities_for_device(
-                    device, domain, dev_entry
-                )
+                # BLE: per-product mappings + category-table derivation.
+                entities_to_setup = [
+                    (config, None)
+                    for config in _auto_entities_for_device(device, domain, dev_entry)
+                ]
+            else:
+                # Ethernet/cloud: derive entities from the category tables
+                # (core-tuya model: category → description → wrappers). Manual
+                # dps config and BLE product mappings remain the fallbacks.
+                entities_to_setup = _described_entity_specs(device, domain)
 
         if entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
             dps_config_fields = list(get_dps_for_platform(flow_schema))
 
-            for entity_config in entities_to_setup:
+            for entity_config, description in entities_to_setup:
                 # Add DPS used by this platform to the request list
                 for dp_conf in dps_config_fields:
                     if dp_conf in entity_config:
                         device.dps_to_request[entity_config[dp_conf]] = None
 
+                kwargs = {
+                    # we need add_entites_callback in-case we want to add sub-entites, such as electric sensor "phase_a"
+                    "add_entites_callback": async_add_entities,
+                    "config": entity_config,
+                }
+                if description is not None:
+                    kwargs["description"] = description
                 entities.append(
                     entity_class(
                         device,
                         dev_entry,
                         entity_config[CONF_ID],
-                        # we need add_entites_callback in-case we want to add sub-entites, such as electric sensor "phase_a"
-                        add_entites_callback=async_add_entities,
+                        **kwargs,
                     )
                 )
     # Once the entities have been created, add to the TuyaDevice instance
@@ -221,6 +235,111 @@ def get_entity_config(config_entry, dp_id) -> dict:
     raise Exception(f"missing entity config for id {dp_id}")
 
 
+def _dpcode_to_id(device) -> dict[str, Any]:
+    """Return dpcode → dp_id from the device's function/status_range specs."""
+    spec: dict[str, Any] = {}
+    for source in (
+        getattr(device, "function", {}) or {},
+        getattr(device, "status_range", {}) or {},
+    ):
+        for code, fn in source.items():
+            if isinstance(fn, dict):
+                dp_id = fn.get("dp_id")
+            else:
+                dp_id = getattr(fn, "dp_id", None)
+            if dp_id is not None:
+                spec[code] = dp_id
+    return spec
+
+
+def _resolve_dpcode(value: Any, spec: dict) -> str | None:
+    """Resolve a DPCode (str/Enum/tuple) to a code present in the device spec."""
+    if value is None:
+        return None
+    if isinstance(value, tuple):
+        for alt in value:
+            if (code := _resolve_dpcode(alt, spec)) is not None:
+                return code
+        return None
+    code = value.value if isinstance(value, Enum) else value
+    return code if code in spec else None
+
+
+def entity_config_from_description(
+    device, description, platform
+) -> tuple[dict, str | None]:
+    """Build a legacy ``_config`` dict from a category-table description.
+
+    Maps the description's DPCodes to dp_ids via the device's
+    function/status_range specs, merges ``data`` + ``entity_configs``, and
+    returns ``(config, primary_dp_id)``. The primary dp_id is None when the
+    primary DP is absent from the device spec (core's spec gate). This is the
+    description → ``_config`` compatibility adapter (SPEC_DEFINITION_DRIVEN_RUNTIME
+    D3): platforms can read the same ``self._config`` surface during the
+    migration to description-driven wrappers.
+    """
+    config: dict[str, Any] = {}
+
+    for key, value in (getattr(description, "data", {}) or {}).items():
+        if value not in (None, "", "None"):
+            config[key] = value
+
+    spec = _dpcode_to_id(device)
+    primary_id: str | None = None
+    for key, value in (getattr(description, "localtuya_conf", {}) or {}).items():
+        if (code := _resolve_dpcode(value, spec)) is None:
+            if key == CONF_ID:
+                return config, None
+            continue
+        dp_id = str(spec[code])
+        if key == CONF_ID:
+            primary_id = dp_id
+        config[key] = dp_id
+
+    config[CONF_PLATFORM] = platform
+    config[CONF_ENTITY_ENABLED_DEFAULT] = True
+
+    for key, value in (getattr(description, "entity_configs", {}) or {}).items():
+        if hasattr(value, "default_value"):
+            value = value.default_value
+        config[key] = value
+
+    return config, primary_id
+
+
+def descriptions_for_platform(device, domain: str) -> list:
+    """Return the category-table descriptions for a platform domain.
+
+    Looks up the device's cloud category in the ``ha_entities`` tables. Returns
+    an empty list when the device has no category or the platform has no table.
+    """
+    category = getattr(device, "category", None)
+    if not category:
+        return []
+    from .core.ha_entities import DATA_PLATFORMS  # local import (import cycle)
+
+    for platform, table in DATA_PLATFORMS.items():
+        if platform.value == domain:
+            return list(table.get(category, ()))
+    return []
+
+
+def _described_entity_specs(device, domain: str) -> list[tuple[dict, Any]]:
+    """Build ``(config, description)`` pairs from the device's category tables.
+
+    Each description is resolved through ``entity_config_from_description``;
+    descriptions whose primary DP is absent from the device spec (core's spec
+    gate) are skipped.
+    """
+    specs = []
+    for description in descriptions_for_platform(device, domain):
+        config, dp_id = entity_config_from_description(device, description, domain)
+        if dp_id is None:
+            continue
+        specs.append((config, description))
+    return specs
+
+
 class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     """Representation of a Tuya entity."""
 
@@ -229,13 +348,28 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     _attr_should_poll = False
 
     def __init__(
-        self, device: TuyaDevice, device_config: dict, dp_id: str, logger, **kwargs
+        self,
+        device: TuyaDevice,
+        device_config: dict,
+        dp_id: str,
+        logger,
+        config: dict | None = None,
+        **kwargs,
     ):
-        """Initialize the Tuya entity."""
+        """Initialize the Tuya entity.
+
+        ``config`` is the resolved entity config dict. When omitted (the
+        config-driven path) it is looked up from ``device_config`` by ``dp_id``;
+        the definition-driven path passes the description-derived config (see
+        ``entity_config_from_description``) so the same ``self._config`` surface
+        works during the migration.
+        """
         super().__init__()
         self._device = device
         self._device_config = DeviceConfig(device_config)
-        self._config = get_entity_config(device_config, dp_id)
+        self._config = (
+            config if config is not None else get_entity_config(device_config, dp_id)
+        )
         self._dp_id = dp_id
         # Keep subclass-set keys (e.g. BLE dpcode keys); derive platform_dp_id otherwise.
         if getattr(self, "_attr_translation_key", None) is None:

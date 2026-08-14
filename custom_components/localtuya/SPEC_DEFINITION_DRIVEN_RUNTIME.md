@@ -204,30 +204,57 @@ description → resolve by code".
 0. ~~Close the BLE cloud gap~~ **DONE (commit `e635599`)** — persist BLE
    credentials/specs and read the persisted snapshot first (cloud only to
    refresh); see "Cloud usage invariant" above.
-1. Add `TuyaDevice.category` / `product_id` / `id` (core-compatible; BLE
-   passthrough, Ethernet cloud data, fallback to persisted snapshot).
-2. Add `core/definitions.py` with `_resolve()` + `get_light_definition`,
-   `get_switch_definition` (and stubs for the rest).
-3. Add the description → `_config` compatibility adapter in `entity.py`.
-4. Tests: `_resolve` tuple/fallback gating, adapter round-trip, category
-   fallback (Ethernet offline, BLE, manual).
+1. **DONE** — `TuyaDevice.category` / `product_id` (core-compatible; BLE
+   passthrough, Ethernet cloud data, fallback to the persisted snapshot).
+   `id` already existed as an instance attribute.
+2. **DONE** — `core/definitions.py` with `resolve()` (tuple fallback +
+   optional decorator) + `get_light_definition` / `get_switch_definition`.
+   The public resolver is named `resolve`, not `_resolve`; the remaining
+   platforms (fan/climate/cover/...) are added in Phases 3-5.
+3. **DONE** — `entity_config_from_description(device, description, platform)`
+   in `entity.py` maps a category-table description (data + localtuya_conf +
+   entity_configs) into the legacy `_config` dict (dpcode → dp_id via the
+   device specs); `LocalTuyaEntity.__init__` gained an optional `config=` arg
+   so the definition-driven path feeds the same `self._config` surface.
+4. **DONE** — `tests/test_definitions.py` (15 tests): `resolve` gating/
+   decorator, switch/light definition resolution, `category`/`product_id`
+   fallback, and description → `_config` adapter (build/gate/CLOUD_VALUE).
 
 ### Phase 1 — switch.py (proof of concept)
-- `__init__(device, description)`; resolve `_switch_wrapper` via
-  `get_switch_definition` (bitmap mask still applied from `entity_configs`).
-- Setup: build entities from `ha_entities.SWITCHES[category]` when cloud is
-  present, manual `dps` as fallback provider.
-- Update `tests/test_switch.py` to assert thin bodies + description-driven
-  resolution (no `dp_wrapper_by_id` in the entity).
+- **DONE** — `LocalTuyaSwitch.__init__` accepts a `description` and resolves
+  its wrapper by dpcode via `get_switch_definition` (bitmap mask still
+  applied); the manual config-driven `dps` path is the fallback. The wrapper
+  attribute keeps core switch's name `_dpcode_wrapper` (set from
+  `definition.switch_wrapper`). `_process_device_update` gained a None-guard.
+  `entity.descriptions_for_platform(device, domain)` was added as the
+  category-table lookup helper.
+- **DONE** — setup wiring: `async_setup_entry` now derives entities from the
+  category tables via `_described_entity_specs` when a device has no manual
+  entities for the platform. BLE keeps `_auto_entities_for_device` (per-product
+  MAPPINGS take precedence); non-BLE (Ethernet/cloud) devices use the new
+  description-driven path. Manual `dps` config stays the fallback.
+- **DONE** — tests: `test_switch.py::test_switch_description_driven_resolution`
+  (wrapper resolved by dpcode, no `dp_wrapper_by_id`),
+  `test_switch.py::test_switch_auto_created_from_cloud_category` (setup wiring),
+  and `test_definitions.py` descriptions lookup.
 
 ### Phase 2 — light.py (reference, most complex)
-- Mirror core `TuyaLightEntity.__init__` shape: set `_switch_wrapper`,
-  `_color_data_wrapper`, `_color_mode_wrapper`, `_color_temp_wrapper`,
-  `_brightness_wrapper` from `get_light_definition`, then compute
-  `supported_color_modes`/`_fixed_color_mode` from the wrappers (as core does).
-- Keep scene/effect/music features (D6). Remove `dp_wrapper_by_id`/`RawDPWrapper`
-  fallbacks from `__init__` (they move into the definition resolver).
-- Update `tests/test_light.py`.
+- **DONE** — `LocalTuyaLight.__init__` accepts a `description` and resolves the
+  core wrappers by dpcode via `get_light_definition`: `_switch_wrapper`,
+  `_brightness_wrapper`, `_color_data_wrapper`, `_color_temp_wrapper`. The
+  manual config-driven `dps` path is kept as the fallback provider.
+- **DONE (intentional delta)** — `_color_mode_wrapper` and `_scene_wrapper`
+  stay raw config-driven reads (by dp_id) rather than coming from the
+  definition. LocalTuya's mode classification (`is_white/is_color/is_scene/
+  is_music_mode` + scene payloads) compares raw strings and has no core
+  equivalent, so it needs the raw dp_id-keyed value; `get_light_definition`
+  still resolves `color_mode_wrapper` for the definition surface, but the
+  entity deliberately does not consume it. Documented under D6.
+- Scene/effect/music features preserved (D6).
+- **DONE** — test: `test_light.py::test_light_description_driven_resolution`
+  asserts the four core wrappers are resolved by dpcode and decorated
+  (DPCodeBooleanWrapper / BrightnessWrapper / ColorTempWrapper /
+  StringColorWrapper).
 
 ### Phase 3 — climate, fan, cover (conversion-heavy platforms)
 - Same treatment: `get_*_definition` + core-named wrappers + thin bodies.
@@ -262,7 +289,7 @@ description → resolve by code".
    passthrough, offline snapshot) and manual provider (synthesized specs).
 4. **Config-flow tests**: cloud auto-config produces descriptions; offline and
    manual paths still work.
-5. **Regression**: full suite (currently 134 tests) must stay green; add the
+5. **Regression**: full suite (currently 154 tests) must stay green; add the
    new tests incrementally per phase.
 
 ## Success criteria

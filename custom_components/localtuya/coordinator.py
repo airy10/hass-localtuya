@@ -158,6 +158,28 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return None
 
     @property
+    def category(self) -> str | None:
+        """Return the device category (core-compatible surface).
+
+        BLE passthroughs to the cloud-fetched BLE device category; Ethernet
+        reads it from the cloud device data (falling back to the persisted
+        snapshot). Enables definition-driven entity resolution by category.
+        """
+        if (ble := self.ble_device) is not None and ble.category:
+            return ble.category
+        return self._cloud_device_data().get("category")
+
+    @property
+    def product_id(self) -> str | None:
+        """Return the device product_id (core-compatible surface).
+
+        See ``category`` for the transport handling.
+        """
+        if (ble := self.ble_device) is not None and ble.product_id:
+            return ble.product_id
+        return self._cloud_device_data().get("product_id")
+
+    @property
     def color_data_spec(self) -> dict | None:
         """Return the cloud h/s/v spec for the device's colour_data dp, if known.
 

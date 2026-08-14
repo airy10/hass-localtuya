@@ -88,6 +88,78 @@ async def test_light():
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
 
 
+def test_light_description_driven_resolution():
+    """A category-table description resolves core wrappers by dpcode."""
+    from types import SimpleNamespace
+
+    from custom_components.localtuya.core.dp_wrappers import DPCodeBooleanWrapper
+    from custom_components.localtuya.core.dp_wrapper_decorators import (
+        BrightnessWrapper,
+        ColorTempWrapper,
+        StringColorWrapper,
+    )
+    from custom_components.localtuya.core.ha_entities.base import DPCode, LocalTuyaEntity
+    from custom_components.localtuya.entity import entity_config_from_description
+
+    specs = {
+        "switch_led": {"dp_id": 1, "type": "Boolean", "values": None},
+        "bright_value": {
+            "dp_id": 2,
+            "type": "Integer",
+            "values": {"min": 0, "max": 1000, "scale": 0, "step": 1},
+        },
+        "work_mode": {
+            "dp_id": 3,
+            "type": "Enum",
+            "values": {"range": ["white", "colour", "scene"]},
+        },
+        "colour_data": {"dp_id": 4, "type": "String", "values": None},
+        "temp_value": {
+            "dp_id": 5,
+            "type": "Integer",
+            "values": {"min": 0, "max": 1000, "scale": 0, "step": 1},
+        },
+    }
+    device = SimpleNamespace(
+        function={},
+        status_range=specs,
+        status={},
+        color_data_spec=None,
+        white_mode_supported=True,
+        is_write_only=False,
+        id="dev1",
+        product_id="prod-1",
+        hass=None,
+    )
+    desc = LocalTuyaEntity(
+        id=DPCode.SWITCH_LED,
+        name=None,
+        color_mode=DPCode.WORK_MODE,
+        brightness=(DPCode.BRIGHT_VALUE_V2, DPCode.BRIGHT_VALUE),
+        color_temp=(DPCode.TEMP_VALUE_V2, DPCode.TEMP_VALUE),
+        color=(DPCode.COLOUR_DATA_V2, DPCode.COLOUR_DATA),
+    )
+    config, dp_id = entity_config_from_description(device, desc, "light")
+
+    entity = LocalTuyaLight(
+        device,
+        {**DEVICE_CONFIG, "entities": []},
+        dp_id,
+        description=desc,
+        config=config,
+        add_entites_callback=None,
+    )
+
+    assert entity._switch_wrapper is not None
+    assert isinstance(entity._switch_wrapper, DPCodeBooleanWrapper)
+    assert isinstance(entity._brightness_wrapper, BrightnessWrapper)
+    assert isinstance(entity._color_temp_wrapper, ColorTempWrapper)
+    assert isinstance(entity._color_data_wrapper, StringColorWrapper)
+    assert entity._switch_wrapper.dpcode == DPCode.SWITCH_LED
+    assert entity._brightness_wrapper._inner.dpcode == DPCode.BRIGHT_VALUE
+    assert entity._color_data_wrapper._inner.dpcode == DPCode.COLOUR_DATA
+
+
 async def test_work_mode_cloud_derivation():
     """US "color" and "dynamic_mod" work_mode values classify via cloud range."""
     with patch.object(
