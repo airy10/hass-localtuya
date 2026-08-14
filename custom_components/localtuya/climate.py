@@ -34,6 +34,11 @@ from homeassistant.const import (
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import (
+    ClimateTempWrapper,
+    DictSelectorWrapper,
+    HumidityCoefficientWrapper,
+)
 from .const import (
     CONF_CURRENT_HUMIDITY_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -205,16 +210,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
         self._state_on, self._state_off = True, False
-        self._target_temperature = None
         self._target_temp_forced_to_celsius = None
-        self._current_temperature = None
-        self._current_humidity = None
-        self._target_humidity = None
-        self._hvac_mode: HVACMode | None = None
-        self._hvac_action: HVACAction | None = None
-        self._preset_mode: str | None = None
-        self._swing_mode: str | None = None
-        self._swing_horizontal_mode: str | None = None
         self._precision = float(self._config.get(CONF_PRECISION, DEFAULT_PRECISION))
         self._precision_target = float(
             self._config.get(CONF_TARGET_PRECISION, DEFAULT_PRECISION)
@@ -231,12 +227,13 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
         # HVAC Modes
         self._hvac_mode_dp = self._config.get(CONF_HVAC_MODE_DP)
-        if hvac_modes := self._config.get(CONF_HVAC_MODE_SET, {}):
+        hvac_modes = self._config.get(CONF_HVAC_MODE_SET, {}) or {}
+        if hvac_modes:
             # HA HVAC Modes are all lower case.
             hvac_modes = {k.lower(): v for k, v in hvac_modes.copy().items()}
 
         self._preset_dp = self._config.get(CONF_PRESET_DP)
-        preset_set: dict = self._config.get(CONF_PRESET_SET, {})
+        preset_set: dict = self._config.get(CONF_PRESET_SET, {}) or {}
         # Sort Modes If the HVAC isn't supported by HA then we add it as preset.
         if self._preset_dp == self._hvac_mode_dp or not self._preset_dp:
             for k in hvac_modes.copy().keys():
@@ -249,7 +246,8 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
         # HVAC Actions
         self._hvac_action_dp = self._config.get(CONF_HVAC_ACTION_DP)
-        if actions_set := self._config.get(CONF_HVAC_ACTION_SET, {}):
+        actions_set = self._config.get(CONF_HVAC_ACTION_SET, {}) or {}
+        if actions_set:
             actions_set = {k.lower(): v for k, v in actions_set.copy().items()}
         self._hvac_action_set = DictSelector(actions_set, reverse=True)
 
@@ -285,6 +283,71 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         else:
             set_temp_unit = config_unit(config_temp_unit)
         self._temperature_unit = set_temp_unit
+
+        # Conversion wrappers (core parity): the entity stays thin and all
+        # temperature/humidity/mode conversion lives in the decorators.
+        target_unit_from = f_to_c if self._target_temp_forced_to_celsius is True else None
+        target_unit_to = c_to_f if self._target_temp_forced_to_celsius is True else None
+        current_unit_from = f_to_c if self._target_temp_forced_to_celsius is False else None
+        self._target_temp_wrapper = self._temp_wrapper(
+            device, CONF_TARGET_TEMPERATURE_DP, self._precision_target,
+            unit_from=target_unit_from, unit_to=target_unit_to,
+        )
+        self._current_temp_wrapper = self._temp_wrapper(
+            device, CONF_CURRENT_TEMPERATURE_DP, self._precision,
+            unit_from=current_unit_from,
+        )
+        self._current_humidity_wrapper = self._humidity_wrapper(
+            device, CONF_CURRENT_HUMIDITY_DP
+        )
+        self._target_humidity_wrapper = self._humidity_wrapper(
+            device, CONF_TARGET_HUMIDITY_DP
+        )
+        self._hvac_mode_wrapper = self._selector_wrapper(
+            device, self._hvac_mode_dp, self._hvac_mode_set
+        )
+        self._preset_wrapper = self._selector_wrapper(
+            device, self._preset_dp, self._preset_set, default=PRESET_NONE
+        )
+        self._hvac_action_wrapper = self._selector_wrapper(
+            device, self._hvac_action_dp, self._hvac_action_set
+        )
+        self._fan_speed_wrapper = self._selector_wrapper(
+            device, self._fan_speed_dp, self._fan_speeds
+        )
+        self._swing_v_wrapper = self._selector_wrapper(
+            device, self._swing_v_mode_dp, self._swing_v_modes
+        )
+        self._swing_h_wrapper = self._selector_wrapper(
+            device, self._swing_h_mode_dp, self._swing_h_modes
+        )
+
+    def _temp_wrapper(self, device, conf_key, precision, unit_from=None, unit_to=None):
+        """Build a ClimateTempWrapper for a configured temperature DP."""
+        dp = self._config.get(conf_key)
+        if not self.has_config(conf_key):
+            return None
+        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
+        return ClimateTempWrapper(
+            inner, precision=precision, unit_from=unit_from, unit_to=unit_to
+        )
+
+    def _humidity_wrapper(self, device, conf_key):
+        """Build a HumidityCoefficientWrapper for a configured humidity DP."""
+        dp = self._config.get(conf_key)
+        if not self.has_config(conf_key):
+            return None
+        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
+        return HumidityCoefficientWrapper(
+            inner, coefficient=self._humidity_coefficient
+        )
+
+    def _selector_wrapper(self, device, dp, selector, default=None):
+        """Build a DictSelectorWrapper for a configured enum DP."""
+        if not dp:
+            return None
+        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
+        return DictSelectorWrapper(inner, selector, default=default)
 
     @property
     def _is_on(self):
@@ -342,16 +405,26 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode):
         """Set new target hvac mode."""
-        new_states = {}
+        commands = []
         if not self._is_on:
-            new_states[self._hvac_switch_dp or self._dp_id] = self._state_on
-
-        if hvac_mode in self._hvac_mode_set.names:
-            new_states[self._hvac_mode_dp] = self._hvac_mode_set.to_tuya(hvac_mode)
+            commands.extend(
+                self._switch_wrapper.get_update_commands(
+                    self._device, self._state_on
+                )
+            )
+        if hvac_mode in self._hvac_mode_set.names and self._hvac_mode_wrapper:
+            commands.extend(
+                self._hvac_mode_wrapper.get_update_commands(
+                    self._device, hvac_mode
+                )
+            )
         elif hvac_mode == HVACMode.OFF:
-            new_states[self._hvac_switch_dp or self._dp_id] = self._state_off
-
-        await self._device.set_dps(new_states)
+            commands.extend(
+                self._switch_wrapper.get_update_commands(
+                    self._device, self._state_off
+                )
+            )
+        await self._async_send_commands(commands)
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
@@ -359,69 +432,56 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             await self._device.set_dp(self._eco_value, self._eco_dp)
             return
 
-        preset_value = self._preset_set.to_tuya(preset_mode)
-        await self._device.set_dp(preset_value, self._preset_dp)
+        await self._async_send_wrapper_updates(self._preset_wrapper, preset_mode)
 
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
         if not self._is_on:
-            await self._device.set_dp(self._state_on, self._dp_id)
+            await self._async_send_wrapper_updates(self._switch_wrapper, self._state_on)
 
-        await self._device.set_dp(
-            self._fan_speeds.to_tuya(fan_mode), self._fan_speed_dp
-        )
+        await self._async_send_wrapper_updates(self._fan_speed_wrapper, fan_mode)
 
     async def async_set_humidity(self, humidity):
         """Set new target humidity."""
-        if self.has_config(CONF_TARGET_HUMIDITY_DP):
-            humidity = round(humidity * self._humidity_coefficient)
-            await self._device.set_dp(humidity, self._config[CONF_TARGET_HUMIDITY_DP])
+        if self._target_humidity_wrapper is not None:
+            await self._async_send_wrapper_updates(
+                self._target_humidity_wrapper, humidity
+            )
 
     async def async_set_swing_mode(self, swing_mode):
         """Set new target swing operation."""
-        await self._device.set_dp(
-            self._swing_v_modes.to_tuya(swing_mode), self._swing_v_mode_dp
-        )
+        await self._async_send_wrapper_updates(self._swing_v_wrapper, swing_mode)
 
     async def async_set_swing_horizontal_mode(self, swing_mode):
         """Set new target horizontal swing operation."""
-        await self._device.set_dp(
-            self._swing_h_modes.to_tuya(swing_mode), self._swing_h_mode_dp
-        )
+        await self._async_send_wrapper_updates(self._swing_h_wrapper, swing_mode)
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        if ATTR_TEMPERATURE in kwargs and self.has_config(CONF_TARGET_TEMPERATURE_DP):
-            temperature = kwargs[ATTR_TEMPERATURE]
-
-            if self._target_temp_forced_to_celsius:
-                # Revert Temperature to Fahrenheit it was forced to celsius
-                temperature = round(c_to_f(temperature))
-
-            temperature = round(temperature / self._precision_target)
-            await self._device.set_dp(
-                temperature, self._config[CONF_TARGET_TEMPERATURE_DP]
+        if ATTR_TEMPERATURE in kwargs and self._target_temp_wrapper is not None:
+            await self._async_send_wrapper_updates(
+                self._target_temp_wrapper, kwargs[ATTR_TEMPERATURE]
             )
 
     @property
     def current_temperature(self):
         """Return the current temperature."""
-        return self._current_temperature
+        return self._read_wrapper(self._current_temp_wrapper)
 
     @property
     def current_humidity(self):
         """Return the current humidity."""
-        return self._current_humidity
+        return self._read_wrapper(self._current_humidity_wrapper)
 
     @property
     def target_temperature(self):
         """Return the temperature currently set to be reached."""
-        return self._target_temperature
+        return self._read_wrapper(self._target_temp_wrapper)
 
     @property
     def target_humidity(self):
         """Return the humidity currently set to be reached."""
-        return self._target_humidity
+        return self._read_wrapper(self._target_humidity_wrapper)
 
     @property
     def min_humidity(self):
@@ -444,10 +504,10 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Return hvac mode."""
         if not self._is_on:
             return HVACMode.OFF
-        if not self._hvac_mode_dp:
+        if self._hvac_mode_wrapper is None:
             return HVACMode.HEAT
 
-        return self._hvac_mode
+        return self._read_wrapper(self._hvac_mode_wrapper)
 
     @property
     def hvac_modes(self):
@@ -466,13 +526,13 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         if not self._is_on:
             return HVACAction.OFF
 
-        hvac_action = self._hvac_action
-        hvac_mode = self._hvac_mode
+        hvac_action = self._read_wrapper(self._hvac_action_wrapper)
+        hvac_mode = self.hvac_mode
 
         if (
             (self._config.get(CONF_HEURISTIC_ACTION) or not self._hvac_action_dp)
-            and (target_temperature := self._target_temperature) is not None
-            and (current_temperature := self._current_temperature) is not None
+            and (target_temperature := self.target_temperature) is not None
+            and (current_temperature := self.current_temperature) is not None
         ):
             # This function assumes that action changes based on target step different from current.
             target_step = self.target_temperature_step
@@ -501,8 +561,6 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             elif hvac_mode == HVACMode.FAN_ONLY:
                 hvac_action = HVACAction.FAN
 
-            self._hvac_action = hvac_action
-
         return hvac_action
 
     @property
@@ -514,7 +572,10 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         ):
             return None
 
-        return self._preset_mode
+        if self._eco_dp and self.dp_value(CONF_ECO_DP) == self._eco_value:
+            return PRESET_ECO
+
+        return self._read_wrapper(self._preset_wrapper)
 
     @property
     def preset_modes(self):
@@ -530,9 +591,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def fan_mode(self):
         """Return fan mode."""
-        if not (fan_value := self.dp_value(self._fan_speed_dp)):
-            return None
-        return self._fan_speeds.to_ha(fan_value)
+        return self._read_wrapper(self._fan_speed_wrapper)
 
     @property
     def fan_modes(self) -> list:
@@ -542,7 +601,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def swing_mode(self) -> str | None:
         """Return swing mode."""
-        return self._swing_mode
+        return self._read_wrapper(self._swing_v_wrapper)
 
     @property
     def swing_modes(self) -> list[str] | None:
@@ -552,7 +611,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     @property
     def swing_horizontal_mode(self) -> str | None:
         """Return the horizontal swing setting."""
-        return self._swing_horizontal_mode
+        return self._read_wrapper(self._swing_h_wrapper)
 
     @property
     def swing_horizontal_modes(self) -> list[str] | None:
@@ -578,67 +637,6 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             case int() as v if not isinstance(v, bool) and v in (0, 1):
                 self._state_on = 1
                 self._state_off = 0
-
-    def status_updated(self):
-        """Device status was updated."""
-        self._state = self.dp_value(self._dp_id)
-
-        # Update target temperature
-        if self.has_config(CONF_TARGET_TEMPERATURE_DP) and (
-            target_dp_value := self.dp_value(CONF_TARGET_TEMPERATURE_DP)
-        ):
-            self._target_temperature = target_dp_value * self._precision_target
-
-        # Update current temperature
-        if self.has_config(CONF_CURRENT_TEMPERATURE_DP) and (
-            current_dp_temp := self.dp_value(CONF_CURRENT_TEMPERATURE_DP)
-        ):
-            self._current_temperature = current_dp_temp * self._precision
-
-        # Update current humidity
-        if self.has_config(CONF_CURRENT_HUMIDITY_DP) and (
-            current_dp_humidity := self.dp_value(CONF_CURRENT_HUMIDITY_DP)
-        ):
-            self._current_humidity = current_dp_humidity / self._humidity_coefficient
-
-        # Update target humidity
-        if self.has_config(CONF_TARGET_HUMIDITY_DP) and (
-            target_dp_humidity := self.dp_value(CONF_TARGET_HUMIDITY_DP)
-        ):
-            self._target_humidity = target_dp_humidity / self._humidity_coefficient
-
-        # Force the Current temperature and Target temperature to matching the unit.
-        if self._target_temp_forced_to_celsius:
-            self._target_temperature = f_to_c(self._target_temperature)
-        elif self._target_temp_forced_to_celsius is False:
-            self._current_temperature = f_to_c(self._current_temperature)
-
-        # Update preset states
-        if self._has_presets:
-            if self.dp_value(CONF_ECO_DP) == self._eco_value:
-                self._preset_mode = PRESET_ECO
-            else:
-                self._preset_mode = self._preset_set.to_ha(
-                    self.dp_value(CONF_PRESET_DP), PRESET_NONE
-                )
-
-        # Update swing actions
-        if (swing_v := self.dp_value(self._swing_v_mode_dp)) is not None:
-            self._swing_mode = self._swing_v_modes.to_ha(swing_v)
-        if (swing_h := self.dp_value(self._swing_h_mode_dp)) is not None:
-            self._swing_horizontal_mode = self._swing_h_modes.to_ha(swing_h)
-
-        # If device is off there is no needs to check the states.
-        if not self._is_on:
-            return
-
-        # Update the HVAC Mode
-        if (mode := self.dp_value(CONF_HVAC_MODE_DP)) is not None:
-            self._hvac_mode = self._hvac_mode_set.to_ha(mode)
-
-        # Update the current action
-        if (action := self.dp_value(CONF_HVAC_ACTION_DP)) is not None:
-            self._hvac_action = self._hvac_action_set.to_ha(action)
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaClimate, flow_schema)

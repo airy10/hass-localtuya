@@ -113,7 +113,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             fan_speeds = self._config[CONF_FAN_SPEEDS].split(",")
             self._fan_speed_list = [speed.lstrip() for speed in fan_speeds]
 
-        self._fan_speed = ""
         self._cleaning_mode = ""
 
         # Core resolves action/fan_speed/activity wrappers; ours reads the
@@ -151,8 +150,7 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     @property
     def fan_speed(self):
         """Return the fan speed of the vacuum cleaner."""
-        speed = self._read_wrapper(self._fan_speed_wrapper)
-        return speed if speed is not None else self._fan_speed
+        return self._read_wrapper(self._fan_speed_wrapper)
 
     @property
     def fan_speed_list(self) -> list:
@@ -244,10 +242,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_MODES):
             self._cleaning_mode = self.dp_value(CONF_MODE_DP)
             self._attrs[MODE] = self._cleaning_mode
-
-        self._fan_speed = ""
-        if self.has_config(CONF_FAN_SPEEDS):
-            self._fan_speed = self.dp_value(CONF_FAN_SPEED_DP)
 
         if self.has_config(CONF_CLEAN_TIME_DP):
             self._attrs[CLEAN_TIME] = self.dp_value(CONF_CLEAN_TIME_DP)

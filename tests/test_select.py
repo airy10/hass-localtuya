@@ -76,11 +76,11 @@ async def test_cloud_options_fallback():
         },
     ):
         device = await init(CONFIG_NO_OPTIONS, PLATFORM_DOMAIN, LocalTuyaSelect)
-    entities: list[LocalTuyaSelect] = get_entites(device)
+        entities: list[LocalTuyaSelect] = get_entites(device)
 
-    assert len(entities) > 0
-    entity_1, *_ = entities
-    assert entity_1.options == ["color", "white"]
+        assert len(entities) > 0
+        entity_1, *_ = entities
+        assert entity_1.options == ["color", "white"]
 
-    device.status_updated({"5": "color"})
-    assert entity_1.current_option == "color"
+        device.status_updated({"5": "color"})
+        assert entity_1.current_option == "color"

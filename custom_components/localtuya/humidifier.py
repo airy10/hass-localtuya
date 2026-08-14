@@ -32,6 +32,7 @@ from .const import (
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import DictSelectorWrapper
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -86,20 +87,23 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
             dp_wrapper_by_id(device, self._config.get(self._dp_current_humidity))
             or RawDPWrapper(self._config.get(self._dp_current_humidity))
         ) if self.has_config(self._dp_current_humidity) else None
-        self._mode_wrapper = (
-            dp_wrapper_by_id(device, self._config.get(self._dp_mode))
-            or RawDPWrapper(self._config.get(self._dp_mode))
-        ) if self.has_config(self._dp_mode) else None
-
-        if (modes := self._config.get(self._available_modes, {})) and (
-            self._config.get(self._dp_mode)
-        ):
+        modes = self._config.get(self._available_modes, {}) or {}
+        if modes and self._config.get(self._dp_mode):
             self._attr_supported_features |= HumidifierEntityFeature.MODES
             modes = {
-                k: v if k else v.replace("_", " ").capitalize()
+                k: v if v else v.replace("_", " ").capitalize()
                 for k, v in modes.copy().items()
             }
         self._available_modes = DictSelector(modes)
+
+        mode_dp = self._config.get(self._dp_mode)
+        if self.has_config(self._dp_mode):
+            inner = dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp)
+            self._mode_wrapper = DictSelectorWrapper(
+                inner, self._available_modes, default="unknown"
+            )
+        else:
+            self._mode_wrapper = None
 
         self._attr_min_humidity = self._config.get(
             ATTR_MIN_HUMIDITY, DEFAULT_MIN_HUMIDITY
@@ -116,9 +120,7 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
     @property
     def mode(self) -> str | None:
         """Return the current mode."""
-        return self._available_modes.to_ha(
-            self._read_wrapper(self._mode_wrapper), "unknown"
-        )
+        return self._read_wrapper(self._mode_wrapper)
 
     @property
     def target_humidity(self) -> int | None:
@@ -146,13 +148,13 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
 
     async def async_set_mode(self, mode):
         """Set new target preset mode."""
-        await self._async_send_wrapper_updates(
-            self._mode_wrapper, self._available_modes.to_tuya(mode)
-        )
+        await self._async_send_wrapper_updates(self._mode_wrapper, mode)
 
     @property
     def available_modes(self):
         """Return the list of presets that this device supports."""
+        if self._mode_wrapper is not None:
+            return self._mode_wrapper.options
         return self._available_modes.names
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaHumidifier, flow_schema)

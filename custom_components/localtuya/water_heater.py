@@ -30,6 +30,8 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from .entity import LocalTuyaEntity, async_setup_entry
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import ClimateTempWrapper, DictSelectorWrapper
 from .const import (
     CONF_TARGET_TEMPERATURE_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -92,7 +94,6 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
     """Tuya WaterHeater device."""
 
     _enable_turn_on_off_backwards_compatibility = False
-    _attr_current_operation = False
 
     def __init__(
         self,
@@ -103,11 +104,6 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
     ):
         """Initialize a new LocalTuyaWaterHeater."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
-        self._state = None
-        self._target_temperature = None
-        self._current_temperature = None
-        self._dp_mode = self._config.get(CONF_MODE_DP, None)
-
         self._available_modes = DictSelector(self._config.get(CONF_MODES, {}))
 
         self._precision = float(self._config.get(CONF_PRECISION, DEFAULT_PRECISION))
@@ -115,13 +111,60 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
             self._config.get(CONF_TARGET_PRECISION, DEFAULT_PRECISION)
         )
 
+        # Cloud spec wrappers for the configured DPs (core parity); DPs with
+        # no cloud spec fall back to a raw wrapper so reads/writes always
+        # delegate through the wrapper layer. Conversion lives in decorators.
+        self._switch_wrapper = dp_wrapper_by_id(
+            device, self._dp_id
+        ) or RawDPWrapper(self._dp_id)
+
+        target_dp = self._config.get(CONF_TARGET_TEMPERATURE_DP)
+        self._target_temp_wrapper = (
+            ClimateTempWrapper(
+                dp_wrapper_by_id(device, target_dp) or RawDPWrapper(target_dp),
+                precision=self._precision_target,
+            )
+            if self.has_config(CONF_TARGET_TEMPERATURE_DP)
+            else None
+        )
+
+        current_dp = self._config.get(CONF_CURRENT_TEMPERATURE_DP)
+        self._current_temp_wrapper = (
+            ClimateTempWrapper(
+                dp_wrapper_by_id(device, current_dp) or RawDPWrapper(current_dp),
+                precision=self._precision,
+            )
+            if self.has_config(CONF_CURRENT_TEMPERATURE_DP)
+            else None
+        )
+
+        low_dp = self._config.get(CONF_TARGET_TEMPERATURE_LOW_DP)
+        self._target_low_wrapper = (
+            dp_wrapper_by_id(device, low_dp) or RawDPWrapper(low_dp)
+        ) if self.has_config(CONF_TARGET_TEMPERATURE_LOW_DP) else None
+
+        high_dp = self._config.get(CONF_TARGET_TEMPERATURE_HIGH_DP)
+        self._target_high_wrapper = (
+            dp_wrapper_by_id(device, high_dp) or RawDPWrapper(high_dp)
+        ) if self.has_config(CONF_TARGET_TEMPERATURE_HIGH_DP) else None
+
+        mode_dp = self._config.get(CONF_MODE_DP)
+        self._mode_wrapper = (
+            DictSelectorWrapper(
+                dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp),
+                self._available_modes,
+            )
+            if self.has_config(CONF_MODE_DP)
+            else None
+        )
+
     @property
     def supported_features(self):
         """Flag supported features."""
         supported_features = WaterHeaterEntityFeature(0)
-        if self.has_config(CONF_TARGET_TEMPERATURE_DP):
+        if self._target_temp_wrapper is not None:
             supported_features |= WaterHeaterEntityFeature.TARGET_TEMPERATURE
-        if self.has_config(CONF_MODE_DP):
+        if self._mode_wrapper is not None:
             supported_features |= WaterHeaterEntityFeature.OPERATION_MODE
 
         supported_features |= WaterHeaterEntityFeature.ON_OFF
@@ -154,85 +197,56 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
         return self._available_modes.names + [OFF_MODE]
 
     @property
+    def current_operation(self):
+        """Return the current operation mode."""
+        if not self._read_wrapper(self._switch_wrapper):
+            return OFF_MODE
+        if self._mode_wrapper is not None:
+            return self._read_wrapper(self._mode_wrapper)
+        return None
+
+    @property
     def current_temperature(self):
         """Return the current temperature."""
-        return self._current_temperature
+        return self._read_wrapper(self._current_temp_wrapper)
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return self._target_temperature
+        return self._read_wrapper(self._target_temp_wrapper)
 
     @property
     def target_temperature_high(self) -> float | None:
         """Return the highbound target temperature we try to reach."""
-        return self._attr_target_temperature_high
+        return self._read_wrapper(self._target_high_wrapper)
 
     @property
     def target_temperature_low(self) -> float | None:
         """Return the lowbound target temperature we try to reach."""
-        return self._attr_target_temperature_low
+        return self._read_wrapper(self._target_low_wrapper)
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        if ATTR_TEMPERATURE in kwargs and self.has_config(CONF_TARGET_TEMPERATURE_DP):
-            temperature = kwargs[ATTR_TEMPERATURE]
-
-            temperature = round(temperature / self._precision_target)
-            await self._device.set_dp(
-                temperature, self._config[CONF_TARGET_TEMPERATURE_DP]
+        if ATTR_TEMPERATURE in kwargs and self._target_temp_wrapper is not None:
+            await self._async_send_wrapper_updates(
+                self._target_temp_wrapper, kwargs[ATTR_TEMPERATURE]
             )
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Set new target operation mode."""
-        status = {}
         if operation_mode == OFF_MODE:
             return await self.async_turn_off()
-        elif not self._state:
-            status[self._dp_id] = True
-
-        status[self._dp_mode] = self._available_modes.to_tuya(operation_mode)
-        await self._device.set_dps(status)
+        if not self._read_wrapper(self._switch_wrapper):
+            await self._async_send_wrapper_updates(self._switch_wrapper, True)
+        await self._async_send_wrapper_updates(self._mode_wrapper, operation_mode)
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
-        await self._device.set_dp(True, self._dp_id)
+        await self._async_send_wrapper_updates(self._switch_wrapper, True)
 
     async def async_turn_off(self) -> None:
         """Turn the entity off."""
-        await self._device.set_dp(False, self._dp_id)
-
-    def status_updated(self):
-        """Device status was updated."""
-        self._state = self.dp_value(self._dp_id)
-
-        # Update target temperature
-        if self.has_config(CONF_TARGET_TEMPERATURE_DP):
-            self._target_temperature = (
-                self.dp_value(CONF_TARGET_TEMPERATURE_DP) * self._precision_target
-            )
-
-        # Update current temperature
-        if self.has_config(CONF_CURRENT_TEMPERATURE_DP):
-            self._current_temperature = (
-                self.dp_value(CONF_CURRENT_TEMPERATURE_DP) * self._precision
-            )
-
-        # Update modes states
-        if not self._state:
-            self._attr_current_operation = OFF_MODE
-        elif self._dp_mode is not None and (mode := self.dp_value(CONF_MODE_DP)):
-            self._attr_current_operation = self._available_modes.to_ha(mode)
-
-        if (
-            target_high := self.dp_value(CONF_TARGET_TEMPERATURE_HIGH_DP)
-        ) or target_high is not None:
-            self._attr_target_temperature_high = target_high
-
-        if (
-            target_low := self.dp_value(CONF_TARGET_TEMPERATURE_LOW_DP)
-        ) or target_low is not None:
-            self._attr_target_temperature_low = target_low
+        await self._async_send_wrapper_updates(self._switch_wrapper, False)
 
 
 async_setup_entry = partial(

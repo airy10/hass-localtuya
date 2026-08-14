@@ -18,6 +18,7 @@ from homeassistant.components.alarm_control_panel import (
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_ALARM_SUPPORTED_STATES, DictSelector
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import DictSelectorWrapper
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
         super().__init__(device, config_entry, dpid, _LOGGER, **kwargs)
         self._state = None
         self._changed_by = None
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+        inner = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
             self._dp_id
         )
 
@@ -79,14 +80,12 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
                 self._attr_supported_features |= AlarmControlPanelEntityFeature.TRIGGER
 
         self._states = DictSelector(supported_modes, reverse=True)
+        self._dpcode_wrapper = DictSelectorWrapper(inner, self._states)
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
         """Return the state of the device."""
-        tuya_value = self._read_wrapper(self._dpcode_wrapper)
-        if tuya_value is not None:
-            return self._states.to_ha(tuya_value, None)
-        return self._states.to_ha(self._state, None)
+        return self._read_wrapper(self._dpcode_wrapper)
 
     @property
     def changed_by(self) -> str | None:
@@ -105,27 +104,27 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send Disarm command."""
-        state = self._states.to_tuya(AlarmControlPanelState.DISARMED)
-        await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        await self._async_send_wrapper_updates(
+            self._dpcode_wrapper, AlarmControlPanelState.DISARMED
+        )
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send Home command."""
-        state = self._states.to_tuya(AlarmControlPanelState.ARMED_HOME)
-        await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        await self._async_send_wrapper_updates(
+            self._dpcode_wrapper, AlarmControlPanelState.ARMED_HOME
+        )
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send Arm command."""
-        state = self._states.to_tuya(AlarmControlPanelState.ARMED_AWAY)
-        await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
+        await self._async_send_wrapper_updates(
+            self._dpcode_wrapper, AlarmControlPanelState.ARMED_AWAY
+        )
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Send SOS command."""
-        state = self._states.to_tuya(AlarmControlPanelState.TRIGGERED)
-        await self._async_send_wrapper_updates(self._dpcode_wrapper, state)
-
-    def status_updated(self):
-        """Device status was updated."""
-        super().status_updated()
+        await self._async_send_wrapper_updates(
+            self._dpcode_wrapper, AlarmControlPanelState.TRIGGERED
+        )
 
     # No need to restore state for a AlarmControlPanel
     async def restore_state_when_connected(self):

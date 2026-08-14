@@ -253,9 +253,18 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if ble := self.ble_device:
             return ble.status
         result = {}
-        for dp_id, data in self._cloud_dpspec_view().items():
-            if code := data.get("code"):
-                result[code] = self._status.get(str(data.get("dp_id")))
+        # Derive dpcode keys from the spec surfaces (cloud dps_data and/or the
+        # function/status_range specs) so cloud-spec wrappers can read by
+        # dpcode even when live cloud data is unavailable, then merge the raw
+        # dp_id-keyed entries for spec-less wrappers (RawDPWrapper).
+        for specs in (self.status_range, self.function):
+            if not specs:
+                continue
+            for code, data in specs.items():
+                if not code:
+                    continue
+                if (dp_id := _spec_dp_id(data)) is not None:
+                    result.setdefault(code, self._status.get(str(dp_id)))
         result.update(self._status)
         return result
 

@@ -1,9 +1,6 @@
 """Platform to locally control Tuya-based light devices."""
 
-import base64
 import logging
-import textwrap
-import homeassistant.util.color as color_util
 import voluptuous as vol
 
 from dataclasses import dataclass
@@ -25,6 +22,13 @@ from homeassistant.const import CONF_BRIGHTNESS, CONF_COLOR_TEMP, CONF_SCENE
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import (
+    BrightnessWrapper,
+    ColorTempWrapper,
+    ColorTypeData,
+    StringColorWrapper,
+    map_range,
+)
 from .const import (
     CONF_BRIGHTNESS_LOWER,
     CONF_BRIGHTNESS_UPPER,
@@ -165,67 +169,6 @@ class Mode:
 MAP_MODE_SET = {0: Mode(), 1: Mode(color=MODE_MANUAL)}
 
 
-def map_range(
-    value: int, from_min: int, from_max: int, to_min=0, to_max=255, reverse=False
-):
-    """Maps a value from one range to another."""
-
-    if reverse:
-        value = from_max - (value - from_min)
-
-    scale = (to_max - to_min) / (from_max - from_min)
-    mapped_value = to_min + (value - from_min) * scale
-
-    return min(max(round(mapped_value), to_min), to_max)
-
-
-@dataclass
-class ColorTypeData:
-    """HSV color type data with per-channel min/max/scale/step."""
-
-    h_min: int = 1
-    h_max: int = 360
-    s_min: int = 1
-    s_max: int = 255
-    v_min: int = 1
-    v_max: int = 255
-
-    @classmethod
-    def from_config(cls, config: dict | None) -> "ColorTypeData | None":
-        """Build from a config dict (e.g. {"h": {"min":..,"max":..}, ...})."""
-        if not config:
-            return None
-        h = config.get("h", {})
-        s = config.get("s", {})
-        v = config.get("v", {})
-        return cls(
-            h_min=int(h.get("min", 1)),
-            h_max=int(h.get("max", 360)),
-            s_min=int(s.get("min", 1)),
-            s_max=int(s.get("max", 255)),
-            v_min=int(v.get("min", 1)),
-            v_max=int(v.get("max", 255)),
-        )
-
-    def remap_h_to(self, value: float) -> float:
-        return map_range(value, self.h_min, self.h_max, 0, 360)
-
-    def remap_h_from(self, value: float) -> int:
-        return map_range(value, 0, 360, self.h_min, self.h_max)
-
-    def remap_s_to(self, value: float) -> float:
-        return map_range(value, self.s_min, self.s_max, 0, 100)
-
-    def remap_s_from(self, value: float) -> int:
-        return map_range(value, 0, 100, self.s_min, self.s_max)
-
-    def remap_v_to(self, value: float) -> int:
-        return map_range(value, self.v_min, self.v_max, 0, 255)
-
-    def remap_v_from(self, value: float) -> int:
-        return map_range(value, 0, 255, self.v_min, self.v_max)
-
-
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
@@ -271,59 +214,90 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._write_only = self._device.is_write_only
 
         self._state = None
-        self._color_temp = None
         self._lower_brightness = int(
             self._config.get(CONF_BRIGHTNESS_LOWER, DEFAULT_LOWER_BRIGHTNESS)
         )
         self._upper_brightness = int(
             self._config.get(CONF_BRIGHTNESS_UPPER, DEFAULT_UPPER_BRIGHTNESS)
         )
-        self._brightness = None if not self._write_only else self._upper_brightness
         self._upper_color_temp = self._upper_brightness
 
-        self._color_temp_reverse = self._config.get(CONF_COLOR_TEMP_REVERSE, False)
         self._color_type_data = ColorTypeData.from_config(
             self._config.get(CONF_COLOR_TYPE_DATA)
         )
         self._modes = MAP_MODE_SET[int(self._config.get(CONF_COLOR_MODE_SET, 0))]
         self._work_mode_range: list[str] | None = None
-        self._hs = None
-        self._effect = None
         self._effect_list = []
         self._scenes = DictSelector({})
         self._cached_status = {}
 
         # Cloud spec wrappers for the configured DPs (core parity); DPs with
-        # no cloud spec fall back to a raw wrapper so switch reads/writes
-        # always delegate through the wrapper layer. The color data DP is
-        # intentionally excluded: core decodes it via a JSON wrapper, but our
-        # color format is a config-driven string (v1/v2/base64) that no
-        # vendored wrapper can decode.
+        # no cloud spec fall back to a raw wrapper so reads/writes always
+        # delegate through the wrapper layer. Color/brightness/color_temp
+        # conversion lives in the decorators.
         self._switch_wrapper = dp_wrapper_by_id(
             device, self._dp_id
         ) or RawDPWrapper(self._dp_id)
-        self._brightness_wrapper = dp_wrapper_by_id(
-            device, self._config.get(CONF_BRIGHTNESS)
+
+        brightness_dp = self._config.get(CONF_BRIGHTNESS)
+        if self.has_config(CONF_BRIGHTNESS):
+            inner = dp_wrapper_by_id(device, brightness_dp) or RawDPWrapper(
+                brightness_dp
+            )
+            self._brightness_wrapper = BrightnessWrapper(
+                inner, self._lower_brightness, self._upper_brightness
+            )
+        else:
+            self._brightness_wrapper = None
+
+        min_kelvin = int(
+            self._config.get(CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_MIN_KELVIN)
         )
-        self._color_mode_wrapper = dp_wrapper_by_id(
-            device, self._config.get(CONF_COLOR_MODE)
+        max_kelvin = int(
+            self._config.get(CONF_COLOR_TEMP_MAX_KELVIN, DEFAULT_MAX_KELVIN)
         )
-        self._color_temp_wrapper = dp_wrapper_by_id(
-            device, self._config.get(CONF_COLOR_TEMP)
-        )
+        color_temp_dp = self._config.get(CONF_COLOR_TEMP)
+        if self.has_config(CONF_COLOR_TEMP):
+            inner = dp_wrapper_by_id(device, color_temp_dp) or RawDPWrapper(
+                color_temp_dp
+            )
+            self._color_temp_wrapper = ColorTempWrapper(
+                inner,
+                min_kelvin,
+                max_kelvin,
+                self._lower_brightness,
+                self._upper_brightness,
+                self._config.get(CONF_COLOR_TEMP_REVERSE, DEFAULT_COLOR_TEMP_REVERSE),
+            )
+        else:
+            self._color_temp_wrapper = None
+
+        # Work mode is read/written as a raw string (config-driven string
+        # comparison), so it always resolves to a raw wrapper by dp_id.
+        color_mode_dp = self._config.get(CONF_COLOR_MODE)
+        self._color_mode_wrapper = (
+            RawDPWrapper(color_mode_dp)
+        ) if self.has_config(CONF_COLOR_MODE) else None
+
+        scene_dp = self._config.get(CONF_SCENE)
+        self._scene_wrapper = (
+            dp_wrapper_by_id(device, scene_dp) or RawDPWrapper(scene_dp)
+        ) if self.has_config(CONF_SCENE) else None
+
+        color_dp = self._config.get(CONF_COLOR)
+        if self.has_config(CONF_COLOR):
+            inner = dp_wrapper_by_id(device, color_dp) or RawDPWrapper(color_dp)
+            self._color_data_wrapper = StringColorWrapper(
+                inner, self._color_type_data, self._upper_brightness
+            )
+        else:
+            self._color_data_wrapper = None
 
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
 
-        self._attr_min_color_temp_kelvin = int(
-            self._config.get(CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_MIN_KELVIN)
-        )
-        self._attr_max_color_temp_kelvin = int(
-            self._config.get(CONF_COLOR_TEMP_MAX_KELVIN, DEFAULT_MAX_KELVIN)
-        )
-
-        self.__to_color = self.__to_color_common
-        self.__from_color = self.__from_color_common
+        self._attr_min_color_temp_kelvin = min_kelvin
+        self._attr_max_color_temp_kelvin = max_kelvin
 
     def connection_made(self):
         """The connection has made with the device and status retrieved, Configure the entity based on its reserved status."""
@@ -348,14 +322,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
             self._effect_list = list(scenes.keys()) + self._effect_list
 
-        if self.has_config(CONF_COLOR):
+        if self._color_data_wrapper is not None:
             color_data = self.dp_value(CONF_COLOR)
-            if is_write_only and not color_data:
-                self.__to_color = self.__to_color_raw
-                self.__from_color = self.__from_color_raw
-            else:
-                self.__to_color = self.__to_color_common
-                self.__from_color = self.__from_color_common
+            # Write-only devices use the base64 raw color format.
+            self._color_data_wrapper._use_raw = bool(
+                is_write_only and not color_data
+            )
 
             # Like the reference component, derive the HSV color type from the
             # cloud colour_data spec (per-channel min/max) so hue/sat remapping
@@ -363,6 +335,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if self._color_type_data is None:
                 if (spec := self._device.color_data_spec) and "h" in spec:
                     self._color_type_data = ColorTypeData.from_config(spec)
+                    self._color_data_wrapper._color_type_data = self._color_type_data
 
         if self.has_config(CONF_COLOR_MODE):
             if (wrapper := dp_wrapper_by_id(
@@ -397,13 +370,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn on or control the light."""
-        states = {}
+        commands = []
         if not self.is_on or self._write_only:
-            await self._async_send_wrapper_updates(self._switch_wrapper, True)
+            commands.extend(self._switch_wrapper.get_update_commands(self._device, True))
         features = self.supported_features
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
+
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
@@ -415,7 +389,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                     color_mode = scene
                 else:
                     color_mode = self._modes.scene
-                    states[self._config.get(CONF_SCENE)] = scene
+                    if self._scene_wrapper is not None:
+                        commands.extend(
+                            self._scene_wrapper.get_update_commands(self._device, scene)
+                        )
             elif effect in self._modes.as_list():
                 color_mode = effect
             elif effect == SCENE_MUSIC:
@@ -423,8 +400,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if ATTR_BRIGHTNESS in kwargs and (
             ColorMode.BRIGHTNESS in color_modes
-            or self.has_config(CONF_BRIGHTNESS)
-            or self.has_config(CONF_COLOR)
+            or self._brightness_wrapper is not None
+            or self._color_data_wrapper is not None
         ):
             brightness = map_range(
                 int(kwargs[ATTR_BRIGHTNESS]),
@@ -435,57 +412,81 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             )
             brightness = max(brightness, self._lower_brightness)
 
-            if self.is_color_mode and self._hs is not None:
-                states[self._config.get(CONF_COLOR)] = self.__to_color(
-                    self._hs, brightness
+            if self.is_color_mode and self._color_data_wrapper is not None:
+                hsv = self._read_wrapper(self._color_data_wrapper)
+                hs = hsv[:2] if hsv is not None else (0, 0)
+                commands.extend(
+                    self._color_data_wrapper.get_update_commands(
+                        self._device, (hs[0], hs[1], brightness)
+                    )
                 )
                 color_mode = self._modes.color
             else:
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                if self._brightness_wrapper is not None:
+                    commands.extend(
+                        self._brightness_wrapper.get_update_commands(
+                            self._device, int(kwargs[ATTR_BRIGHTNESS])
+                        )
+                    )
                 color_mode = self._modes.white
 
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
-                brightness = self._brightness
+                brightness = self._upper_brightness
             hs = kwargs[ATTR_HS_COLOR]
             if (
                 hs[1] == 0
-                and self.has_config(CONF_BRIGHTNESS)
+                and self._brightness_wrapper is not None
                 and self._device.white_mode_supported
             ):
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                commands.extend(
+                    self._brightness_wrapper.get_update_commands(
+                        self._device, brightness
+                    )
+                )
                 color_mode = self._modes.white
-            else:
-                states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
+            elif self._color_data_wrapper is not None:
+                commands.extend(
+                    self._color_data_wrapper.get_update_commands(
+                        self._device, (hs[0], hs[1], brightness)
+                    )
+                )
                 color_mode = self._modes.color
 
         if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in color_modes:
             if brightness is None:
-                brightness = self._brightness
-
-            color_temp = map_range(
-                int(kwargs[ATTR_COLOR_TEMP_KELVIN]),
-                self.min_color_temp_kelvin,
-                self.max_color_temp_kelvin,
-                self._lower_brightness,
-                self._upper_color_temp,
-                self._color_temp_reverse,
-            )
-
+                brightness = self._upper_brightness
+            if self._color_temp_wrapper is not None:
+                commands.extend(
+                    self._color_temp_wrapper.get_update_commands(
+                        self._device, int(kwargs[ATTR_COLOR_TEMP_KELVIN])
+                    )
+                )
             color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
-            states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+            if self._brightness_wrapper is not None:
+                commands.extend(
+                    self._brightness_wrapper.get_update_commands(
+                        self._device, brightness
+                    )
+                )
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
-                brightness = self._brightness
+                brightness = self._upper_brightness
             color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            if self._brightness_wrapper is not None:
+                commands.extend(
+                    self._brightness_wrapper.get_update_commands(
+                        self._device, brightness
+                    )
+                )
 
-        if color_mode is not None:
-            states[self._config.get(CONF_COLOR_MODE)] = color_mode
+        if color_mode is not None and self._color_mode_wrapper is not None:
+            commands.extend(
+                self._color_mode_wrapper.get_update_commands(self._device, color_mode)
+            )
 
-        await self._device.set_dps(states)
+        await self._async_send_commands(commands)
 
     async def async_turn_off(self, **kwargs):
         """Instruct the light to turn off."""
@@ -494,39 +495,39 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def brightness(self):
         """Return the brightness of the light."""
-        if self._brightness_wrapper:
-            brightness = self._read_wrapper(self._brightness_wrapper)
-        else:
-            brightness = self._brightness
-        if brightness is not None and (self.is_color_mode or self.is_white_mode):
-            return map_range(brightness, self._lower_brightness, self._upper_brightness)
+        if self._color_data_wrapper is not None and self.is_color_mode:
+            hsv = self._read_wrapper(self._color_data_wrapper)
+            return (
+                None
+                if hsv is None
+                else round(
+                    map_range(hsv[2], self._lower_brightness, self._upper_brightness)
+                )
+            )
+        if self._brightness_wrapper is not None and (
+            self.is_color_mode or self.is_white_mode
+        ):
+            return self._read_wrapper(self._brightness_wrapper)
         return None
 
     @property
     def color_temp_kelvin(self):
         """Return the color temperature value in Kelvin."""
-        if self._color_temp_wrapper:
-            color_temp = self._read_wrapper(self._color_temp_wrapper)
-        else:
-            color_temp = self._color_temp
-        if color_temp is not None:
-            return map_range(
-                color_temp,
-                self._lower_brightness,
-                self._upper_brightness,
-                self.min_color_temp_kelvin,
-                self.max_color_temp_kelvin,
-                self._color_temp_reverse,
-            )
+        if self._color_temp_wrapper is None:
+            return None
+        return self._read_wrapper(self._color_temp_wrapper)
 
     @property
     def hs_color(self):
         """Return the hs_color of the light."""
+        if self._color_data_wrapper is None:
+            return None
         if self.is_color_mode:
-            return self._hs
+            hsv = self._read_wrapper(self._color_data_wrapper)
+            return None if hsv is None else [hsv[0], hsv[1]]
         if (
             ColorMode.HS in self.supported_color_modes
-            and not ColorMode.COLOR_TEMP in self.supported_color_modes
+            and ColorMode.COLOR_TEMP not in self.supported_color_modes
         ):
             return [0, 0]
         return None
@@ -534,9 +535,17 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def effect(self):
         """Return the current effect for this light."""
-        if self.is_scene_mode or self.is_music_mode:
-            return self._effect
-        elif (color_mode := self.__get_color_mode()) in self._scenes.values:
+        if self.is_music_mode:
+            return SCENE_MUSIC
+        if self.is_scene_mode:
+            color_mode = self.__get_color_mode()
+            if color_mode != self._modes.scene:
+                return self.__find_scene_by_scene_data(color_mode)
+            effect = self.__find_scene_by_scene_data(self.dp_value(CONF_SCENE))
+            if effect is None:
+                effect = self.__find_scene_by_scene_data(color_mode)
+            return effect
+        if (color_mode := self.__get_color_mode()) in self._scenes.values:
             return self.__find_scene_by_scene_data(color_mode)
         return None
 
@@ -556,9 +565,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_modes.add(ColorMode.COLOR_TEMP)
         elif self.has_config(CONF_BRIGHTNESS) and self._device.white_mode_supported:
             color_modes.add(ColorMode.WHITE)
-        if self.has_config(CONF_COLOR):
-            color_modes.add(ColorMode.HS)
-
         if self.has_config(CONF_COLOR):
             color_modes.add(ColorMode.HS)
 
@@ -636,16 +642,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             and ColorMode.HS in self.supported_color_modes
         ):
             return ColorMode.HS
-        if self._brightness and ColorMode.BRIGHTNESS in self.supported_color_modes:
+        if self.brightness and ColorMode.BRIGHTNESS in self.supported_color_modes:
             return ColorMode.BRIGHTNESS
         if ColorMode.HS in self.supported_color_modes:
             return ColorMode.HS
         return next(iter(self.supported_color_modes))
-
-    def __is_color_rgb_encoded(self):
-        # for now we will prefer non encoded if color is none "added by manual or cloud pull dp"
-        color = self.dp_value(CONF_COLOR)
-        return False if color is None else len(color) > 12
 
     def __find_scene_by_scene_data(self, data):
         return (
@@ -658,147 +659,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         )
 
     def __get_color_mode(self):
-        return (
-            self.dp_value(CONF_COLOR_MODE)
-            if self.has_config(CONF_COLOR_MODE)
-            else self._modes.white
-        )
-
-    def __to_color_raw(self, hs, brightness):
-        return base64.b64encode(
-            # BASE64-encoded 4-byte value: HHSL
-            bytes(
-                [
-                    round(hs[0]) // 256,
-                    round(hs[0]) % 256,
-                    round(hs[1]),
-                    round(brightness * 100 / self._upper_brightness),
-                ]
-            )
-        ).decode("ascii")
-
-    def __to_color_(self, hs, brightness):
-        # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-8-colour_data
-        return "{:04x}{:02x}{:02x}".format(
-            round(hs[0]),
-            round(hs[1] * 255 / 100),
-            round(brightness * 255 / self._upper_brightness),
-        )
-
-    def __to_color_v2(self, hs, brightness):
-        # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-9-colour_data_v2
-        if self._color_type_data:
-            h = self._color_type_data.remap_h_from(hs[0])
-            s = self._color_type_data.remap_s_from(hs[1])
-        else:
-            h = round(hs[0])
-            s = round(hs[1] * 10.0)
-        return "{:04x}{:04x}{:04x}".format(h, s, brightness)
-
-    def __to_color_common(self, hs, brightness):
-        """Converts HSB values to a string."""
-        if self.__is_color_rgb_encoded():
-            # Not documented format.
-            # Known defect (shared with the reference component): the s/v
-            # fields are 2-hex-digit wide but can exceed 255 when remapped to
-            # a 0-1000 cloud range, producing a >14-char string that the
-            # decoder mis-parses.
-            rgb = color_util.color_hsv_to_RGB(
-                hs[0], hs[1], int(brightness * 100 / self._upper_brightness)
-            )
-            if self._color_type_data:
-                h = self._color_type_data.remap_h_from(hs[0])
-                s = self._color_type_data.remap_s_from(hs[1])
-            else:
-                h = round(hs[0])
-                s = round(hs[1] * 255 / 100)
-            return "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
-                round(rgb[0]),
-                round(rgb[1]),
-                round(rgb[2]),
-                h,
-                s,
-                brightness,
-            )
-        else:
-            return self.__to_color_v2(hs, brightness)
-
-    def __from_color_raw(self, color):
-        # BASE64-encoded 4-byte value: HHSL
-        hsl = int.from_bytes(base64.b64decode(color), byteorder="big", signed=False)
-        hue = hsl // 65536
-        sat = (hsl // 256) % 256
-        value = (hsl % 256) * self._upper_brightness / 100
-        self._hs = [hue, sat]
-        self._brightness = value
-
-    def __from_color_(self, color):
-        # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-8-colour_data
-        hue, sat, value = [int(value, 16) for value in textwrap.wrap(color, 4)]
-        self._hs = [hue, sat * 100 / 255]
-        self._brightness = value * self._upper_brightness / 100
-
-    def __from_color_v2(self, color):
-        # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-9-colour_data_v2
-        hue, sat, value = [int(value, 16) for value in textwrap.wrap(color, 4)]
-        if self._color_type_data:
-            self._hs = [
-                self._color_type_data.remap_h_to(hue),
-                self._color_type_data.remap_s_to(sat),
-            ]
-        else:
-            self._hs = [hue, sat / 10.0]
-        self._brightness = value
-
-    def __from_color_common(self, color: str):
-        """Convert a string to HSL values."""
-        if self.__is_color_rgb_encoded():
-            hue = int(color[6:10], 16)
-            sat = int(color[10:12], 16)
-            value = int(color[12:14], 16)
-            if self._color_type_data:
-                self._hs = [
-                    self._color_type_data.remap_h_to(hue),
-                    self._color_type_data.remap_s_to(sat),
-                ]
-            else:
-                self._hs = [hue, (sat * 100 / 255)]
-            self._brightness = value
-        else:
-            self.__from_color_v2(color)
-
-    def status_updated(self):
-        """Device status was updated."""
-        self._state = self.dp_value(self._dp_id)
-        supported = self.supported_features
-        self._effect = None
-
-        if (brightness_dp_value := self.dp_value(CONF_BRIGHTNESS)) is not None:
-            self._brightness = brightness_dp_value
-
-        if ColorMode.HS in self.supported_color_modes:
-            color = self.dp_value(CONF_COLOR)
-            if color is not None and not self.is_white_mode:
-                self.__from_color(color)
-            elif self._brightness is None:
-                self._brightness = self._upper_brightness
-
-        if ColorMode.COLOR_TEMP in self.supported_color_modes:
-            self._color_temp = self.dp_value(CONF_COLOR_TEMP)
-
-        if self.is_scene_mode and supported & LightEntityFeature.EFFECT:
-            color_mode = self.dp_value(CONF_COLOR_MODE)
-            if color_mode != self._modes.scene:
-                self._effect = self.__find_scene_by_scene_data(color_mode)
-            else:
-                self._effect = self.__find_scene_by_scene_data(
-                    self.dp_value(CONF_SCENE)
-                )
-                if self._effect is None:
-                    self._effect = self.__find_scene_by_scene_data(color_mode)
-
-        if self.is_music_mode and supported & LightEntityFeature.EFFECT:
-            self._effect = SCENE_MUSIC
+        if self._color_mode_wrapper is not None:
+            return self._read_wrapper(self._color_mode_wrapper)
+        return self._modes.white
 
     def status_restored(self, stored_state) -> None:
         """Device status was restored."""

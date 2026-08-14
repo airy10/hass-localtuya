@@ -17,6 +17,7 @@ from homeassistant.const import CONF_DEVICE_CLASS
 from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.dp_wrapper_decorators import InvertedPercentageWrapper
 from .const import (
     CONF_COMMANDS_SET,
     CONF_CURRENT_POSITION_DP,
@@ -109,11 +110,16 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         # Core resolves set/current position wrappers; our read path is
         # config-driven (inversion, timed math, bool/str decoding) so only
         # the set-position write is delegated to the wrapper (raw fallback
-        # when the DP has no cloud spec).
-        self._set_position_wrapper = (
-            dp_wrapper_by_id(device, self._config.get(CONF_SET_POSITION_DP))
-            or RawDPWrapper(self._config.get(CONF_SET_POSITION_DP))
-        ) if self.has_config(CONF_SET_POSITION_DP) else None
+        # when the DP has no cloud spec). Position inversion lives in the
+        # wrapper so the write path stays thin.
+        set_dp = self._config.get(CONF_SET_POSITION_DP)
+        if self.has_config(CONF_SET_POSITION_DP):
+            inner = dp_wrapper_by_id(device, set_dp) or RawDPWrapper(set_dp)
+            if self._position_inverted:
+                inner = InvertedPercentageWrapper(inner)
+            self._set_position_wrapper = inner
+        else:
+            self._set_position_wrapper = None
 
     @property
     def supported_features(self):
@@ -231,9 +237,7 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
 
         elif self._config[CONF_POSITIONING_MODE] == MODE_SET_POSITION:
             converted_position = int(kwargs[ATTR_POSITION])
-            if self._position_inverted:
-                converted_position = 100 - converted_position
-            if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
+            if 0 <= converted_position <= 100 and self._set_position_wrapper is not None:
                 await self._async_send_wrapper_updates(
                     self._set_position_wrapper, converted_position
                 )
