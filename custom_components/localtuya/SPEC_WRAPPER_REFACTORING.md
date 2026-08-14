@@ -1,10 +1,13 @@
 # Wrapper Decorator Refactoring Spec
 
-> **Status: IMPLEMENTED.** All phases complete; 110 platform tests + 20 new
-> decorator unit tests pass. The decorators live in
-> `core/dp_wrapper_decorators.py` and compose through the inner wrapper's
-> public `read_device_status` / `get_update_commands` interface (not the
-> private `_read_dpcode_value` hooks shown in the sketches below).
+> **Status: IMPLEMENTED.** All phases complete; 188 tests pass. The decorators
+> live in `core/dp_wrapper_decorators.py` and compose through the inner
+> wrapper's public `read_device_status` / `get_update_commands` interface (not
+> the private `_read_dpcode_value` hooks shown in the sketches below). Later
+> additions beyond the original sketches: `BinarySensorWrapper`
+> (core's `DPCodeInSetWrapper`) and the event wrappers
+> (`SimpleEventEnumWrapper` / `Base64Utf8StringEventWrapper` /
+> `Base64Utf8RawEventWrapper`).
 
 ## Problem Statement
 
@@ -379,7 +382,9 @@ cache fallback). The status classification and extra-state-attributes stay in
 - `alarm_control_panel.py` (implemented): Wrap mode DP with `DictSelectorWrapper`; remove `status_updated`.
 - `water_heater.py` (implemented): Wrap mode DP with `DictSelectorWrapper` and temps with `ClimateTempWrapper`; replace `status_updated` with live wrapper reads.
 - `number.py`: Already thin (delegates to wrapper; config scaling/offset stays config-driven).
-- `binary_sensor.py`: `state_on` string matching + reset timer are config-driven; the wrapper only gates `skip_update`. No conversion to move.
+- `binary_sensor.py` (implemented): the `state_on` string matching moved into
+  `BinarySensorWrapper` (core's `DPCodeInSetWrapper`) so `is_on` is a thin
+  `_read_wrapper` call; the reset timer stays entity-side.
 - `sensor.py`: base64 phase sub-sensors + config scaling/offset + icons are config-driven; keep `status_updated`.
 - `siren.py`: `state_on` matching is config-driven; `is_on` already reads the wrapper for bool DPs. No conversion to move.
 - `valve.py`: Already thin (`is_closed` reads wrapper; open/close send wrapper updates).
@@ -416,5 +421,5 @@ After refactoring:
 - No string color encode/decode in entity code (owned by `StringColorWrapper`).
 - No position inversion (`100 - position`) in the cover write path (owned by `InvertedPercentageWrapper`).
 - No `f_to_c`/`c_to_f`/precision math in entity code (owned by `ClimateTempWrapper`).
-- All 110+ tests pass.
+- All 188 tests pass.
 - Wrapper decorators are composable and independently testable.

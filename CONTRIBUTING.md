@@ -14,9 +14,17 @@ Python 3.12 or higher.
 
 `pip install -r requirements_test.txt`
 
-Validate your installation with:
+Validate your installation with either:
 
 `pytest`
+
+or the repo helper script:
+
+`scripts/run_tests.sh`
+
+(pytest picks up its settings from `pyproject.toml`; the script just adds a
+one-command entry point and forwards extra args, e.g.
+`scripts/run_tests.sh -k fan`.)
 
 ## Contributing
 

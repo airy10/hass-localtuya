@@ -283,9 +283,10 @@ description → resolve by code".
   `setup_localtuya_devices`) now persist the device's cloud data (category +
   DP specs) with an **empty** entity list instead of flattening to a `dps`
   config via `gen_localtuya_entities`; the runtime derives entities from the
-  `ha_entities` category tables by dpcode at setup (Ethernet via
-  `_described_entity_specs`, BLE via `_auto_entities_for_device` →
-  `derive_mappings_from_spec`). Added `category_has_descriptions()` as the
+  `ha_entities` category tables by dpcode at setup through the single
+  `_entity_specs_for_device` resolver (BLE per-product `mappings.py` first,
+  then `_described_entity_specs` for both transports). Added
+  `category_has_descriptions()` as the
   config-time category gate. Manual `dps` and "no cloud" remain the escape
   hatches.
 - **DONE (verified)** — QR sharing (`sharing_cloud.py`) is already the default
@@ -303,6 +304,29 @@ description → resolve by code".
   "no core equivalent" (or cloud-only) note instead. The consolidated map is
   in `ARCHITECTURE_ALIGNMENT_CORE_TUYA.md` §7.9.
 
+## Follow-up work (all DONE)
+
+After Phases 0–7 the runtime was further consolidated and the entity classes
+closed the last core divergences:
+
+- **Unified resolver** — the BLE `derive_mappings_from_spec` path and the
+  Ethernet `_described_entity_specs` path were merged into
+  `entity.py::_entity_specs_for_device` (BLE per-product `mappings.py` first,
+  then `_described_entity_specs` for both transports). `derive_mappings_from_spec`
+  was removed; `get_mapping_by_device` is per-product only.
+- **binary_sensor** — `get_binary_sensor_definition` now wraps the resolved DP in
+  `BinarySensorWrapper` (core's `DPCodeInSetWrapper`), so the on/off conversion
+  lives in the wrapper and `is_on` is a thin `_read_wrapper` call.
+- **event** — `EventDefinition` + `get_event_definition` and three event wrappers
+  (`SimpleEventEnumWrapper` / `Base64Utf8StringEventWrapper` /
+  `Base64Utf8RawEventWrapper`) added; the `EVENTS` table maps `SP` (doorbell
+  message/picture) and `WXKG` (`switch_mode1..9` numbered buttons), and `event.py`
+  fires `_trigger_event` from `_process_device_update`.
+- **fan** — `FanDefinition.mode_wrapper` + `fan_mode=(fan_mode, mode)` in `FANS`
+  add `preset_mode`/`async_set_preset_mode`.
+- **entity parity** — `@override` + return type hints + core-style signatures on
+  all core-parity platform methods.
+
 ## Test strategy
 1. **Definition resolver unit tests** (`tests/test_definitions.py`): tuple
    fallback, spec gate (primary DP absent → None), decorator application,
@@ -313,7 +337,7 @@ description → resolve by code".
    passthrough, offline snapshot) and manual provider (synthesized specs).
 4. **Config-flow tests**: cloud auto-config produces descriptions; offline and
    manual paths still work.
-5. **Regression**: full suite (currently 166 tests) must stay green; add the
+5. **Regression**: full suite (currently 188 tests) must stay green; add the
    new tests incrementally per phase.
 
 ## Success criteria

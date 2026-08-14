@@ -36,7 +36,7 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
 | Setup entry point | `DeviceListener.initialize()` → `Manager.update_device_cache()` (blocking, executor) | `TuyaDevice.async_connect()` → BLE pairing / Ethernet socket per device |
 | Device model | `CustomerDevice` (`tuya_sharing/device.py:47-99`): id, name, category, product_id, online, status, function, status_range, local_strategy, support_local | `TuyaBLEDevice` (`core/tuya_ble_lib/tuya_ble.py:281+`): id, address, category, product_id, product_name, function, status_range, datapoints |
 | DP capability model | `tuya_device_handlers/type_information.py` — `TypeInformation` per type (Boolean/Enum/Integer/Json/Raw/String/Bitmap), wrappers `DPCodeXxxWrapper` with `find_dpcode`, `read_device_status`, `get_update_commands`, `skip_update` | `TuyaBLEDeviceFunction` (`tuya_ble.py:268-279`): code, dp_id, type, values (raw dict, JSON auto-parsed). **No wrapper layer, no `find_dpcode`, no `skip_update`** |
-| Entity creation | **Static per-category description tables** + spec gate: `SWITCHES[device.category]` then `get_default_definition(device, key)` returns `None` if DP absent (e.g. `switch.py:938-943`) | **Config-flow driven**: user picks DP id + entity type manually; auto-config via `gen_localtuya_entities()` (`core/ha_entities/__init__.py:82`) + BLE `mappings.py` |
+| Entity creation | **Static per-category description tables** + spec gate: `SWITCHES[device.category]` then `get_default_definition(device, key)` returns `None` if DP absent (e.g. `switch.py:938-943`) | **Definition-driven**: per-category description tables (`ha_entities/*.py`) resolved by dpcode via `_entity_specs_for_device` → `_described_entity_specs` (`entity.py`); BLE per-product `mappings.py` overrides win first; manual `dps` config is the fallback |
 | Category vocabulary | `DeviceCategory` StrEnum (`const.py:80-580`, ~130 documented + undocumented) | **No `DeviceCategory` enum** — free-string categories in `ha_entities/*.py` tables |
 | DP vocabulary | `DPCode` StrEnum (`const.py:583-994`) | `DPCode` StrEnum in `core/ha_entities/base.py:93-891` (overlapping but not identical) |
 | Discovery signal | `TUYA_DISCOVERY_NEW` (`const.py:37`) — every platform subscribes; new device bind → entities without reload | Config-flow steps (`async_step_auto_configure_device` `config_flow.py:986`); BLE auto-entities only when device has **zero** configured entities (`entity.py:94-99`) |
@@ -45,7 +45,7 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
 | Diagnostics | Entry + device, `customer_device_as_dict` (function/status_range/status/local_strategy/quirk), redaction | Entry + device, obfuscation, `cloud_devices` + `Discovered_Devices` (`diagnostics.py:33,64`) |
 | Platforms | 18: alarm_control_panel, binary_sensor, button, camera, climate, cover, **event**, fan, humidifier, light, number, **scene**, select, sensor, siren, switch, vacuum, **valve** | 18: alarm_control_panel, binary_sensor, button, climate, cover, fan, humidifier, light, lock, number, remote, select, sensor, siren, switch, text, vacuum, water_heater. **No camera; event / scene / valve ported (see §7.5); has extra lock / remote / text / water_heater** |
 | Entity base | `TuyaEntity` (`entity.py:15-109`): unique_id `tuya.{device.id}{desc.key}`, `available = device.online`, has_entity_name | `LocalTuyaEntity` (`entity.py:175+`): RestoreEntity + ContextualLogger, config-driven `_dp_id`, per-DP getter/setter/is_available |
-| Entity classes | **Thin delegators** over `definition.X_wrapper` (e.g. `switch.py:954-997`: is_on/turn_on/_process_update all go through wrapper) | **Thick config-driven** classes touching raw DPs (`switch.py:50-151`: getter/setter/bitmap branching + `set_dp`) — target: wrapper-delegating bodies with config as construction source |
+| Entity classes | **Thin delegators** over `definition.X_wrapper` (e.g. `switch.py:954-997`: is_on/turn_on/_process_update all go through wrapper) | **Thin wrapper delegators** over `definition.X_wrapper` (aligned: `_read_wrapper`/`_async_send_wrapper_updates`/`_process_device_update`, conversion in `core/dp_wrapper_decorators.py`); localtuya extras (light scene/music, cover movement state machine, sensor base64 sub-sensors, vacuum action DPs) stay in entities |
 | Device registry link | `get_device_info()` (`util.py:66-92`): identifiers `(tuya, device.id)`, manufacturer/model/model_id | `device_info` (`entity.py:278-297`): identifiers `(localtuya, local_{id})`, model = config model |
 | Quirks | `TUYA_QUIRKS_REGISTRY` keyed by product_id (`tuya_device_handlers/registry.py`); ~22 spec-patching quirks in `tuya_device_handlers/devices/*` | `QUIRKS_REGISTRY` (`core/quirks.py`) — ported: 18 spec-patching quirks + 13 Fingerbot button-DP quirks, applied to `TuyaDevice.function`/`status_range`/`category` before wrapper resolution (§7.10) |
 
@@ -320,15 +320,13 @@ synthetic-config fallbacks, percentage/humidity math).
 - `_auto_entities_for_device` now idempotent: it skips auto-generating configs whose
   `CONF_ID`/`CONF_PLATFORM` already exist in `dev_entry[CONF_ENTITIES]`, so repeated
   discovery signals can't duplicate entities.
-- `mappings.py` grew `derive_mappings_from_spec(device)`: instead of per-product
-  hardcoding, any device with a cloud spec (`function`/`status_range`: dpcode → dp_id)
-  gets its entity mappings derived on the fly from the (now `DeviceCategory`-keyed)
-  `ha_entities` tables. Per-product `MAPPINGS` still win when present; otherwise the
-  derivation kicks in. Resolution rules mirror `gen_localtuya_entities` (Enum vs tuple
-  DPCode alternatives, first-present-wins) and the spec gate mirrors core
-  `get_default_definition` (switch.py:938-943) — entities whose primary DP is absent from
-  the device spec are skipped. Import is lazy (function-scope) to break the
-  `ha_entities → platform → entity → mappings` import cycle.
+- Category-table derivation was later **unified** into `entity.py::_entity_specs_for_device`
+  (commit `c6b9de2`): BLE per-product `MAPPINGS` win when present, otherwise the shared
+  `_described_entity_specs` derivation (dpcode → dp_id from `function`/`status_range`,
+  first-present-wins tuple alternatives) applies for both transports. The earlier
+  `derive_mappings_from_spec` helper was removed — `mappings.py` is per-product-only now.
+  The spec gate mirrors core `get_default_definition` (switch.py:938-943): entities whose
+  primary DP is absent from the device spec are skipped.
 - Tests: 3 new cases in `tests/test_p2f1_auto_config.py` (category-table derivation,
   unknown-category empty, unknown-product fallback-to-derivation). Full suite now
   **92 passed**.
@@ -593,6 +591,24 @@ port 1:1.
 
 Tests: `tests/test_quirks.py` (patch/remove/category-override behavior +
 registry population + a wrapper-resolution check). Suite **172 passed**.
+
+### 7.11 Entity-class alignment pass (DONE)
+
+After the definition-driven runtime landed, the entity classes themselves were
+diffed against core and closed the last divergences:
+
+- **binary_sensor** — the on/off string comparison moved out of `status_updated`
+  into a `BinarySensorWrapper` (core's `DPCodeInSetWrapper`), so `is_on` is a thin
+  `_read_wrapper` call.
+- **event** — now DP-driven (not only the BLE Fingerbot bus event):
+  `SimpleEventEnumWrapper` / `Base64Utf8StringEventWrapper` /
+  `Base64Utf8RawEventWrapper` + `get_event_definition`, and the `EVENTS` table maps
+  `SP` (doorbell message/picture) and `WXKG` (`switch_mode1..9` numbered buttons).
+- **fan** — `FanDefinition.mode_wrapper` + `fan_mode=(fan_mode, mode)` in the `FANS`
+  table add `preset_mode`/`async_set_preset_mode`, and `async_turn_on` batches
+  switch/speed/preset commands like core.
+- **mechanical parity** — `@override` + return type hints + core-style signatures on
+  the thin methods across all core-parity platforms.
 
 ---
 
