@@ -398,23 +398,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             self._status.update(self._cached_status)
 
     @property
-    def extra_state_attributes(self):
-        """Return entity specific state attributes to be saved.
-
-        These attributes are then available for restore when the
-        entity is restored at startup.
-        """
-        attributes = super().extra_state_attributes
-
-        extra_attrs = (CONF_COLOR_MODE, CONF_COLOR, CONF_BRIGHTNESS, CONF_COLOR_TEMP)
-        for attr in extra_attrs:
-            dp = self._config.get(attr)
-            if dp is not None and (state := self._status.get(dp)) is not None:
-                attributes[f"raw_{attr}"] = state
-
-        return attributes
-
-    @property
     @override
     def is_on(self) -> bool | None:
         """Return true if light is on."""

@@ -16,8 +16,9 @@ SYNC CHECKLIST (when the core component is updated):
        ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
        provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
      - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
-     - ``extra_state_attributes`` (current/voltage/power), ``bitmap_mask``
-       writes, and restore-on-reconnect are localtuya-only.
+     - ``bitmap_mask`` writes and restore-on-reconnect are localtuya-only.
+       (current/voltage/power are sensor entities, as in core — see
+       ``core/ha_entities/sensors.py``.)
 """
 
 import logging
@@ -37,17 +38,10 @@ from .entity import LocalTuyaEntity, async_setup_entry
 from .core.definitions import get_switch_definition
 from .core.dp_wrappers import BitmapMaskWrapper, RawDPWrapper, dp_wrapper_by_id
 from .const import (
-    ATTR_CURRENT,
-    ATTR_CURRENT_CONSUMPTION,
-    ATTR_STATE,
-    ATTR_VOLTAGE,
     CONF_BITMAP_MASK,
-    CONF_CURRENT,
-    CONF_CURRENT_CONSUMPTION,
     CONF_DEFAULT_VALUE,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
-    CONF_VOLTAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,9 +50,6 @@ _LOGGER = logging.getLogger(__name__)
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
-        vol.Optional(CONF_CURRENT): col_to_select(dps, is_dps=True),
-        vol.Optional(CONF_CURRENT_CONSUMPTION): col_to_select(dps, is_dps=True),
-        vol.Optional(CONF_VOLTAGE): col_to_select(dps, is_dps=True),
         vol.Required(CONF_RESTORE_ON_RECONNECT): bool,
         vol.Required(CONF_PASSIVE_ENTITY): bool,
         vol.Optional(CONF_DEFAULT_VALUE): str,
@@ -119,26 +110,6 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
     def is_on(self):
         """Return true if switch is on."""
         return self._read_wrapper(self._dpcode_wrapper)
-
-    @property
-    def extra_state_attributes(self):
-        """Return device state attributes."""
-        attrs = {}
-        if self.has_config(CONF_CURRENT):
-            attrs[ATTR_CURRENT] = self.dp_value(self._config[CONF_CURRENT])
-        if self.has_config(CONF_CURRENT_CONSUMPTION):
-            val_cc = self.dp_value(self._config[CONF_CURRENT_CONSUMPTION])
-            attrs[ATTR_CURRENT_CONSUMPTION] = None if val_cc is None else val_cc / 10
-        if self.has_config(CONF_VOLTAGE):
-            val_vol = self.dp_value(self._config[CONF_VOLTAGE])
-            attrs[ATTR_VOLTAGE] = None if val_vol is None else val_vol / 10
-
-        # Store the state
-        if self._state is not None:
-            attrs[ATTR_STATE] = self._state
-        elif self._last_state is not None:
-            attrs[ATTR_STATE] = self._last_state
-        return attrs
 
     async def _process_device_update(
         self,

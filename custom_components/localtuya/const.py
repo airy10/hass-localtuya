@@ -56,9 +56,6 @@ LOCALTUYA_DISCOVERY_NEW = "localtuya_discovery_new"
 
 # Fingerbot switch datapoint ids moved to core/quirks.py (QUIRKS_REGISTRY).
 
-ATTR_CURRENT = "current"
-ATTR_CURRENT_CONSUMPTION = "current_consumption"
-ATTR_VOLTAGE = "voltage"
 ATTR_UPDATED_AT = "updated_at"
 
 # Tuya Devices
@@ -134,11 +131,6 @@ CONF_COLOR_TYPE_DATA = "color_type_data"
 CONF_MUSIC_MODE = "music_mode"
 CONF_SCENE_VALUES = "scene_values"
 CONF_SCENE_VALUES_FRIENDLY = "scene_values_friendly"
-
-# switch
-CONF_CURRENT = "current"
-CONF_CURRENT_CONSUMPTION = "current_consumption"
-CONF_VOLTAGE = "voltage"
 
 # cover
 CONF_COMMANDS_SET = "commands_set"

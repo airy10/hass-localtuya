@@ -167,9 +167,11 @@ branching, no wrapper). Target alignment, per platform:
     cloud-derived `work_mode` range — removes the US/UK spelling patches entirely.
   - **sensor/climate/fan/cover/humidifier/vacuum/...**: consume `TypeInformation` for units,
     scaling, validation.
-- **Keep what core lacks**: `extra_state_attributes` (current/voltage/consumption on
-  switches), `RestoreEntity`/restore-on-reconnect, per-DP `getter`/`setter`/`is_available`
-  callbacks — these are localtuva extras worth preserving.
+- **Keep what core lacks**: `RestoreEntity`/restore-on-reconnect (incl. the base
+  `extra_state_attributes` ``state`` attribute used to restore raw values), and per-DP
+  `getter`/`setter`/`is_available` callbacks — these are localtuva extras worth preserving.
+  (The switch current/voltage/consumption and vacuum clean-time/area/record attributes
+  were removed in favor of core-style sensor entities — see `core/ha_entities/sensors.py`.)
 
 ### Phase 4 — Discovery & runtime entity addition
 
@@ -231,7 +233,7 @@ Per user directive — "similar functions should be in the same order (with same
 docstrings/comments if the functions match) in both core and our components class files" —
 every platform's shared methods now appear in core's relative order with core's exact
 docstrings. Ours-only config-driven extras (`flow_schema`, `_setter`/`_getter`, bitmap
-helpers, `extra_state_attributes`, scene math, `_process_device_update` guard, etc.) stay,
+helpers, scene math, `_process_device_update` guard, etc.) stay,
 positioned sensibly around the core-shaped block.
 
 Core orders adopted:

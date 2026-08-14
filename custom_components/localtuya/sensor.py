@@ -15,8 +15,8 @@ SYNC CHECKLIST (when the core component is updated):
        ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
        provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
      - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
-     - base64 sub-sensors, ``extra_state_attributes``, and state_class/
-       scaling/offset config are localtuya-only.
+     - base64 sub-sensors and state_class/scaling/offset config are
+       localtuya-only.
 """
 
 import logging

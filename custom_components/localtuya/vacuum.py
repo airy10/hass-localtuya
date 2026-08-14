@@ -18,6 +18,8 @@ SYNC CHECKLIST (when the core component is updated):
      - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
      - action DPs (power/stop/pause/locate) stay config-driven ``set_dp``; the
        activity classification state machine is localtuya-only.
+     - clean time/area/record are sensor entities (``core/ha_entities/sensors.py``),
+       not vacuum attributes; only ``fault_dp`` feeds the ERROR activity.
 """
 
 import logging
@@ -36,9 +38,6 @@ from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.definitions import get_vacuum_definition
 from .const import (
-    CONF_CLEAN_AREA_DP,
-    CONF_CLEAN_RECORD_DP,
-    CONF_CLEAN_TIME_DP,
     CONF_DOCKED_STATUS_VALUE,
     CONF_FAN_SPEED_DP,
     CONF_FAN_SPEEDS,
@@ -56,13 +55,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-CLEAN_TIME = "clean_time"
-CLEAN_AREA = "clean_area"
-CLEAN_RECORD = "clean_record"
-MODES_LIST = "cleaning_mode_list"
-MODE = "cleaning_mode"
-FAULT = "fault"
 
 DEFAULT_IDLE_STATUS = "standby,sleep"
 DEFAULT_RETURNING_STATUS = "docking,to_charge,goto_charge"
@@ -91,9 +83,6 @@ def flow_schema(dps):
         vol.Optional(CONF_RETURN_MODE, default=DEFAULT_RETURN_MODE): str,
         vol.Optional(CONF_FAN_SPEED_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_FAN_SPEEDS, default=DEFAULT_FAN_SPEEDS): str,
-        vol.Optional(CONF_CLEAN_TIME_DP): col_to_select(dps, is_dps=True),
-        vol.Optional(CONF_CLEAN_AREA_DP): col_to_select(dps, is_dps=True),
-        vol.Optional(CONF_CLEAN_RECORD_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_LOCATE_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_FAULT_DP): col_to_select(dps, is_dps=True),
     }
@@ -106,7 +95,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         """Initialize a new LocalTuyaVacuum."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
-        self._attrs = {}
 
         self._idle_status_list = []
         if self.has_config(CONF_IDLE_STATUS_VALUE):
@@ -117,7 +105,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_MODES):
             modes_list = self._config[CONF_MODES].split(",")
             self._modes_list = [mode.lstrip() for mode in modes_list]
-            self._attrs[MODES_LIST] = self._modes_list
 
         self._returning_status_list = []
         if self.has_config(CONF_RETURNING_STATUS_VALUE):
@@ -133,8 +120,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         if self.has_config(CONF_FAN_SPEEDS):
             fan_speeds = self._config[CONF_FAN_SPEEDS].split(",")
             self._fan_speed_list = [speed.lstrip() for speed in fan_speeds]
-
-        self._cleaning_mode = ""
 
         # Core resolves action/fan_speed/activity wrappers; ours reads the
         # config status lists and writes config values, so only fan speed is
@@ -186,11 +171,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     def activity(self) -> VacuumActivity | None:
         """Return Tuya vacuum device state."""
         return self._state
-
-    @property
-    def extra_state_attributes(self):
-        """Return the specific state attributes of this vacuum cleaner."""
-        return self._attrs
 
     async def async_start(self, **kwargs):
         """Start the device."""
@@ -263,24 +243,8 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         else:
             self._state = VacuumActivity.CLEANING
 
-        self._cleaning_mode = ""
-        if self.has_config(CONF_MODES):
-            self._cleaning_mode = self.dp_value(CONF_MODE_DP)
-            self._attrs[MODE] = self._cleaning_mode
-
-        if self.has_config(CONF_CLEAN_TIME_DP):
-            self._attrs[CLEAN_TIME] = self.dp_value(CONF_CLEAN_TIME_DP)
-
-        if self.has_config(CONF_CLEAN_AREA_DP):
-            self._attrs[CLEAN_AREA] = self.dp_value(CONF_CLEAN_AREA_DP)
-
-        if self.has_config(CONF_CLEAN_RECORD_DP):
-            self._attrs[CLEAN_RECORD] = self.dp_value(CONF_CLEAN_RECORD_DP)
-
-        if self.has_config(CONF_FAULT_DP):
-            self._attrs[FAULT] = self.dp_value(CONF_FAULT_DP)
-            if self._attrs[FAULT] != 0:
-                self._state = VacuumActivity.ERROR
+        if self.has_config(CONF_FAULT_DP) and self.dp_value(CONF_FAULT_DP) != 0:
+            self._state = VacuumActivity.ERROR
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaVacuum, flow_schema)
