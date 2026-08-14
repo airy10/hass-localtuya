@@ -1,4 +1,10 @@
-"""Platform to present any Tuya DP as a text."""
+"""Platform to present any Tuya DP as a text.
+
+No core equivalent: the HA core ``tuya`` integration has no text platform
+(localtuya-only). No sync checklist applies. Keep the manual ``dps`` config
+fallback and the description-driven ``__init__``
+(SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+"""
 
 import logging
 from functools import partial

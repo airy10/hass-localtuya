@@ -1,4 +1,10 @@
-"""Platform to present any Tuya DP as a Lock."""
+"""Platform to present any Tuya DP as a Lock.
+
+No core equivalent: the HA core ``tuya`` integration has no lock platform
+(localtuya-only). No sync checklist applies. Keep the manual ``dps`` config
+fallback, the description-driven ``__init__`` (SPEC_DEFINITION_DRIVEN_RUNTIME.md),
+and the ``lock_state_dp`` / ``jammed_dp`` secondary-DP state machine.
+"""
 
 import logging
 from functools import partial

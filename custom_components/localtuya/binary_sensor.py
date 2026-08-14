@@ -1,4 +1,23 @@
-"""Platform to present any Tuya DP as a binary sensor."""
+"""Platform to present any Tuya DP as a binary sensor.
+
+Core parity: ``LocalTuyaBinarySensor`` mirrors ``homeassistant/components/tuya/binary_sensor.py``
+(``TuyaBinarySensorEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/binary_sensor.py`` against this file.
+  2. Port: method bodies, ``__init__`` wrapper assignment, and
+     ``_process_device_update``.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: reads go over BLE/Ethernet via ``_read_wrapper`` instead of
+       cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves the wrapper by dpcode via ``get_binary_sensor_definition``; the
+       manual ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the
+       fallback provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+     - ``is_on`` compares the raw value against the config ``CONF_STATE_ON``
+       (core compares against a fixed ``state_on``).
+"""
 
 import logging
 import voluptuous as vol

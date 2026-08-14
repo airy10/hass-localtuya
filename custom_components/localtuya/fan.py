@@ -1,4 +1,24 @@
-"""Platform to locally control Tuya-based fan devices."""
+"""Platform to locally control Tuya-based fan devices.
+
+Core parity: ``LocalTuyaFan`` mirrors ``homeassistant/components/tuya/fan.py``
+(``TuyaFanEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/fan.py`` against this file.
+  2. Port: method bodies, ``__init__`` wrapper assignment, and
+     ``_process_device_update``.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: reads/writes go over BLE/Ethernet via ``_read_wrapper`` /
+       ``_async_send_wrapper_updates`` (``_async_send_commands`` sends
+       ``{code, dp_id, value}``) instead of cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves wrappers by dpcode via ``get_fan_definition``; the manual
+       ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
+       provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+     - percentage↔speed scaling, fwd/rev direction mapping, and
+       ``speed_count`` / ordered-speed-list handling stay config-driven.
+"""
 
 import logging
 from functools import partial

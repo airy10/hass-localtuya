@@ -1,4 +1,11 @@
-"""Platform to locally control Tuya-based WaterHeater devices."""
+"""Platform to locally control Tuya-based water-heater devices.
+
+No core equivalent: the HA core ``tuya`` integration has no water-heater
+platform (localtuya-only). No sync checklist applies. Keep the manual ``dps``
+config fallback, the description-driven ``__init__``
+(SPEC_DEFINITION_DRIVEN_RUNTIME.md), and the ``DictSelector`` / temperature
+wrapper decorators.
+"""
 
 import logging
 from functools import partial

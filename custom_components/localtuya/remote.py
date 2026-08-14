@@ -1,4 +1,11 @@
-"""Platform to present any Tuya DP as a remote."""
+"""Platform to present any Tuya DP as a remote.
+
+No core equivalent: the HA core ``tuya`` integration has no remote platform
+(localtuya-only). No sync checklist applies. Keep the IR/RF JSON + enum
+command DPs, the learn/delete-command storage, the manual ``dps`` config
+fallback, and the description-driven ``__init__``
+(SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+"""
 
 import asyncio
 import json

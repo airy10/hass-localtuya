@@ -293,9 +293,14 @@ description → resolve by code".
   both reach the cloud auto-configure step.
 
 ### Phase 7 — porting discipline
-- Add a per-file mapping (localtuya entity → core entity) + a `SYNC CHECKLIST`
-  (like `dp_types.py` / `dp_wrappers.py` already have) listing intentional
-  deltas (transport abstraction, manual fallback, extra light features, naming).
+- **DONE** — every platform file now carries a `Core parity` + `SYNC CHECKLIST`
+  header mapping it to its core file/class (`TuyaSwitchEntity`,
+  `TuyaLightEntity`, …) and listing the intentional deltas (transport
+  abstraction, manual `dps` fallback, `local_{device_id}_{dp_id}` unique_id,
+  plus per-platform deltas like light scene/music, cover movement state
+  machine, vacuum action DPs). lock/remote/water_heater/text/scene carry a
+  "no core equivalent" (or cloud-only) note instead. The consolidated map is
+  in `ARCHITECTURE_ALIGNMENT_CORE_TUYA.md` §7.9.
 
 ## Test strategy
 1. **Definition resolver unit tests** (`tests/test_definitions.py`): tuple

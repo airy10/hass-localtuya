@@ -1,4 +1,24 @@
-"""Platform to locally control Tuya-based vacuum devices."""
+"""Platform to locally control Tuya-based vacuum devices.
+
+Core parity: ``LocalTuyaVacuum`` mirrors ``homeassistant/components/tuya/vacuum.py``
+(``TuyaVacuumEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/vacuum.py`` against this file.
+  2. Port: method bodies, ``__init__`` wrapper assignment, and
+     ``_process_device_update``.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: reads/writes go over BLE/Ethernet via ``_read_wrapper`` /
+       ``_async_send_wrapper_updates`` (``_async_send_commands`` sends
+       ``{code, dp_id, value}``) instead of cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves the fan-speed wrapper by dpcode via ``get_vacuum_definition``;
+       the manual ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is
+       the fallback provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+     - action DPs (power/stop/pause/locate) stay config-driven ``set_dp``; the
+       activity classification state machine is localtuya-only.
+"""
 
 import logging
 from functools import partial

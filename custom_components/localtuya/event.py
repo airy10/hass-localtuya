@@ -5,6 +5,17 @@ on the HA bus (coordinator ``_handle_fingerbot_button``) when the physical
 button is pressed; this platform wraps that bus event as an ``event``
 entity (mirroring core tuya's event platform, which turns doorbell/button
 DP updates into ``EventEntity`` triggers).
+
+Core parity: ``LocalTuyaEvent`` mirrors ``homeassistant/components/tuya/event.py``
+(``TuyaEventEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/event.py`` against this file.
+  2. Port: event-type declaration and ``_trigger_event``.
+  3. Keep our deliberate deltas (they are intentional):
+     - the event source is the localtuya Fingerbot bus event, not a cloud DP
+       update; event entities are per-DP-configurable, so the ``EVENTS``
+       category table stays empty.
 """
 
 import logging

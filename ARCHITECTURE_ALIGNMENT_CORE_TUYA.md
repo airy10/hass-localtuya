@@ -508,20 +508,66 @@ coordinator writes the resolved credentials/specs back into
 matches Ethernet's setup-time-only cloud dependency. 4 new tests; suite
 **134 passed**.
 
----
-
-## 8. Next work — definition-driven runtime
-
-The entity *method bodies* now match core, but the *runtime* still resolves
-wrappers from the persisted `dps` config by dp_id, whereas core resolves from
-a `DeviceCategory → EntityDescription` table by dpcode. LocalTuya already has
-the core-shaped category tables (`core/ha_entities/*.py`) and the
-core-compatible `function`/`status_range`/`status` surface — the gap is that
-`gen_localtuya_entities()`/`get_mapping_by_device()` flatten the tables to
-`dps` config at setup instead of handing the description to the entity.
+### 7.9 Definition-driven runtime — Phases 0–7 (DONE)
 
 Full plan: `custom_components/localtuya/SPEC_DEFINITION_DRIVEN_RUNTIME.md`.
-Goals: (1) max user automation (cloud account → auto entities, no technical
-input), (2) entity classes core-identical (`__init__(device, description)`,
-core-named wrappers) so core fixes diff cleanly. Phased 0–7; Phase 0 step 0
-(BLE offline persistence) is already done.
+The entity *method bodies* already matched core (§7.6–7.7); now the *runtime*
+resolves wrappers from a `DeviceCategory → LocalTuyaEntity` description table
+by **dpcode**, exactly like core, instead of flattening to a persisted `dps`
+config. Completed in commits `92cb69b` (definitions + switch/light), `f6248f3`
+(all remaining platforms), `2b1b1ba` (cloud-first config flow), plus this
+Phase 7 porting checklist.
+
+- `core/definitions.py` — `resolve()` + per-platform `get_*_definition()` that
+  resolve core-named wrappers by dpcode (tuple-alternative + spec gate),
+  mirroring core's `get_default_definition`.
+- `entity.py` — `entity_config_from_description` adapter, `descriptions_for_
+  platform`, and description-driven `async_setup_entry` (Ethernet derives via
+  `_described_entity_specs`; BLE via `_auto_entities_for_device` →
+  `derive_mappings_from_spec`).
+- `config_flow.py` — `async_step_auto_configure_device` / `setup_localtuya_devices`
+  persist the cloud data (category + specs) with an empty entity list; the
+  runtime resolves live. Manual `dps` and "no cloud" stay escape hatches.
+- Every platform file carries a `Core parity` + `SYNC CHECKLIST` header
+  (Phase 7) mapping it to its core file/class and listing the intentional
+  deltas.
+
+**Porting map** (localtuya file → core file → core entity class):
+
+| LocalTuya | Core | Core class |
+|---|---|---|
+| switch.py | switch.py | `TuyaSwitchEntity` |
+| light.py | light.py | `TuyaLightEntity` |
+| climate.py | climate.py | `TuyaClimateEntity` |
+| fan.py | fan.py | `TuyaFanEntity` |
+| cover.py | cover.py | `TuyaCoverEntity` |
+| humidifier.py | humidifier.py | `TuyaHumidifierEntity` |
+| number.py | number.py | `TuyaNumberEntity` |
+| select.py | select.py | `TuyaSelectEntity` |
+| sensor.py | sensor.py | `TuyaSensorEntity` |
+| binary_sensor.py | binary_sensor.py | `TuyaBinarySensorEntity` |
+| siren.py | siren.py | `TuyaSirenEntity` |
+| alarm_control_panel.py | alarm_control_panel.py | `TuyaAlarmEntity` |
+| valve.py | valve.py | `TuyaValveEntity` |
+| vacuum.py | vacuum.py | `TuyaVacuumEntity` |
+| button.py | button.py | `TuyaButtonEntity` |
+| event.py | event.py | `TuyaEventEntity` |
+| scene.py | scene.py | `TuyaSceneEntity` |
+| lock.py / remote.py / water_heater.py / text.py | — | no core equivalent |
+
+Universal deltas repeated in every checklist: BLE/Ethernet transport (not
+MQTT), description-driven construction with manual `dps` fallback, and
+`local_{device_id}_{dp_id}` `unique_id`. Platform-specific deltas live in each
+file's header (light scene/music modes, cover movement state machine, vacuum
+action DPs, sensor base64 sub-sensors, …).
+
+---
+
+## 8. Next work
+
+The definition-driven runtime (Phases 0–7) is complete. Remaining, optional
+follow-ups: (1) remove the now-unused `gen_localtuya_entities` flattening
+helper, (2) drop the manual `dps` path entirely once cloud auto-config proves
+stable, (3) reconcile the BLE `_auto_entities_for_device`/`derive_mappings_from_spec`
+path with the shared `_described_entity_specs` path into a single runtime
+resolver.

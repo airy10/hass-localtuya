@@ -1,4 +1,21 @@
-"""Platform to locally control Tuya-based button devices."""
+"""Platform to locally control Tuya-based button devices.
+
+Core parity: ``LocalTuyaButton`` mirrors ``homeassistant/components/tuya/button.py``
+(``TuyaButtonEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/button.py`` against this file.
+  2. Port: ``async_press`` and the ``__init__`` wrapper assignment.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: writes go over BLE/Ethernet via ``_async_send_wrapper_updates``
+       (``_async_send_commands`` sends ``{code, dp_id, value}``) instead of
+       cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves the wrapper by dpcode via ``get_button_definition``; the manual
+       ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
+       provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+"""
 
 import logging
 from functools import partial

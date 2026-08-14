@@ -1,4 +1,15 @@
-"""Support for Tuya scenes."""
+"""Support for Tuya scenes.
+
+Core parity: ``TuyaSceneEntity`` mirrors ``homeassistant/components/tuya/scene.py``.
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/scene.py`` against this file.
+  2. Port: ``async_activate``, ``unique_id`` (``tys{scene_id}``), availability.
+  3. Keep our deliberate deltas (they are intentional):
+     - scenes are cloud-only (``SharingCloud.async_get_scenes`` /
+       ``async_trigger_scene``); the legacy ``TuyaCloudApi`` has no scene
+       endpoint and localtuya has no local scene DP.
+"""
 
 import logging
 from typing import Any, override

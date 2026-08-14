@@ -1,4 +1,23 @@
-"""Platform to present any Tuya DP as a sensor."""
+"""Platform to present any Tuya DP as a sensor.
+
+Core parity: ``LocalTuyaSensor`` mirrors ``homeassistant/components/tuya/sensor.py``
+(``TuyaSensorEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/sensor.py`` against this file.
+  2. Port: method bodies, ``__init__`` wrapper assignment, and
+     ``_process_device_update``.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: reads go over BLE/Ethernet via ``_read_wrapper`` instead of
+       cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves the wrapper by dpcode via ``get_sensor_definition``; the manual
+       ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
+       provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+     - base64 sub-sensors, ``extra_state_attributes``, and state_class/
+       scaling/offset config are localtuya-only.
+"""
 
 import logging
 import base64

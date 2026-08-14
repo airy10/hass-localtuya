@@ -1,4 +1,24 @@
-"""Platform to present any Tuya DP as a number."""
+"""Platform to present any Tuya DP as a number.
+
+Core parity: ``LocalTuyaNumber`` mirrors ``homeassistant/components/tuya/number.py``
+(``TuyaNumberEntity``).
+
+SYNC CHECKLIST (when the core component is updated):
+  1. Diff ``homeassistant/components/tuya/number.py`` against this file.
+  2. Port: method bodies, ``__init__`` wrapper assignment, and
+     ``_process_device_update``.
+  3. Keep our deliberate deltas (they are intentional):
+     - transport: reads/writes go over BLE/Ethernet via ``_read_wrapper`` /
+       ``_async_send_wrapper_updates`` (``_async_send_commands`` sends
+       ``{code, dp_id, value}``) instead of cloud MQTT.
+     - construction: ``__init__(device, config_entry, dp_id, description=None)``
+       resolves the wrapper by dpcode via ``get_number_definition``; the manual
+       ``dps`` config (``dp_wrapper_by_id`` / ``RawDPWrapper``) is the fallback
+       provider (SPEC_DEFINITION_DRIVEN_RUNTIME.md).
+     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+     - config min/max/step + scaling/offset fall back to (and override) the
+       wrapper's ``IntegerTypeInformation`` bounds.
+"""
 
 import logging
 from functools import partial
