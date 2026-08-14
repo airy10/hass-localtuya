@@ -468,3 +468,60 @@ called / Ethernet spec view falls back), backfill (init fetches + persists when 
 delegation tests in `tests/test_wrapper_delegation.py` cover all six multi-DP platforms with a
 `dp_wrapper_by_id` patch (the `or RawDPWrapper` fallback only triggers when the patch returns
 `None`). Full suite: **110 passed**.
+
+### 7.7 Wrapper decorator refactor — conversion moved out of entities (DONE)
+
+Full spec: `custom_components/localtuya/SPEC_WRAPPER_REFACTORING.md`
+(commit `a7a7816`).
+
+The conversions §7.6 left "kept in the entities" (percentage scaling,
+DictSelector maps, timed cover math, position inversion, color encode/decode,
+climate temp precision/unit) are now owned by 14 composable decorators in
+`core/dp_wrapper_decorators.py` that wrap an inner wrapper and convert one
+step before delegating through its public `read_device_status` /
+`get_update_commands` interface. Platforms were refactored to thin
+`_read_wrapper` / `_async_send_wrapper_updates` bodies:
+
+- select → `DictSelectorWrapper` (removed `status_updated`/`_state_friendly`)
+- fan → `FanSpeedPercentageWrapper` + `FanDirectionWrapper` (removed `status_updated`)
+- humidifier / alarm_control_panel / water_heater → `DictSelectorWrapper` (+ `ClimateTempWrapper`)
+- cover → `InvertedPercentageWrapper` on the set-position write (movement state machine kept)
+- climate → `DictSelectorWrapper` + `ClimateTempWrapper` + `HumidityCoefficientWrapper`
+- vacuum → `fan_speed` fully thin
+- light → `StringColorWrapper` + `BrightnessWrapper` + `ColorTempWrapper` (removed `status_updated`/`_color_temp_reverse`)
+
+Also moved `ColorTypeData`/`map_range` into the decorators module, and fixed
+`TuyaDevice.status` to derive dpcode keys from `status_range`/`function`.
+Remaining `status_updated` overrides are all genuine state machines
+(cover movement, vacuum activity classification, sensor base64 sub-sensors,
+siren/lock/remote). 20 new decorator unit tests; suite **130 passed**.
+
+### 7.8 BLE offline persistence — no cloud needed after setup (DONE)
+
+Commit `e635599`. §7.6 persisted the Ethernet spec; BLE still resolved its
+credentials/specs from the live cloud at connect time. Now
+`ble_manager._resolve_credentials` reads the persisted `DEVICE_CLOUD_DATA`
+snapshot first (identity + `ble_specs` = functions/status_range) and only
+hits the cloud when the snapshot is incomplete or `force_update` is set; the
+coordinator writes the resolved credentials/specs back into
+`DEVICE_CLOUD_DATA` after a successful connect (only when changed). BLE now
+matches Ethernet's setup-time-only cloud dependency. 4 new tests; suite
+**134 passed**.
+
+---
+
+## 8. Next work — definition-driven runtime
+
+The entity *method bodies* now match core, but the *runtime* still resolves
+wrappers from the persisted `dps` config by dp_id, whereas core resolves from
+a `DeviceCategory → EntityDescription` table by dpcode. LocalTuya already has
+the core-shaped category tables (`core/ha_entities/*.py`) and the
+core-compatible `function`/`status_range`/`status` surface — the gap is that
+`gen_localtuya_entities()`/`get_mapping_by_device()` flatten the tables to
+`dps` config at setup instead of handing the description to the entity.
+
+Full plan: `custom_components/localtuya/SPEC_DEFINITION_DRIVEN_RUNTIME.md`.
+Goals: (1) max user automation (cloud account → auto entities, no technical
+input), (2) entity classes core-identical (`__init__(device, description)`,
+core-named wrappers) so core fixes diff cleanly. Phased 0–7; Phase 0 step 0
+(BLE offline persistence) is already done.
