@@ -487,8 +487,12 @@ async def _async_connect_cloud(
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unloading the Tuya platforms."""
-    # Unload the platforms.
-    await hass.config_entries.async_unload_platforms(entry, PLATFORMS.values())
+    # Unload every forwarded platform, including scene (forwarded separately
+    # from PLATFORMS in async_setup_entry). Leaving scene out here caused
+    # "Config entry ... has already been setup!" on reload.
+    await hass.config_entries.async_unload_platforms(
+        entry, (*PLATFORMS.values(), Platform.SCENE)
+    )
     hass.data[DOMAIN].pop(entry.entry_id)
 
     _LOGGER.info("Unload completed")
