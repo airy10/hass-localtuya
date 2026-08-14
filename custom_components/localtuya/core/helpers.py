@@ -116,4 +116,4 @@ def get_gateway_by_deviceid(device_id: str, cloud_data: dict) -> GATEWAY:
 ###############################
 #    Auto configure device    #
 ###############################
-from .ha_entities import gen_localtuya_entities
+from .ha_entities import category_has_descriptions, gen_localtuya_entities

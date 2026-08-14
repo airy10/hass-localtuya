@@ -278,12 +278,19 @@ description → resolve by code".
   reading secondary DPs from the config adapter (they have no core equivalent).
 
 ### Phase 6 — config flow (max automation)
-- Cloud-first `async_step_auto_configure_device`: after
-  `async_get_device_functions`, build entity **descriptions** (not flattened
-  `dps`), persist the selection, and let runtime resolve live. Keep manual
-  `dps` and "no cloud" as escape hatches.
-- Verify the existing QR sharing flow (`sharing_cloud.py`) is the default
-  auth path and that Ethernet (IoT platform) and BLE both flow through it.
+- **DONE** — `async_step_auto_configure_device` (and the mass-configure
+  `setup_localtuya_devices`) now persist the device's cloud data (category +
+  DP specs) with an **empty** entity list instead of flattening to a `dps`
+  config via `gen_localtuya_entities`; the runtime derives entities from the
+  `ha_entities` category tables by dpcode at setup (Ethernet via
+  `_described_entity_specs`, BLE via `_auto_entities_for_device` →
+  `derive_mappings_from_spec`). Added `category_has_descriptions()` as the
+  config-time category gate. Manual `dps` and "no cloud" remain the escape
+  hatches.
+- **DONE (verified)** — QR sharing (`sharing_cloud.py`) is already the default
+  auth path (`async_step_user` restores a prior session first, then offers
+  `qr_login` before the legacy `login`), and Ethernet (IoT platform) and BLE
+  both reach the cloud auto-configure step.
 
 ### Phase 7 — porting discipline
 - Add a per-file mapping (localtuya entity → core entity) + a `SYNC CHECKLIST`
@@ -300,7 +307,7 @@ description → resolve by code".
    passthrough, offline snapshot) and manual provider (synthesized specs).
 4. **Config-flow tests**: cloud auto-config produces descriptions; offline and
    manual paths still work.
-5. **Regression**: full suite (currently 164 tests) must stay green; add the
+5. **Regression**: full suite (currently 166 tests) must stay green; add the
    new tests incrementally per phase.
 
 ## Success criteria

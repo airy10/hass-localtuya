@@ -55,7 +55,11 @@ from homeassistant.const import (
 from .coordinator import HassLocalTuyaData
 from .core import pytuya
 from .core.cloud_api import TUYA_ENDPOINTS, TuyaCloudApi
-from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_entities
+from .core.helpers import (
+    templates,
+    get_gateway_by_deviceid,
+    category_has_descriptions,
+)
 from .core.tuya_ble_lib import SERVICE_UUID
 from .const import (
     ATTR_UPDATED_AT,
@@ -986,7 +990,15 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         )
 
     async def async_step_auto_configure_device(self, user_input=None):
-        """Handle asking which templates to use"""
+        """Auto-configure a device from its cloud category + DP specs.
+
+        Definition-driven (SPEC_DEFINITION_DRIVEN_RUNTIME.md Phase 6):
+        persists the device's cloud data (category + DP specs) and stores an
+        empty entity list, so the runtime derives entities from the
+        ``ha_entities`` category tables by dpcode instead of persisting a
+        flattened ``dps`` config. Manual ``dps`` and "no cloud" remain the
+        escape hatches.
+        """
 
         errors = {}
         placeholders = {}
@@ -995,7 +1007,6 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         is_cloud = not self.config_entry.data.get(CONF_NO_CLOUD)
         dev_id = self.selected_device
         category = None
-        node_id = self.nodeID
         device_data = self.cloud_data.device_list.get(dev_id)
         if device_data:
             # Individual auto-configuration must not depend on the background
@@ -1005,17 +1016,10 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             category = device_data.get(TUYA_CATEGORY, "")
             self.device_data[DEVICE_CLOUD_DATA] = device_data
 
-        localtuya_data = {
-            DEVICE_CLOUD_DATA: device_data,
-            CONF_DPS_STRINGS: self.dps_strings,
-            CONF_FRIENDLY_NAME: self.device_data.get(CONF_FRIENDLY_NAME),
-        }
-
-        dev_data = gen_localtuya_entities(localtuya_data, category)
-
-        # Process to add the device to localtuya HA Config.
-        if dev_data:
-            self.entities = dev_data
+        # Persist the selection (category + cloud specs) with no flattened
+        # entities; the runtime resolves descriptions by dpcode at setup.
+        if category and category_has_descriptions(category):
+            self.entities = []
             return await self.async_step_pick_entity_type(
                 {NO_ADDITIONAL_ENTITIES: True}
             )
@@ -1026,7 +1030,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             err_msg = f"Couldn't find your device in the cloud account you using"
         elif not category:
             err_msg = f"Your device category isn't supported"
-        elif not dev_data:
+        else:
             err_msg = f"Couldn't find the data for your device category: {category}."
 
         placeholders = {"err_msg": err_msg}
@@ -1312,21 +1316,19 @@ async def setup_localtuya_devices(
             continue
         devices.update({dev_id: {**dev_cfg, **result}})
 
-    # Configure entities.
+    # Configure entities (definition-driven): store the cloud specs + an empty
+    # entity list; the runtime derives entities from the category tables by
+    # dpcode at setup (no flattened dps config persisted).
     for dev_id, dev_data in copy.deepcopy(devices).items():
         category = devices_cloud_data[dev_id].get("category")
         dev_data[DEVICE_CLOUD_DATA] = devices_cloud_data[dev_id]
-        if category and (dps_strings := dev_data.get(CONF_DPS_STRINGS, False)):
-            dev_entites = gen_localtuya_entities(dev_data, category)
 
-        # Configure entities fails
-        if not dev_entites:
+        if not (category and category_has_descriptions(category)):
             devices.pop(dev_id)
-            update_fails(dev_id, f"no configured entities: {dev_entites} - {category}")
+            update_fails(dev_id, f"no configured entities for category: {category}")
             continue
 
-        # Add configured entities
-        devices[dev_id].update({CONF_ENTITIES: dev_entites})
+        devices[dev_id].update({CONF_ENTITIES: []})
 
     return devices, fails
 

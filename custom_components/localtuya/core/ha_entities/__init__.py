@@ -81,6 +81,16 @@ DATA_PLATFORMS = {
 _LOGGER = logging.getLogger(__name__)
 
 
+def category_has_descriptions(category: str) -> bool:
+    """Return True when any platform table declares entities for a category.
+
+    Used by the config flow to decide whether a device's cloud category can be
+    auto-configured from the ``ha_entities`` tables (definition-driven runtime)
+    without flattening to a ``dps`` config.
+    """
+    return any(bool(table.get(category)) for table in DATA_PLATFORMS.values())
+
+
 def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dict]:
     """Return localtuya entities using the data that provided from TUYA"""
     detected_dps: list = localtuya_data.get(CONF_DPS_STRINGS)
