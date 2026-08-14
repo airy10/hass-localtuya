@@ -54,10 +54,11 @@ class FakeWrapper:
     max_value = 100
     value_step = 1
 
-    def __init__(self, read_value=None, options=None, dpcode="fake"):
+    def __init__(self, read_value=None, options=None, dpcode="fake", dp_id=1):
         self.read_value = read_value
         self.options = options
         self.dpcode = dpcode
+        self.dp_id = dp_id
         self.sent = []
 
     def read_device_status(self, device):
@@ -143,17 +144,19 @@ async def test_sensor_wrapper_read():
 
 
 async def test_select_wrapper_read_write():
-    """Select current_option reads wrapper, async_select_option sends it."""
+    """Select reads the raw DP value and maps it through the DictSelector."""
     import custom_components.localtuya.select as mod
 
-    wrapper = FakeWrapper(read_value="auto", options=["auto", "manual"])
-    _, entities = await _patch_setup(
+    wrapper = FakeWrapper(options=["auto", "manual"], dp_id=1)
+    device, entities = await _patch_setup(
         mod, wrapper, _base_config("select"), SEL_DOMAIN, LocalTuyaSelect
     )
     entity = entities[0]
+    device._status = {"1": "auto"}
     assert entity.current_option == "auto"
-    await entity.async_select_option("manual")
-    assert wrapper.sent == ["manual"]
+    with patch.object(entity._device, "set_dp") as set_dp:
+        await entity.async_select_option("manual")
+        set_dp.assert_called_once_with("manual", 1)
     assert await _expect_write(entity, ["fake"]) is True
 
 
@@ -282,10 +285,10 @@ async def test_humidifier_wrapper_reads_and_writes():
     """Humidifier delegates all four configured DPs through wrappers."""
     import custom_components.localtuya.humidifier as mod
 
-    switch_wrapper = FakeWrapper(read_value=True)
-    target_wrapper = FakeWrapper(read_value=50)
-    current_wrapper = FakeWrapper(read_value=48)
-    mode_wrapper = FakeWrapper(read_value="auto")
+    switch_wrapper = FakeWrapper(read_value=True, dp_id=1)
+    target_wrapper = FakeWrapper(read_value=50, dp_id=2)
+    current_wrapper = FakeWrapper(read_value=48, dp_id=3)
+    mode_wrapper = FakeWrapper(read_value="auto", dp_id=4)
 
     def by_id(device, dp_id):
         return {
@@ -312,11 +315,13 @@ async def test_humidifier_wrapper_reads_and_writes():
     assert entity.is_on is True
     assert entity.target_humidity == 50
     assert entity.current_humidity == 48
+    device._status = {"4": "auto"}
     assert entity.mode == "Auto"
     await entity.async_set_humidity(60)
     assert target_wrapper.sent == [60]
-    await entity.async_set_mode("Auto")
-    assert mode_wrapper.sent == ["auto"]
+    with patch.object(entity._device, "set_dp") as set_dp:
+        await entity.async_set_mode("Auto")
+        set_dp.assert_called_once_with("auto", 4)
 
 
 async def test_alarm_control_panel_wrapper_read_write():
@@ -342,9 +347,11 @@ async def test_alarm_control_panel_wrapper_read_write():
         LocalTuyaAlarmControlPanel,
     )
     entity = entities[0]
+    entity._device._status = {"1": "disarmed"}
     assert entity.alarm_state == "disarmed"
-    await entity.async_alarm_arm_away()
-    assert wrapper.sent == ["arm"]
+    with patch.object(entity._device, "set_dp") as set_dp:
+        await entity.async_alarm_arm_away()
+        set_dp.assert_called_once_with("arm", 1)
 
 
 async def test_climate_wrapper_switch_delegation():

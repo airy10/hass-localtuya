@@ -274,6 +274,67 @@ def test_entity_config_from_description_resolves_cloud_values():
     assert config[CONF_BRIGHTNESS_UPPER] == 800
 
 
+def test_entity_config_from_description_gates_on_contains_any():
+    from custom_components.localtuya.entity import entity_config_from_description
+
+    def desc(contains_any):
+        return LocalTuyaEntity(
+            id=DPCode.RELAY_STATUS,
+            condition_contains_any=contains_any,
+        )
+
+    specs = {
+        "relay_status": {
+            "dp_id": 38,
+            "type": "Enum",
+            "values": {"range": ["on", "off", "memory"]},
+            "value": "on",
+        },
+    }
+
+    # "on" is in the contains_any list -> description applies.
+    config, primary_id = entity_config_from_description(
+        _device(specs), desc(["on", "off", "memory"]), "select"
+    )
+    assert primary_id == "38"
+
+    # "power_on" etc. are not in the reported value "on" -> gated out.
+    config, primary_id = entity_config_from_description(
+        _device(specs), desc(["power_on", "power_off", "last"]), "select"
+    )
+    assert primary_id is None
+
+
+def test_described_entity_specs_dedups_primary_dp(monkeypatch):
+    from custom_components.localtuya import entity as entity_mod
+    from custom_components.localtuya.entity import _described_entity_specs
+
+    specs = {
+        "relay_status": {
+            "dp_id": 38,
+            "type": "Enum",
+            "values": {"range": ["on", "off", "memory"]},
+            "value": "on",
+        },
+    }
+    device = _device(specs)
+
+    desc_matching = LocalTuyaEntity(
+        id=DPCode.RELAY_STATUS, condition_contains_any=["on", "off", "memory"]
+    )
+    desc_fallback = LocalTuyaEntity(id=DPCode.RELAY_STATUS)
+    monkeypatch.setattr(
+        entity_mod,
+        "descriptions_for_platform",
+        lambda d, dom: [desc_matching, desc_fallback],
+    )
+
+    resolved = _described_entity_specs(device, "select")
+    # The matching variant wins; the unconditional fallback is dedup'd.
+    assert len(resolved) == 1
+    assert resolved[0][1] is desc_matching
+
+
 # ---------------------------------------------------------------------------
 # descriptions_for_platform (category -> ha_entities table lookup)
 # ---------------------------------------------------------------------------

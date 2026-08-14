@@ -263,6 +263,50 @@ def _resolve_dpcode(value: Any, spec: dict) -> str | None:
     return code if code in spec else None
 
 
+def _dp_value_strings(device, code: str | None, dp_id: str | None) -> list[str]:
+    """Return lowercase candidate value strings for a DP.
+
+    Used to gate descriptions carrying ``contains_any`` against the device's
+    actual reported value (live status first, then the persisted cloud value
+    snapshot). Mirrors the legacy ``gen_localtuya_entities`` value check, which
+    matched the ``contains_any`` conditions against the DP value string.
+    """
+    values: list[str] = []
+    status = getattr(device, "status", {}) or {}
+    for key in (code, str(dp_id) if dp_id is not None else None):
+        if key is not None and status.get(key) is not None:
+            values.append(str(status[key]).lower())
+    for specs in (
+        getattr(device, "function", {}) or {},
+        getattr(device, "status_range", {}) or {},
+    ):
+        if code is None or (spec := specs.get(code)) is None:
+            continue
+        raw = spec.get("value") if isinstance(spec, dict) else getattr(spec, "value", None)
+        if raw is not None:
+            values.append(str(raw).lower())
+    return values
+
+
+def _contains_any_matches(
+    device, description, code: str | None, dp_id: str | None
+) -> bool:
+    """Return whether a description's ``contains_any`` gate is satisfied.
+
+    A description with ``contains_any`` only applies when the device's primary
+    DP value contains one of the listed conditions (e.g. the relay_status
+    ``power_on/off/last`` vs ``on/off/memory`` vs ``0/1/2`` variants).
+    Descriptions without the gate always apply.
+    """
+    contains_any = getattr(description, "contains_any", None)
+    if not contains_any:
+        return True
+    values = _dp_value_strings(device, code, dp_id)
+    if not values:
+        return False
+    return any(cond in value for cond in contains_any for value in values)
+
+
 def entity_config_from_description(
     device, description, platform
 ) -> tuple[dict, str | None]:
@@ -284,6 +328,7 @@ def entity_config_from_description(
 
     spec = _dpcode_to_id(device)
     primary_id: str | None = None
+    primary_code: str | None = None
     for key, value in (getattr(description, "localtuya_conf", {}) or {}).items():
         if (code := _resolve_dpcode(value, spec)) is None:
             if key == CONF_ID:
@@ -292,7 +337,13 @@ def entity_config_from_description(
         dp_id = str(spec[code])
         if key == CONF_ID:
             primary_id = dp_id
+            primary_code = code
         config[key] = dp_id
+
+    if primary_id is not None and not _contains_any_matches(
+        device, description, primary_code, primary_id
+    ):
+        return config, None
 
     config[CONF_PLATFORM] = platform
     config[CONF_ENTITY_ENABLED_DEFAULT] = True
@@ -330,10 +381,12 @@ def _described_entity_specs(device, domain: str) -> list[tuple[dict, Any]]:
     gate) are skipped.
     """
     specs = []
+    seen_ids: set[str] = set()
     for description in descriptions_for_platform(device, domain):
         config, dp_id = entity_config_from_description(device, description, domain)
-        if dp_id is None:
+        if dp_id is None or dp_id in seen_ids:
             continue
+        seen_ids.add(dp_id)
         specs.append((config, description))
     return specs
 

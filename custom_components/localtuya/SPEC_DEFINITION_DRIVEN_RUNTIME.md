@@ -69,7 +69,8 @@ LocalTuyaEntity(
 It carries `data` (friendly_name/icon/entity_category/device_class/state_class),
 `localtuya_conf` (the DPCode-keyed config: `id`, `color_mode`, `brightness`, …),
 `entity_configs` (localtuya-specific knobs like brightness range / kelvin range
-/ music mode), and `contains_any` (DP-name gating). This is the object the
+/ music mode), and `contains_any` (DP-value gating, applied in
+`entity_config_from_description`). This is the object the
 runtime should read — it is *already* the core `Tuya*EntityDescription`
 equivalent.
 

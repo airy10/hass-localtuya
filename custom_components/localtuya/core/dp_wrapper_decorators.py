@@ -191,6 +191,41 @@ class DictSelectorWrapper(DecoratorWrapper[str]):
     def _to_raw(self, value: str) -> Any:
         return self._selector.to_tuya(value)
 
+    def _raw_value(self, device: Any) -> Any | None:
+        """Read the raw device value without the inner wrapper's validation.
+
+        The DictSelector is the authoritative value mapping. The cloud enum
+        range can be wrong (e.g. ``relay_status`` reports ``on`` while the spec
+        declares ``power_on``), so the value must be mapped directly instead of
+        being rejected by the inner ``EnumTypeInformation`` first.
+        """
+        status = getattr(device, "status", {}) or {}
+        if self.dpcode is not None and self.dpcode in status:
+            return status[self.dpcode]
+        if self.dp_id is not None and str(self.dp_id) in status:
+            return status[str(self.dp_id)]
+        return None
+
+    def read_device_status(self, device: Any) -> str | None:
+        """Read the raw value and map it through the DictSelector."""
+        raw = self._raw_value(device)
+        return None if raw is None else self._to_ha(raw)
+
+    def get_update_commands(self, device: Any, value: str) -> list[dict[str, Any]]:
+        """Write the DictSelector-mapped raw value directly.
+
+        Bypasses the inner wrapper's ``prepare_set_value`` validation for the
+        same reason as ``read_device_status``: the cloud enum range can be
+        wrong, so the mapped value must be sent as-is.
+        """
+        return [
+            {
+                "code": self.dpcode,
+                "dp_id": self.dp_id,
+                "value": self._to_raw(value),
+            }
+        ]
+
 
 class ScalingIntegerWrapper(DecoratorWrapper[float]):
     """Wraps raw integer DP with min/max/step/unit and a linear scale.

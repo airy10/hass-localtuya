@@ -53,6 +53,22 @@ def test_dict_selector_wrapper_custom_default():
     assert wrapper.read_device_status(_device({"1": "zzz"})) == "unknown"
 
 
+def test_dict_selector_wrapper_bypasses_inner_enum_validation():
+    """The raw value is mapped even when the inner wrapper rejects it.
+
+    The cloud enum range can be wrong (e.g. ``relay_status`` reports ``on``
+    while the spec declares ``power_on``); the DictSelector is authoritative,
+    so the raw value must be mapped directly instead of being dropped by the
+    inner ``EnumTypeInformation``.
+    """
+    inner = _raw()
+    inner.read_device_status = lambda device: None  # simulate enum range mismatch
+    wrapper = DictSelectorWrapper(inner, DictSelector({"on": "ON", "off": "OFF"}))
+    assert wrapper.read_device_status(_device({"1": "on"})) == "ON"
+    cmds = wrapper.get_update_commands(_device({"1": "on"}), "OFF")
+    assert cmds == [{"code": "1", "dp_id": "1", "value": "off"}]
+
+
 def test_scaling_integer_wrapper():
     wrapper = ScalingIntegerWrapper(_raw(), scale=0.1, min_value=0, max_value=30)
     assert wrapper.read_device_status(_device({"1": 255})) == 25.5
