@@ -10,6 +10,8 @@ from homeassistant.components.lock import DOMAIN, LockEntity
 from .entity import LocalTuyaEntity, async_setup_entry
 
 from .const import CONF_JAMMED_DP, CONF_LOCK_STATE_DP
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_lock_definition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,19 +32,29 @@ class LocalTuyaLock(LocalTuyaEntity, LockEntity):
         device,
         config_entry,
         Lockid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya Lock."""
         super().__init__(device, config_entry, Lockid, _LOGGER, **kwargs)
         self._state = None
+        if description is not None:
+            definition = get_lock_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
     async def async_lock(self, **kwargs: Any) -> None:
         """Lock the lock."""
-        await self._device.set_dp(True, self._dp_id)
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, True)
 
     async def async_unlock(self, **kwargs: Any) -> None:
         """Unlock the lock."""
-        await self._device.set_dp(False, self._dp_id)
+        await self._async_send_wrapper_updates(self._dpcode_wrapper, False)
 
     def status_updated(self):
         """Device status was updated."""

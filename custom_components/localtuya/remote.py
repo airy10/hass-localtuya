@@ -30,6 +30,8 @@ from homeassistant.helpers.storage import Store
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_RECEIVE_DP, CONF_KEY_STUDY_DP
+from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_remote_definition
 
 NSDP_CONTROL = "control"  # The control commands
 NSDP_TYPE = "type"  # The identifier of an IR library
@@ -129,10 +131,21 @@ class LocalTuyaRemote(LocalTuyaEntity, RemoteEntity):
         device,
         config_entry,
         remoteid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya remote."""
         super().__init__(device, config_entry, remoteid, _LOGGER, **kwargs)
+
+        if description is not None:
+            definition = get_remote_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
         self._dp_send = str(self._config.get(self._dp_id, RemoteDP.DP_SEND))
         self._dp_recieve = str(self._config.get(CONF_RECEIVE_DP, RemoteDP.DP_RECIEVE))

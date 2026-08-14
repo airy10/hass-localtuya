@@ -19,6 +19,7 @@ from .core.dp_wrapper_decorators import (
     FanDirectionWrapper,
     FanSpeedPercentageWrapper,
 )
+from .core.definitions import get_fan_definition
 from .const import (
     CONF_FAN_DIRECTION,
     CONF_FAN_DIRECTION_FWD,
@@ -57,6 +58,7 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         device,
         config_entry,
         fanid,
+        description=None,
         **kwargs,
     ):
         """Initialize the entity."""
@@ -72,40 +74,62 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         else:
             self._use_ordered_list = False
 
-        # Cloud spec wrappers for the configured DPs (core parity); DPs with
-        # no cloud spec fall back to a raw wrapper so reads/writes always
-        # delegate through the wrapper layer. Speed/direction conversion lives
-        # in the decorators, keeping the entity thin.
-        self._switch_wrapper = dp_wrapper_by_id(
-            device, self._dp_id
-        ) or RawDPWrapper(self._dp_id)
+        if description is not None:
+            # Definition-driven: resolve the DP wrappers by dpcode.
+            definition = get_fan_definition(device, description)
+            self._switch_wrapper = (
+                definition.switch_wrapper if definition is not None else None
+            )
+            speed_inner = (
+                definition.speed_wrapper if definition is not None else None
+            )
+            osc_inner = (
+                definition.oscillate_wrapper if definition is not None else None
+            )
+            dir_inner = (
+                definition.direction_wrapper if definition is not None else None
+            )
+        else:
+            # Manual config-driven path: cloud spec wrappers fall back to a
+            # raw wrapper. Speed/direction conversion lives in the decorators.
+            self._switch_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
-        speed_dp = self._config.get(CONF_FAN_SPEED_CONTROL)
-        if self.has_config(CONF_FAN_SPEED_CONTROL):
-            inner = dp_wrapper_by_id(device, speed_dp) or RawDPWrapper(speed_dp)
-            self._speed_wrapper = FanSpeedPercentageWrapper(
-                inner,
+            speed_dp = self._config.get(CONF_FAN_SPEED_CONTROL)
+            speed_inner = (
+                dp_wrapper_by_id(device, speed_dp) or RawDPWrapper(speed_dp)
+            ) if self.has_config(CONF_FAN_SPEED_CONTROL) else None
+
+            osc_dp = self._config.get(CONF_FAN_OSCILLATING_CONTROL)
+            osc_inner = (
+                dp_wrapper_by_id(device, osc_dp) or RawDPWrapper(osc_dp)
+            ) if self.has_config(CONF_FAN_OSCILLATING_CONTROL) else None
+
+            dir_dp = self._config.get(CONF_FAN_DIRECTION)
+            dir_inner = (
+                dp_wrapper_by_id(device, dir_dp) or RawDPWrapper(dir_dp)
+            ) if self.has_config(CONF_FAN_DIRECTION) else None
+
+        self._speed_wrapper = (
+            FanSpeedPercentageWrapper(
+                speed_inner,
                 self._speed_range,
                 self._ordered_list if self._use_ordered_list else None,
             )
-        else:
-            self._speed_wrapper = None
-
-        osc_dp = self._config.get(CONF_FAN_OSCILLATING_CONTROL)
-        self._oscillate_wrapper = (
-            dp_wrapper_by_id(device, osc_dp) or RawDPWrapper(osc_dp)
-        ) if self.has_config(CONF_FAN_OSCILLATING_CONTROL) else None
-
-        dir_dp = self._config.get(CONF_FAN_DIRECTION)
-        if self.has_config(CONF_FAN_DIRECTION):
-            inner = dp_wrapper_by_id(device, dir_dp) or RawDPWrapper(dir_dp)
-            self._direction_wrapper = FanDirectionWrapper(
-                inner,
+            if speed_inner is not None
+            else None
+        )
+        self._oscillate_wrapper = osc_inner
+        self._direction_wrapper = (
+            FanDirectionWrapper(
+                dir_inner,
                 self._config.get(CONF_FAN_DIRECTION_FWD),
                 self._config.get(CONF_FAN_DIRECTION_REV),
             )
-        else:
-            self._direction_wrapper = None
+            if dir_inner is not None
+            else None
+        )
 
     async def async_set_direction(self, direction):
         """Set the direction of the fan."""

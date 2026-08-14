@@ -257,14 +257,25 @@ description → resolve by code".
   StringColorWrapper).
 
 ### Phase 3 — climate, fan, cover (conversion-heavy platforms)
-- Same treatment: `get_*_definition` + core-named wrappers + thin bodies.
+- **DONE** — `get_fan_definition` / `get_climate_definition` /
+  `get_cover_definition` added to `core/definitions.py`; `fan.py` / `climate.py` /
+  `cover.py` `__init__` accept a `description` and resolve core-named wrappers
+  by dpcode via the definition (manual `dps` stays the fallback provider).
 
 ### Phase 4 — humidifier, water_heater, select, number, vacuum, alarm_control_panel
-- `get_*_definition`; remove per-config-dp resolution.
+- **DONE** — `get_humidifier_definition` / `get_water_heater_definition` /
+  `get_select_definition` / `get_number_definition` / `get_vacuum_definition` /
+  `get_alarm_control_panel_definition` added; each platform `__init__` resolves
+  its wrapper(s) by dpcode, removing the per-config-dp resolution on the
+  description-driven path (manual `dps` remains the fallback).
 
 ### Phase 5 — sensor, binary_sensor, siren, valve, lock, remote, button
-- `get_*_definition` (raw passthrough); verify no `status_updated` conversions
-  remain (only genuine state machines, per the wrapper spec).
+- **DONE** — `get_sensor_definition` / `get_binary_sensor_definition` /
+  `get_siren_definition` / `get_valve_definition` / `get_lock_definition` /
+  `get_remote_definition` / `get_button_definition` added (raw passthrough via
+  the shared `DPCodeDefinition`); each platform resolves its primary DP wrapper
+  by dpcode on the description-driven path. Lock/remote state machines keep
+  reading secondary DPs from the config adapter (they have no core equivalent).
 
 ### Phase 6 — config flow (max automation)
 - Cloud-first `async_step_auto_configure_device`: after
@@ -289,7 +300,7 @@ description → resolve by code".
    passthrough, offline snapshot) and manual provider (synthesized specs).
 4. **Config-flow tests**: cloud auto-config produces descriptions; offline and
    manual paths still work.
-5. **Regression**: full suite (currently 154 tests) must stay green; add the
+5. **Regression**: full suite (currently 164 tests) must stay green; add the
    new tests incrementally per phase.
 
 ## Success criteria

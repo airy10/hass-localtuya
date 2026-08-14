@@ -18,6 +18,7 @@ from .const import (
 )
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.dp_wrapper_decorators import DictSelectorWrapper
+from .core.definitions import get_select_definition
 
 
 def flow_schema(dps):
@@ -41,14 +42,21 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         device,
         config_entry,
         sensorid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya sensor."""
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
-        base_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_select_definition(device, description)
+            base_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            base_wrapper = dp_wrapper_by_id(
+                self._device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
         # Set Display options
         options = {}

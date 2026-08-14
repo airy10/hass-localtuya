@@ -9,6 +9,7 @@ from homeassistant.components.siren import DOMAIN, SirenEntity, SirenEntityFeatu
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_STATE_ON
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_siren_definition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,14 +34,21 @@ class LocalTuyaSiren(LocalTuyaEntity, SirenEntity):
         device,
         config_entry,
         sirenid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya siren."""
         super().__init__(device, config_entry, sirenid, _LOGGER, **kwargs)
         self._is_on = False
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_siren_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                self._device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
     @property
     def is_on(self):

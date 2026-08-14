@@ -8,9 +8,9 @@ surface) and a ``LocalTuyaEntity`` description, it resolves the wrappers by
 dpcode and applies the relevant conversion decorators from
 ``core/dp_wrapper_decorators.py``.
 
-This is the runtime half of SPEC_DEFINITION_DRIVEN_RUNTIME.md. Only light and
-switch are implemented (Phases 1-2); the remaining platforms are added in
-Phases 3-5.
+This is the runtime half of SPEC_DEFINITION_DRIVEN_RUNTIME.md. Light and
+switch were implemented first (Phases 1-2); the remaining platforms were
+added in Phases 3-5.
 """
 
 from __future__ import annotations
@@ -34,10 +34,36 @@ from .dp_wrapper_decorators import (
 )
 
 __all__ = [
+    "AlarmControlPanelDefinition",
+    "CoverDefinition",
+    "ClimateDefinition",
+    "DPCodeDefinition",
+    "FanDefinition",
+    "HumidifierDefinition",
     "LightDefinition",
+    "NumberDefinition",
+    "SelectDefinition",
     "SwitchDefinition",
+    "VacuumDefinition",
+    "WaterHeaterDefinition",
+    "get_alarm_control_panel_definition",
+    "get_binary_sensor_definition",
+    "get_button_definition",
+    "get_climate_definition",
+    "get_cover_definition",
+    "get_fan_definition",
+    "get_humidifier_definition",
     "get_light_definition",
+    "get_lock_definition",
+    "get_number_definition",
+    "get_remote_definition",
+    "get_select_definition",
+    "get_sensor_definition",
+    "get_siren_definition",
     "get_switch_definition",
+    "get_vacuum_definition",
+    "get_valve_definition",
+    "get_water_heater_definition",
     "resolve",
 ]
 
@@ -164,3 +190,242 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
             reverse=reverse,
         ),
     )
+
+
+@dataclass
+class FanDefinition:
+    """Resolved wrappers for a fan entity."""
+
+    switch_wrapper: DPCodeWrapper | None
+    speed_wrapper: DPCodeWrapper | None
+    oscillate_wrapper: DPCodeWrapper | None
+    direction_wrapper: DPCodeWrapper | None
+
+
+def get_fan_definition(device: Any, description: Any) -> FanDefinition | None:
+    """Resolve the fan wrappers; None if the switch DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (switch := resolve(device, conf.get("id"))) is None:
+        return None
+    return FanDefinition(
+        switch_wrapper=switch,
+        speed_wrapper=resolve(device, conf.get("fan_speed_control")),
+        oscillate_wrapper=resolve(device, conf.get("fan_oscillating_control")),
+        direction_wrapper=resolve(device, conf.get("fan_direction")),
+    )
+
+
+@dataclass
+class CoverDefinition:
+    """Resolved wrappers for a cover entity."""
+
+    set_position_wrapper: DPCodeWrapper | None
+
+
+def get_cover_definition(device: Any, description: Any) -> CoverDefinition:
+    """Resolve the cover set-position wrapper (the primary DP stays raw)."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    return CoverDefinition(
+        set_position_wrapper=resolve(device, conf.get("set_position_dp")),
+    )
+
+
+@dataclass
+class ClimateDefinition:
+    """Resolved wrappers for a climate entity."""
+
+    switch_wrapper: DPCodeWrapper | None
+    target_temp_wrapper: DPCodeWrapper | None
+    current_temp_wrapper: DPCodeWrapper | None
+    hvac_mode_wrapper: DPCodeWrapper | None
+    hvac_action_wrapper: DPCodeWrapper | None
+    preset_wrapper: DPCodeWrapper | None
+    fan_speed_wrapper: DPCodeWrapper | None
+
+
+def get_climate_definition(device: Any, description: Any) -> ClimateDefinition | None:
+    """Resolve the climate wrappers; None if the switch DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (switch := resolve(device, conf.get("id"))) is None:
+        return None
+    return ClimateDefinition(
+        switch_wrapper=switch,
+        target_temp_wrapper=resolve(device, conf.get("target_temperature_dp")),
+        current_temp_wrapper=resolve(device, conf.get("current_temperature_dp")),
+        hvac_mode_wrapper=resolve(device, conf.get("hvac_mode_dp")),
+        hvac_action_wrapper=resolve(device, conf.get("hvac_action_dp")),
+        preset_wrapper=resolve(device, conf.get("preset_dp")),
+        fan_speed_wrapper=resolve(device, conf.get("fan_speed_dp")),
+    )
+
+
+@dataclass
+class HumidifierDefinition:
+    """Resolved wrappers for a humidifier entity."""
+
+    switch_wrapper: DPCodeWrapper | None
+    mode_wrapper: DPCodeWrapper | None
+    target_humidity_wrapper: DPCodeWrapper | None
+    current_humidity_wrapper: DPCodeWrapper | None
+
+
+def get_humidifier_definition(
+    device: Any, description: Any
+) -> HumidifierDefinition | None:
+    """Resolve the humidifier wrappers; None if the switch DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (switch := resolve(device, conf.get("id"))) is None:
+        return None
+    return HumidifierDefinition(
+        switch_wrapper=switch,
+        mode_wrapper=resolve(device, conf.get("humidifier_mode_dp")),
+        target_humidity_wrapper=resolve(
+            device, conf.get("humidifier_set_humidity_dp")
+        ),
+        current_humidity_wrapper=resolve(
+            device, conf.get("humidifier_current_humidity_dp")
+        ),
+    )
+
+
+@dataclass
+class WaterHeaterDefinition:
+    """Resolved wrappers for a water heater entity."""
+
+    switch_wrapper: DPCodeWrapper | None
+    target_temp_wrapper: DPCodeWrapper | None
+    current_temp_wrapper: DPCodeWrapper | None
+    target_low_wrapper: DPCodeWrapper | None
+    target_high_wrapper: DPCodeWrapper | None
+    mode_wrapper: DPCodeWrapper | None
+
+
+def get_water_heater_definition(
+    device: Any, description: Any
+) -> WaterHeaterDefinition | None:
+    """Resolve the water heater wrappers; None if the switch DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (switch := resolve(device, conf.get("id"))) is None:
+        return None
+    return WaterHeaterDefinition(
+        switch_wrapper=switch,
+        target_temp_wrapper=resolve(device, conf.get("target_temperature_dp")),
+        current_temp_wrapper=resolve(device, conf.get("current_temperature_dp")),
+        target_low_wrapper=resolve(device, conf.get("target_temperature_low_dp")),
+        target_high_wrapper=resolve(device, conf.get("target_temperature_high_dp")),
+        mode_wrapper=resolve(device, conf.get("mode_dp")),
+    )
+
+
+@dataclass
+class SelectDefinition:
+    """Resolved wrapper for a select entity."""
+
+    dpcode_wrapper: DPCodeWrapper | None
+
+
+def get_select_definition(device: Any, description: Any) -> SelectDefinition | None:
+    """Resolve the select wrapper; None if the DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (wrapper := resolve(device, conf.get("id"))) is None:
+        return None
+    return SelectDefinition(dpcode_wrapper=wrapper)
+
+
+@dataclass
+class NumberDefinition:
+    """Resolved wrapper for a number entity."""
+
+    dpcode_wrapper: DPCodeWrapper | None
+
+
+def get_number_definition(device: Any, description: Any) -> NumberDefinition | None:
+    """Resolve the number wrapper; None if the DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (wrapper := resolve(device, conf.get("id"))) is None:
+        return None
+    return NumberDefinition(dpcode_wrapper=wrapper)
+
+
+@dataclass
+class VacuumDefinition:
+    """Resolved wrappers for a vacuum entity."""
+
+    fan_speed_wrapper: DPCodeWrapper | None
+
+
+def get_vacuum_definition(device: Any, description: Any) -> VacuumDefinition:
+    """Resolve the vacuum fan-speed wrapper (the activity DP stays raw)."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    return VacuumDefinition(
+        fan_speed_wrapper=resolve(device, conf.get("fan_speed_dp")),
+    )
+
+
+@dataclass
+class AlarmControlPanelDefinition:
+    """Resolved wrapper for an alarm control panel entity."""
+
+    dpcode_wrapper: DPCodeWrapper | None
+
+
+def get_alarm_control_panel_definition(
+    device: Any, description: Any
+) -> AlarmControlPanelDefinition | None:
+    """Resolve the alarm control panel wrapper; None if the DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (wrapper := resolve(device, conf.get("id"))) is None:
+        return None
+    return AlarmControlPanelDefinition(dpcode_wrapper=wrapper)
+
+
+@dataclass
+class DPCodeDefinition:
+    """Resolved wrapper for a raw-passthrough (single primary DP) entity."""
+
+    dpcode_wrapper: DPCodeWrapper | None
+
+
+def _primary_dp_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a single primary DP by dpcode; None if the DP is absent."""
+    conf = getattr(description, "localtuya_conf", {}) or {}
+    if (wrapper := resolve(device, conf.get("id"))) is None:
+        return None
+    return DPCodeDefinition(dpcode_wrapper=wrapper)
+
+
+def get_sensor_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a sensor's primary DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_binary_sensor_definition(
+    device: Any, description: Any
+) -> DPCodeDefinition | None:
+    """Resolve a binary sensor's primary DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_siren_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a siren's primary DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_valve_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a valve's primary DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_lock_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a lock's primary DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_remote_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a remote's primary (send/control) DP wrapper."""
+    return _primary_dp_definition(device, description)
+
+
+def get_button_definition(device: Any, description: Any) -> DPCodeDefinition | None:
+    """Resolve a button's primary DP wrapper."""
+    return _primary_dp_definition(device, description)

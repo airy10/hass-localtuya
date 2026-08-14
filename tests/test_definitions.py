@@ -13,8 +13,24 @@ from custom_components.localtuya.const import (
 )
 from custom_components.localtuya.coordinator import TuyaDevice
 from custom_components.localtuya.core.definitions import (
+    get_alarm_control_panel_definition,
+    get_binary_sensor_definition,
+    get_button_definition,
+    get_climate_definition,
+    get_cover_definition,
+    get_fan_definition,
+    get_humidifier_definition,
     get_light_definition,
+    get_lock_definition,
+    get_number_definition,
+    get_remote_definition,
+    get_select_definition,
+    get_sensor_definition,
+    get_siren_definition,
     get_switch_definition,
+    get_vacuum_definition,
+    get_valve_definition,
+    get_water_heater_definition,
     resolve,
 )
 from custom_components.localtuya.core.dp_wrapper_decorators import (
@@ -22,7 +38,11 @@ from custom_components.localtuya.core.dp_wrapper_decorators import (
     ColorTempWrapper,
     StringColorWrapper,
 )
-from custom_components.localtuya.core.dp_wrappers import DPCodeBooleanWrapper, DPCodeEnumWrapper
+from custom_components.localtuya.core.dp_wrappers import (
+    DPCodeBooleanWrapper,
+    DPCodeEnumWrapper,
+    DPCodeIntegerWrapper,
+)
 from custom_components.localtuya.core.ha_entities.base import DPCode, LocalTuyaEntity
 
 
@@ -272,3 +292,198 @@ def test_descriptions_for_platform_empty_without_category():
 
     assert descriptions_for_platform(SimpleNamespace(category=None), "switch") == []
     assert descriptions_for_platform(SimpleNamespace(category="unknown"), "switch") == []
+
+
+# ---------------------------------------------------------------------------
+# Phase 3-5 platform definitions
+# ---------------------------------------------------------------------------
+
+FAN_SPECS = {
+    "switch_fan": {"dp_id": 1, "type": "Boolean", "values": None},
+    "fan_speed": {
+        "dp_id": 2,
+        "type": "Integer",
+        "values": {"min": 1, "max": 100, "scale": 0, "step": 1},
+    },
+    "fan_direction": {
+        "dp_id": 3,
+        "type": "Enum",
+        "values": {"range": ["forward", "reverse"]},
+    },
+    "switch_horizontal": {"dp_id": 4, "type": "Boolean", "values": None},
+}
+
+
+def test_fan_definition_resolves_wrappers_by_dpcode():
+    desc = LocalTuyaEntity(
+        id=DPCode.SWITCH_FAN,
+        name="Fan",
+        fan_speed_control=(DPCode.FAN_SPEED_PERCENT, DPCode.FAN_SPEED),
+        fan_direction=DPCode.FAN_DIRECTION,
+        fan_oscillating_control=(DPCode.SWITCH_HORIZONTAL, DPCode.SWITCH_VERTICAL),
+    )
+    definition = get_fan_definition(_device(FAN_SPECS), desc)
+
+    assert definition is not None
+    assert isinstance(definition.switch_wrapper, DPCodeBooleanWrapper)
+    assert definition.switch_wrapper.dpcode == DPCode.SWITCH_FAN
+    assert isinstance(definition.speed_wrapper, DPCodeIntegerWrapper)
+    assert definition.speed_wrapper.dpcode == DPCode.FAN_SPEED
+    assert isinstance(definition.direction_wrapper, DPCodeEnumWrapper)
+    assert definition.oscillate_wrapper.dpcode == DPCode.SWITCH_HORIZONTAL
+
+
+def test_fan_definition_gates_on_absent_switch():
+    desc = LocalTuyaEntity(id=DPCode.SWITCH_FAN, name="Fan")
+    assert get_fan_definition(_device({}), desc) is None
+
+
+def test_climate_definition_resolves_wrappers_by_dpcode():
+    specs = {
+        "switch": {"dp_id": 1, "type": "Boolean", "values": None},
+        "temp_set": {
+            "dp_id": 2,
+            "type": "Integer",
+            "values": {"min": 0, "max": 1000, "scale": 1, "step": 1},
+        },
+        "temp_current": {
+            "dp_id": 3,
+            "type": "Integer",
+            "values": {"min": 0, "max": 1000, "scale": 1, "step": 1},
+        },
+        "systemmode": {
+            "dp_id": 4,
+            "type": "Enum",
+            "values": {"range": ["auto", "cold", "hot"]},
+        },
+    }
+    desc = LocalTuyaEntity(
+        id=DPCode.SWITCH,
+        target_temperature_dp=DPCode.TEMP_SET,
+        current_temperature_dp=DPCode.TEMP_CURRENT,
+        hvac_mode_dp=DPCode.SYSTEMMODE,
+    )
+    definition = get_climate_definition(_device(specs), desc)
+
+    assert definition is not None
+    assert isinstance(definition.switch_wrapper, DPCodeBooleanWrapper)
+    assert definition.target_temp_wrapper.dpcode == DPCode.TEMP_SET
+    assert definition.current_temp_wrapper.dpcode == DPCode.TEMP_CURRENT
+    assert definition.hvac_mode_wrapper.dpcode == DPCode.SYSTEMMODE
+    assert definition.hvac_action_wrapper is None
+    assert definition.preset_wrapper is None
+
+
+def test_cover_definition_resolves_set_position():
+    desc = LocalTuyaEntity(
+        id=DPCode.CONTROL,
+        name="Curtain",
+        set_position_dp=DPCode.PERCENT_CONTROL,
+    )
+    definition = get_cover_definition(
+        _device(
+            {
+                "percent_control": {
+                    "dp_id": 7,
+                    "type": "Integer",
+                    "values": {"min": 0, "max": 100, "scale": 0, "step": 1},
+                }
+            }
+        ),
+        desc,
+    )
+    assert definition.set_position_wrapper is not None
+    assert definition.set_position_wrapper.dpcode == DPCode.PERCENT_CONTROL
+
+
+def test_humidifier_definition_resolves_wrappers():
+    specs = {
+        "switch": {"dp_id": 1, "type": "Boolean", "values": None},
+        "mode": {"dp_id": 2, "type": "Enum", "values": {"range": ["large", "small"]}},
+        "humidity_set": {
+            "dp_id": 3,
+            "type": "Integer",
+            "values": {"min": 0, "max": 100, "scale": 0, "step": 1},
+        },
+    }
+    desc = LocalTuyaEntity(
+        id=DPCode.SWITCH,
+        humidifier_mode_dp=DPCode.MODE,
+        humidifier_set_humidity_dp=DPCode.HUMIDITY_SET,
+    )
+    definition = get_humidifier_definition(_device(specs), desc)
+    assert definition is not None
+    assert definition.switch_wrapper.dpcode == DPCode.SWITCH
+    assert definition.mode_wrapper.dpcode == DPCode.MODE
+    assert definition.target_humidity_wrapper.dpcode == DPCode.HUMIDITY_SET
+
+
+def test_water_heater_definition_resolves_wrappers():
+    specs = {
+        "switch": {"dp_id": 1, "type": "Boolean", "values": None},
+        "temp_set": {
+            "dp_id": 2,
+            "type": "Integer",
+            "values": {"min": 0, "max": 1000, "scale": 1, "step": 1},
+        },
+        "mode": {"dp_id": 3, "type": "Enum", "values": {"range": ["smart"]}},
+    }
+    desc = LocalTuyaEntity(
+        id=DPCode.SWITCH,
+        target_temperature_dp=DPCode.TEMP_SET,
+        mode_dp=DPCode.MODE,
+    )
+    definition = get_water_heater_definition(_device(specs), desc)
+    assert definition is not None
+    assert definition.switch_wrapper.dpcode == DPCode.SWITCH
+    assert definition.target_temp_wrapper.dpcode == DPCode.TEMP_SET
+    assert definition.mode_wrapper.dpcode == DPCode.MODE
+
+
+def test_select_number_and_raw_definitions_resolve_primary():
+    specs = {"switch": {"dp_id": 1, "type": "Boolean", "values": None}}
+    select_desc = LocalTuyaEntity(id=DPCode.SWITCH, name="Mode")
+
+    select = get_select_definition(_device(specs), select_desc)
+    assert select is not None and select.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    number = get_number_definition(_device(specs), select_desc)
+    assert number is not None and number.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    alarm = get_alarm_control_panel_definition(_device(specs), select_desc)
+    assert alarm is not None and alarm.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    sensor = get_sensor_definition(_device(specs), select_desc)
+    assert sensor is not None and sensor.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    binary = get_binary_sensor_definition(_device(specs), select_desc)
+    assert binary is not None and binary.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    siren = get_siren_definition(_device(specs), select_desc)
+    assert siren is not None and siren.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    valve = get_valve_definition(_device(specs), select_desc)
+    assert valve is not None and valve.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    lock = get_lock_definition(_device(specs), select_desc)
+    assert lock is not None and lock.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    remote = get_remote_definition(_device(specs), select_desc)
+    assert remote is not None and remote.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+    button = get_button_definition(_device(specs), select_desc)
+    assert button is not None and button.dpcode_wrapper.dpcode == DPCode.SWITCH
+
+
+def test_vacuum_definition_resolves_fan_speed():
+    specs = {
+        "fan_speed_enum": {
+            "dp_id": 9,
+            "type": "Enum",
+            "values": {"range": ["low", "normal", "high"]},
+        }
+    }
+    desc = LocalTuyaEntity(id=DPCode.POWER_GO, fan_speed_dp=DPCode.FAN_SPEED_ENUM)
+    definition = get_vacuum_definition(_device(specs), desc)
+    assert definition.fan_speed_wrapper is not None
+    assert definition.fan_speed_wrapper.dpcode == DPCode.FAN_SPEED_ENUM

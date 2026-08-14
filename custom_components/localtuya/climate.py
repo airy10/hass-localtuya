@@ -39,6 +39,7 @@ from .core.dp_wrapper_decorators import (
     DictSelectorWrapper,
     HumidityCoefficientWrapper,
 )
+from .core.definitions import get_climate_definition
 from .const import (
     CONF_CURRENT_HUMIDITY_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -204,6 +205,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         device,
         config_entry,
         switchid,
+        description=None,
         **kwargs,
     ):
         """Initialize a new LocalTuyaClimate."""
@@ -219,11 +221,6 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             self._config.get(CONF_HUMIDITY_COEFFICIENT, 1.0)
         )
         self._hvac_switch_dp = self._config.get(CONF_HVAC_SWITCH_DP)
-        # Switch DP always resolves (RawDPWrapper fallback) so on/off
-        # delegation matches core parity; temps stay config-driven.
-        self._switch_wrapper = dp_wrapper_by_id(
-            device, self._hvac_switch_dp or self._dp_id
-        ) or RawDPWrapper(self._hvac_switch_dp or self._dp_id)
 
         # HVAC Modes
         self._hvac_mode_dp = self._config.get(CONF_HVAC_MODE_DP)
@@ -289,64 +286,125 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         target_unit_from = f_to_c if self._target_temp_forced_to_celsius is True else None
         target_unit_to = c_to_f if self._target_temp_forced_to_celsius is True else None
         current_unit_from = f_to_c if self._target_temp_forced_to_celsius is False else None
+
+        if description is not None:
+            # Definition-driven: resolve the DP wrappers by dpcode. Humidity,
+            # swing and eco DPs are not in the category tables, so they stay
+            # None for the auto-configured path.
+            definition = get_climate_definition(device, description)
+            switch_inner = (
+                definition.switch_wrapper if definition is not None else None
+            )
+            target_inner = (
+                definition.target_temp_wrapper
+                if definition is not None
+                else None
+            )
+            current_inner = (
+                definition.current_temp_wrapper
+                if definition is not None
+                else None
+            )
+            hvac_mode_inner = (
+                definition.hvac_mode_wrapper if definition is not None else None
+            )
+            hvac_action_inner = (
+                definition.hvac_action_wrapper
+                if definition is not None
+                else None
+            )
+            preset_inner = (
+                definition.preset_wrapper if definition is not None else None
+            )
+            fan_speed_inner = (
+                definition.fan_speed_wrapper if definition is not None else None
+            )
+            current_humidity_inner = None
+            target_humidity_inner = None
+            swing_v_inner = None
+            swing_h_inner = None
+        else:
+            # Manual config-driven path: resolve by dp_id with raw fallback.
+            switch_inner = dp_wrapper_by_id(
+                device, self._hvac_switch_dp or self._dp_id
+            ) or RawDPWrapper(self._hvac_switch_dp or self._dp_id)
+            target_inner = self._resolve_inner(device, CONF_TARGET_TEMPERATURE_DP)
+            current_inner = self._resolve_inner(device, CONF_CURRENT_TEMPERATURE_DP)
+            hvac_mode_inner = self._resolve_inner(device, CONF_HVAC_MODE_DP)
+            hvac_action_inner = self._resolve_inner(device, CONF_HVAC_ACTION_DP)
+            preset_inner = self._resolve_inner(device, CONF_PRESET_DP)
+            fan_speed_inner = self._resolve_inner(device, CONF_FAN_SPEED_DP)
+            current_humidity_inner = self._resolve_inner(
+                device, CONF_CURRENT_HUMIDITY_DP
+            )
+            target_humidity_inner = self._resolve_inner(
+                device, CONF_TARGET_HUMIDITY_DP
+            )
+            swing_v_inner = self._resolve_inner(device, CONF_SWING_MODE_DP)
+            swing_h_inner = self._resolve_inner(
+                device, CONF_SWING_HORIZONTAL_DP
+            )
+
+        self._switch_wrapper = switch_inner
         self._target_temp_wrapper = self._temp_wrapper(
-            device, CONF_TARGET_TEMPERATURE_DP, self._precision_target,
+            target_inner, self._precision_target,
             unit_from=target_unit_from, unit_to=target_unit_to,
         )
         self._current_temp_wrapper = self._temp_wrapper(
-            device, CONF_CURRENT_TEMPERATURE_DP, self._precision,
-            unit_from=current_unit_from,
+            current_inner, self._precision, unit_from=current_unit_from,
         )
         self._current_humidity_wrapper = self._humidity_wrapper(
-            device, CONF_CURRENT_HUMIDITY_DP
+            current_humidity_inner
         )
         self._target_humidity_wrapper = self._humidity_wrapper(
-            device, CONF_TARGET_HUMIDITY_DP
+            target_humidity_inner
         )
         self._hvac_mode_wrapper = self._selector_wrapper(
-            device, self._hvac_mode_dp, self._hvac_mode_set
+            hvac_mode_inner, self._hvac_mode_set
         )
         self._preset_wrapper = self._selector_wrapper(
-            device, self._preset_dp, self._preset_set, default=PRESET_NONE
+            preset_inner, self._preset_set, default=PRESET_NONE
         )
         self._hvac_action_wrapper = self._selector_wrapper(
-            device, self._hvac_action_dp, self._hvac_action_set
+            hvac_action_inner, self._hvac_action_set
         )
         self._fan_speed_wrapper = self._selector_wrapper(
-            device, self._fan_speed_dp, self._fan_speeds
+            fan_speed_inner, self._fan_speeds
         )
         self._swing_v_wrapper = self._selector_wrapper(
-            device, self._swing_v_mode_dp, self._swing_v_modes
+            swing_v_inner, self._swing_v_modes
         )
         self._swing_h_wrapper = self._selector_wrapper(
-            device, self._swing_h_mode_dp, self._swing_h_modes
+            swing_h_inner, self._swing_h_modes
         )
 
-    def _temp_wrapper(self, device, conf_key, precision, unit_from=None, unit_to=None):
-        """Build a ClimateTempWrapper for a configured temperature DP."""
+    def _resolve_inner(self, device, conf_key):
+        """Resolve a configured DP's wrapper (raw fallback) for the manual path."""
         dp = self._config.get(conf_key)
         if not self.has_config(conf_key):
             return None
-        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
+        return dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
+
+    def _temp_wrapper(self, inner, precision, unit_from=None, unit_to=None):
+        """Build a ClimateTempWrapper for a resolved temperature DP wrapper."""
+        if inner is None:
+            return None
         return ClimateTempWrapper(
             inner, precision=precision, unit_from=unit_from, unit_to=unit_to
         )
 
-    def _humidity_wrapper(self, device, conf_key):
-        """Build a HumidityCoefficientWrapper for a configured humidity DP."""
-        dp = self._config.get(conf_key)
-        if not self.has_config(conf_key):
+    def _humidity_wrapper(self, inner):
+        """Build a HumidityCoefficientWrapper for a resolved humidity DP wrapper."""
+        if inner is None:
             return None
-        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
         return HumidityCoefficientWrapper(
             inner, coefficient=self._humidity_coefficient
         )
 
-    def _selector_wrapper(self, device, dp, selector, default=None):
-        """Build a DictSelectorWrapper for a configured enum DP."""
-        if not dp:
+    def _selector_wrapper(self, inner, selector, default=None):
+        """Build a DictSelectorWrapper for a resolved enum DP wrapper."""
+        if inner is None:
             return None
-        inner = dp_wrapper_by_id(device, dp) or RawDPWrapper(dp)
         return DictSelectorWrapper(inner, selector, default=default)
 
     @property

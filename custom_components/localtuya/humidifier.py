@@ -33,6 +33,7 @@ from .const import (
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.dp_wrapper_decorators import DictSelectorWrapper
+from .core.definitions import get_humidifier_definition
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,26 +68,55 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
         device,
         config_entry,
         humidifierID,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya button."""
         super().__init__(device, config_entry, humidifierID, _LOGGER, **kwargs)
         self._state = None
 
-        # Cloud spec wrappers for the configured DPs (core parity); DPs with
-        # no cloud spec fall back to a raw wrapper so reads/writes always
-        # delegate through the wrapper layer.
-        self._switch_wrapper = dp_wrapper_by_id(
-            device, self._dp_id
-        ) or RawDPWrapper(self._dp_id)
-        self._target_humidity_wrapper = (
-            dp_wrapper_by_id(device, self._config.get(self._dp_set_humidity))
-            or RawDPWrapper(self._config.get(self._dp_set_humidity))
-        ) if self.has_config(self._dp_set_humidity) else None
-        self._current_humidity_wrapper = (
-            dp_wrapper_by_id(device, self._config.get(self._dp_current_humidity))
-            or RawDPWrapper(self._config.get(self._dp_current_humidity))
-        ) if self.has_config(self._dp_current_humidity) else None
+        if description is not None:
+            definition = get_humidifier_definition(device, description)
+            self._switch_wrapper = (
+                definition.switch_wrapper if definition is not None else None
+            )
+            target_inner = (
+                definition.target_humidity_wrapper
+                if definition is not None
+                else None
+            )
+            current_inner = (
+                definition.current_humidity_wrapper
+                if definition is not None
+                else None
+            )
+            mode_inner = (
+                definition.mode_wrapper if definition is not None else None
+            )
+        else:
+            # Cloud spec wrappers for the configured DPs (core parity); DPs
+            # with no cloud spec fall back to a raw wrapper.
+            self._switch_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
+            target_inner = (
+                dp_wrapper_by_id(device, self._config.get(self._dp_set_humidity))
+                or RawDPWrapper(self._config.get(self._dp_set_humidity))
+            ) if self.has_config(self._dp_set_humidity) else None
+            current_inner = (
+                dp_wrapper_by_id(
+                    device, self._config.get(self._dp_current_humidity)
+                )
+                or RawDPWrapper(self._config.get(self._dp_current_humidity))
+            ) if self.has_config(self._dp_current_humidity) else None
+            mode_dp = self._config.get(self._dp_mode)
+            mode_inner = (
+                dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp)
+            ) if self.has_config(self._dp_mode) else None
+
+        self._target_humidity_wrapper = target_inner
+        self._current_humidity_wrapper = current_inner
+
         modes = self._config.get(self._available_modes, {}) or {}
         if modes and self._config.get(self._dp_mode):
             self._attr_supported_features |= HumidifierEntityFeature.MODES
@@ -96,14 +126,13 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
             }
         self._available_modes = DictSelector(modes)
 
-        mode_dp = self._config.get(self._dp_mode)
-        if self.has_config(self._dp_mode):
-            inner = dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp)
-            self._mode_wrapper = DictSelectorWrapper(
-                inner, self._available_modes, default="unknown"
+        self._mode_wrapper = (
+            DictSelectorWrapper(
+                mode_inner, self._available_modes, default="unknown"
             )
-        else:
-            self._mode_wrapper = None
+            if mode_inner is not None
+            else None
+        )
 
         self._attr_min_humidity = self._config.get(
             ATTR_MIN_HUMIDITY, DEFAULT_MIN_HUMIDITY

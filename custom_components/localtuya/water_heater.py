@@ -32,6 +32,7 @@ from homeassistant.const import (
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.dp_wrapper_decorators import ClimateTempWrapper, DictSelectorWrapper
+from .core.definitions import get_water_heater_definition
 from .const import (
     CONF_TARGET_TEMPERATURE_DP,
     CONF_CURRENT_TEMPERATURE_DP,
@@ -100,6 +101,7 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
         device,
         config_entry,
         switchid,
+        description=None,
         **kwargs,
     ):
         """Initialize a new LocalTuyaWaterHeater."""
@@ -111,50 +113,81 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
             self._config.get(CONF_TARGET_PRECISION, DEFAULT_PRECISION)
         )
 
-        # Cloud spec wrappers for the configured DPs (core parity); DPs with
-        # no cloud spec fall back to a raw wrapper so reads/writes always
-        # delegate through the wrapper layer. Conversion lives in decorators.
-        self._switch_wrapper = dp_wrapper_by_id(
-            device, self._dp_id
-        ) or RawDPWrapper(self._dp_id)
+        if description is not None:
+            definition = get_water_heater_definition(device, description)
+            self._switch_wrapper = (
+                definition.switch_wrapper if definition is not None else None
+            )
+            target_inner = (
+                definition.target_temp_wrapper
+                if definition is not None
+                else None
+            )
+            current_inner = (
+                definition.current_temp_wrapper
+                if definition is not None
+                else None
+            )
+            low_inner = (
+                definition.target_low_wrapper
+                if definition is not None
+                else None
+            )
+            high_inner = (
+                definition.target_high_wrapper
+                if definition is not None
+                else None
+            )
+            mode_inner = (
+                definition.mode_wrapper if definition is not None else None
+            )
+        else:
+            # Cloud spec wrappers for the configured DPs (core parity); DPs
+            # with no cloud spec fall back to a raw wrapper.
+            self._switch_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
-        target_dp = self._config.get(CONF_TARGET_TEMPERATURE_DP)
+            target_dp = self._config.get(CONF_TARGET_TEMPERATURE_DP)
+            target_inner = (
+                dp_wrapper_by_id(device, target_dp) or RawDPWrapper(target_dp)
+            ) if self.has_config(CONF_TARGET_TEMPERATURE_DP) else None
+
+            current_dp = self._config.get(CONF_CURRENT_TEMPERATURE_DP)
+            current_inner = (
+                dp_wrapper_by_id(device, current_dp) or RawDPWrapper(current_dp)
+            ) if self.has_config(CONF_CURRENT_TEMPERATURE_DP) else None
+
+            low_dp = self._config.get(CONF_TARGET_TEMPERATURE_LOW_DP)
+            low_inner = (
+                dp_wrapper_by_id(device, low_dp) or RawDPWrapper(low_dp)
+            ) if self.has_config(CONF_TARGET_TEMPERATURE_LOW_DP) else None
+
+            high_dp = self._config.get(CONF_TARGET_TEMPERATURE_HIGH_DP)
+            high_inner = (
+                dp_wrapper_by_id(device, high_dp) or RawDPWrapper(high_dp)
+            ) if self.has_config(CONF_TARGET_TEMPERATURE_HIGH_DP) else None
+
+            mode_dp = self._config.get(CONF_MODE_DP)
+            mode_inner = (
+                dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp)
+            ) if self.has_config(CONF_MODE_DP) else None
+
         self._target_temp_wrapper = (
-            ClimateTempWrapper(
-                dp_wrapper_by_id(device, target_dp) or RawDPWrapper(target_dp),
-                precision=self._precision_target,
-            )
-            if self.has_config(CONF_TARGET_TEMPERATURE_DP)
+            ClimateTempWrapper(target_inner, precision=self._precision_target)
+            if target_inner is not None
             else None
         )
-
-        current_dp = self._config.get(CONF_CURRENT_TEMPERATURE_DP)
         self._current_temp_wrapper = (
-            ClimateTempWrapper(
-                dp_wrapper_by_id(device, current_dp) or RawDPWrapper(current_dp),
-                precision=self._precision,
-            )
-            if self.has_config(CONF_CURRENT_TEMPERATURE_DP)
+            ClimateTempWrapper(current_inner, precision=self._precision)
+            if current_inner is not None
             else None
         )
-
-        low_dp = self._config.get(CONF_TARGET_TEMPERATURE_LOW_DP)
-        self._target_low_wrapper = (
-            dp_wrapper_by_id(device, low_dp) or RawDPWrapper(low_dp)
-        ) if self.has_config(CONF_TARGET_TEMPERATURE_LOW_DP) else None
-
-        high_dp = self._config.get(CONF_TARGET_TEMPERATURE_HIGH_DP)
-        self._target_high_wrapper = (
-            dp_wrapper_by_id(device, high_dp) or RawDPWrapper(high_dp)
-        ) if self.has_config(CONF_TARGET_TEMPERATURE_HIGH_DP) else None
-
-        mode_dp = self._config.get(CONF_MODE_DP)
+        self._target_low_wrapper = low_inner
+        self._target_high_wrapper = high_inner
         self._mode_wrapper = (
-            DictSelectorWrapper(
-                dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp),
-                self._available_modes,
-            )
-            if self.has_config(CONF_MODE_DP)
+            DictSelectorWrapper(mode_inner, self._available_modes)
+            if mode_inner is not None
             else None
         )
 

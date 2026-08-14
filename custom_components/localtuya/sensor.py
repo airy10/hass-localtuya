@@ -32,6 +32,7 @@ from homeassistant.const import (
 from homeassistant.helpers import entity_registry as er
 
 from .core.dp_wrappers import DPCodeEnumWrapper, RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_sensor_definition
 from .entity import LocalTuyaEntity, async_setup_entry as _setup_entry
 from .const import (
     CONF_ENTITY_ENABLED_DEFAULT,
@@ -86,6 +87,7 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         device,
         config_entry,
         sensorid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya sensor."""
@@ -95,10 +97,18 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         self._has_sub_entities = False
         self._attr_device_class = self._config.get(CONF_DEVICE_CLASS)
 
-        # Cloud spec (core sensor_wrapper) as default source for unit/class.
-        self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        # Definition-driven: resolve the primary DP by dpcode; the manual
+        # config-driven dps path is the fallback.
+        if description is not None:
+            definition = get_sensor_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            # Cloud spec (core sensor_wrapper) as default source for unit/class.
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
         if not self.has_config(CONF_UNIT_OF_MEASUREMENT) and (
             unit := self._dpcode_wrapper.native_unit
             or self._dpcode_wrapper.suggested_unit

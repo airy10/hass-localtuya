@@ -23,6 +23,7 @@ from .const import (
     CONF_STEPSIZE,
 )
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_number_definition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,15 +68,22 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
         device,
         config_entry,
         sensorid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya sensor."""
         super().__init__(device, config_entry, sensorid, _LOGGER, **kwargs)
         self._state = STATE_UNKNOWN
 
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_number_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                self._device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
         wrapper = self._dpcode_wrapper
 
         if CONF_MIN_VALUE in self._config:

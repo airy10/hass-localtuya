@@ -18,6 +18,7 @@ from homeassistant.components.binary_sensor import (
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_STATE_ON, CONF_RESET_TIMER
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_binary_sensor_definition
 
 
 CONF_STATE_OFF = "state_off"
@@ -45,6 +46,7 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
         device,
         config_entry,
         sensorid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya binary sensor."""
@@ -53,9 +55,15 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
 
         self._reset_timer: float = self._config.get(CONF_RESET_TIMER, 0)
         self._reset_timer_interval: CALLBACK_TYPE | None = None
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_binary_sensor_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                self._device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
     @property
     def is_on(self):

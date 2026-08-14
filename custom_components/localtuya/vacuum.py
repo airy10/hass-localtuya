@@ -14,6 +14,7 @@ from homeassistant.components.vacuum import (
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_vacuum_definition
 from .const import (
     CONF_CLEAN_AREA_DP,
     CONF_CLEAN_RECORD_DP,
@@ -81,7 +82,7 @@ def flow_schema(dps):
 class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     """Tuya vacuum device."""
 
-    def __init__(self, device, config_entry, switchid, **kwargs):
+    def __init__(self, device, config_entry, switchid, description=None, **kwargs):
         """Initialize a new LocalTuyaVacuum."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
@@ -119,10 +120,14 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         # config status lists and writes config values, so only fan speed is
         # wrapper-delegated (enum options match the config list). DPs with no
         # cloud spec fall back to a raw wrapper.
-        self._fan_speed_wrapper = (
-            dp_wrapper_by_id(device, self._config.get(CONF_FAN_SPEED_DP))
-            or RawDPWrapper(self._config.get(CONF_FAN_SPEED_DP))
-        ) if self.has_config(CONF_FAN_SPEED_DP) else None
+        if description is not None:
+            definition = get_vacuum_definition(device, description)
+            self._fan_speed_wrapper = definition.fan_speed_wrapper
+        else:
+            self._fan_speed_wrapper = (
+                dp_wrapper_by_id(device, self._config.get(CONF_FAN_SPEED_DP))
+                or RawDPWrapper(self._config.get(CONF_FAN_SPEED_DP))
+            ) if self.has_config(CONF_FAN_SPEED_DP) else None
 
     @property
     def supported_features(self) -> VacuumEntityFeature:

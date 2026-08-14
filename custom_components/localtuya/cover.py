@@ -18,6 +18,7 @@ from .config_flow import col_to_select
 from .entity import LocalTuyaEntity, async_setup_entry
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
 from .core.dp_wrapper_decorators import InvertedPercentageWrapper
+from .core.definitions import get_cover_definition
 from .const import (
     CONF_COMMANDS_SET,
     CONF_CURRENT_POSITION_DP,
@@ -89,7 +90,9 @@ def flow_schema(dps):
 class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
     """Tuya cover device."""
 
-    def __init__(self, device, config_entry, switchid, **kwargs):
+    def __init__(
+        self, device, config_entry, switchid, description=None, **kwargs
+    ):
         """Initialize a new LocalTuyaCover."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         commands_set = DEF_CMD_SET
@@ -112,14 +115,18 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         # the set-position write is delegated to the wrapper (raw fallback
         # when the DP has no cloud spec). Position inversion lives in the
         # wrapper so the write path stays thin.
-        set_dp = self._config.get(CONF_SET_POSITION_DP)
-        if self.has_config(CONF_SET_POSITION_DP):
-            inner = dp_wrapper_by_id(device, set_dp) or RawDPWrapper(set_dp)
-            if self._position_inverted:
-                inner = InvertedPercentageWrapper(inner)
-            self._set_position_wrapper = inner
+        if description is not None:
+            definition = get_cover_definition(device, description)
+            set_inner = definition.set_position_wrapper
         else:
-            self._set_position_wrapper = None
+            set_dp = self._config.get(CONF_SET_POSITION_DP)
+            set_inner = (
+                dp_wrapper_by_id(device, set_dp) or RawDPWrapper(set_dp)
+            ) if self.has_config(CONF_SET_POSITION_DP) else None
+
+        if set_inner is not None and self._position_inverted:
+            set_inner = InvertedPercentageWrapper(set_inner)
+        self._set_position_wrapper = set_inner
 
     @property
     def supported_features(self):

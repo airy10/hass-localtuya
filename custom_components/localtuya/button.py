@@ -9,6 +9,7 @@ from homeassistant.components.button import DOMAIN, ButtonEntity
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import CONF_PASSIVE_ENTITY
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_button_definition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,14 +29,21 @@ class LocalTuyaButton(LocalTuyaEntity, ButtonEntity):
         device,
         config_entry,
         buttonid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya button."""
         super().__init__(device, config_entry, buttonid, _LOGGER, **kwargs)
         self._state = None
-        self._dpcode_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_button_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                self._device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
     async def async_press(self):
         """Press the button."""

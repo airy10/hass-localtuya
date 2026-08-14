@@ -13,6 +13,7 @@ from homeassistant.components.valve import (
 
 from .const import CONF_RESTORE_ON_RECONNECT
 from .core.dp_wrappers import RawDPWrapper, dp_wrapper_by_id
+from .core.definitions import get_valve_definition
 from .entity import LocalTuyaEntity, async_setup_entry
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,14 +37,21 @@ class LocalTuyaValve(LocalTuyaEntity, ValveEntity):
         device,
         config_entry,
         valveid,
+        description=None,
         **kwargs,
     ):
         """Initialize the Tuya valve."""
         super().__init__(device, config_entry, valveid, _LOGGER, **kwargs)
         self._state = None
-        self._dpcode_wrapper = dp_wrapper_by_id(device, self._dp_id) or RawDPWrapper(
-            self._dp_id
-        )
+        if description is not None:
+            definition = get_valve_definition(device, description)
+            self._dpcode_wrapper = (
+                definition.dpcode_wrapper if definition is not None else None
+            )
+        else:
+            self._dpcode_wrapper = dp_wrapper_by_id(
+                device, self._dp_id
+            ) or RawDPWrapper(self._dp_id)
 
     @property
     def is_closed(self) -> bool | None:
