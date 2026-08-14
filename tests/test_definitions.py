@@ -305,6 +305,49 @@ def test_entity_config_from_description_gates_on_contains_any():
     assert primary_id is None
 
 
+def test_entity_config_gates_on_persisted_detected_value():
+    """Pre-connection gating uses the config-time detected value (dps_strings).
+
+    Entities are created before the device connects, so ``status`` is empty.
+    The detected value persisted at config time (e.g. ``relay_status`` reports
+    ``on`` while the cloud enum range wrongly declares ``power_on``) must drive
+    the ``contains_any`` variant selection.
+    """
+    from custom_components.localtuya.entity import entity_config_from_description
+
+    def desc(contains_any):
+        return LocalTuyaEntity(
+            id=DPCode.RELAY_STATUS, condition_contains_any=contains_any
+        )
+
+    device = SimpleNamespace(
+        function={},
+        status_range={
+            "relay_status": {
+                "dp_id": "38",
+                "type": "Enum",
+                "values": {"range": ["power_off", "power_on", "last"]},
+            },
+        },
+        status={},
+        id="dev1",
+        product_id="prod-1",
+        persisted_dps_values={"38": "on"},
+    )
+
+    # "on" matches the persisted value -> the on/off/memory variant applies.
+    config, primary_id = entity_config_from_description(
+        device, desc(["on", "off", "memory"]), "select"
+    )
+    assert primary_id == "38"
+
+    # "power_on" is not in the persisted value "on" -> gated out.
+    config, primary_id = entity_config_from_description(
+        device, desc(["power_on", "power_off", "last"]), "select"
+    )
+    assert primary_id is None
+
+
 def test_described_entity_specs_dedups_primary_dp(monkeypatch):
     from custom_components.localtuya import entity as entity_mod
     from custom_components.localtuya.entity import _described_entity_specs

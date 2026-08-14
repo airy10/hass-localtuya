@@ -560,3 +560,26 @@ def test_ble_credentials_from_persisted_missing_identity_returns_none():
     """Missing identity fields mean the snapshot cannot be used offline."""
     manager = _make_manager({"ble_specs": {"functions": [], "status_range": []}})
     assert manager._credentials_from_persisted() is None
+
+
+def test_persisted_dps_values_parses_dps_strings():
+    """Detected DP values are recovered from the persisted dps_strings list.
+
+    These drive value-dependent description gating (``contains_any``) at setup
+    time, before the device reconnects and populates live status.
+    """
+    tuya_device = object.__new__(TuyaDevice)
+    tuya_device._device_config = SimpleNamespace(
+        dps_strings=[
+            "38 ( code: relay_status , value: on )",
+            "9 ( value: 0 )",
+            "20 ( value: -1 )",
+            "1 (value: ?)",
+            "99 ( code: cloud_only , value: , cloud pull )",
+        ]
+    )
+
+    assert tuya_device.persisted_dps_values == {
+        "38": "on",
+        "9": "0",
+    }

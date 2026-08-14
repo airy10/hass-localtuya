@@ -267,15 +267,23 @@ def _dp_value_strings(device, code: str | None, dp_id: str | None) -> list[str]:
     """Return lowercase candidate value strings for a DP.
 
     Used to gate descriptions carrying ``contains_any`` against the device's
-    actual reported value (live status first, then the persisted cloud value
-    snapshot). Mirrors the legacy ``gen_localtuya_entities`` value check, which
-    matched the ``contains_any`` conditions against the DP value string.
+    actual reported value: live status first, then the detected value
+    persisted at config time (``dps_strings``) so gating still works before
+    the device reconnects. Mirrors the legacy ``gen_localtuya_entities`` value
+    check, which matched the ``contains_any`` conditions against the DP value
+    string.
     """
     values: list[str] = []
     status = getattr(device, "status", {}) or {}
     for key in (code, str(dp_id) if dp_id is not None else None):
         if key is not None and status.get(key) is not None:
             values.append(str(status[key]).lower())
+    # Detected values persisted at config time (dps_strings) are the only
+    # pre-connection signal available for value-dependent gating, since the
+    # device connects after entities are created.
+    persisted = getattr(device, "persisted_dps_values", None) or {}
+    if dp_id is not None and (raw := persisted.get(str(dp_id))) is not None:
+        values.append(str(raw).lower())
     for specs in (
         getattr(device, "function", {}) or {},
         getattr(device, "status_range", {}) or {},

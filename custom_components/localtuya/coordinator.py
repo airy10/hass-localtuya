@@ -315,6 +315,30 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         result.update(self._status)
         return result
 
+    @property
+    def persisted_dps_values(self) -> dict[str, str]:
+        """Return detected DP values persisted at config time (dp_id -> value).
+
+        Config flow detection stores each DP's observed value in the
+        ``dps_strings`` list (e.g. ``"38 ( code: relay_status , value: on )"``).
+        This is the only pre-connection signal available for value-dependent
+        description gating (``contains_any``), since the live ``status`` is not
+        populated until the device connects *after* entities are created.
+        """
+        values: dict[str, str] = {}
+        for entry in self._device_config.dps_strings or []:
+            entry = str(entry)
+            dp_id, _, rest = entry.partition(" ")
+            if not dp_id.isdigit() or "value:" not in rest:
+                continue
+            value = rest.split("value:", 1)[1].rsplit(")", 1)[0].strip()
+            # Skip placeholders: unprobed defaults (``?``), manual DPs (``-1``),
+            # and cloud-only entries (``, cloud pull``).
+            if not value or value in ("?", "-1") or "cloud pull" in value:
+                continue
+            values[dp_id] = value
+        return values
+
     def _cloud_dpspec_view(self) -> dict:
         """Build a dpcode-keyed spec view from the Ethernet cloud dps_data."""
         dps_data = self._cloud_device_data().get("dps_data", {})
