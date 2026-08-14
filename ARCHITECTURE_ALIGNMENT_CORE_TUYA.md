@@ -565,9 +565,9 @@ action DPs, sensor base64 sub-sensors, …).
 
 ## 8. Next work
 
-The definition-driven runtime (Phases 0–7) is complete. Remaining, optional
-follow-ups: (1) remove the now-unused `gen_localtuya_entities` flattening
-helper, (2) drop the manual `dps` path entirely once cloud auto-config proves
-stable, (3) reconcile the BLE `_auto_entities_for_device`/`derive_mappings_from_spec`
-path with the shared `_described_entity_specs` path into a single runtime
-resolver.
+The definition-driven runtime (Phases 0–7) is complete, and the now-unused
+`gen_localtuya_entities` flattening helper has been removed. Remaining,
+optional follow-ups: (1) drop the manual `dps` path entirely once cloud
+auto-config proves stable, (2) reconcile the BLE
+`_auto_entities_for_device`/`derive_mappings_from_spec` path with the shared
+`_described_entity_specs` path into a single runtime resolver.
