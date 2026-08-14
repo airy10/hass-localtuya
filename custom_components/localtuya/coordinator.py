@@ -158,16 +158,31 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         return None
 
     @property
+    def _quirk(self):
+        """Return the registered quirk for this device, if any.
+
+        Quirks patch the cloud spec (``category`` / ``function`` /
+        ``status_range``) before wrapper resolution, mirroring core's
+        ``TUYA_QUIRKS_REGISTRY.initialise_device_quirk``.
+        """
+        return QUIRKS_REGISTRY.get_quirk_for_device(self)
+
+    @property
     def category(self) -> str | None:
         """Return the device category (core-compatible surface).
 
         BLE passthroughs to the cloud-fetched BLE device category; Ethernet
         reads it from the cloud device data (falling back to the persisted
         snapshot). Enables definition-driven entity resolution by category.
+        A registered quirk may override it (core ``override_category``).
         """
         if (ble := self.ble_device) is not None and ble.category:
-            return ble.category
-        return self._cloud_device_data().get("category")
+            category = ble.category
+        else:
+            category = self._cloud_device_data().get("category")
+        if (quirk := self._quirk) is not None:
+            return quirk.patched_category(category)
+        return category
 
     @property
     def product_id(self) -> str | None:
@@ -247,20 +262,30 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         reads, so the vendored ``core/dp_types.py``/``core/dp_wrappers.py``
         layer can consume it unchanged.  BLE passthroughs to the cloud-fetched
         BLE function specs; Ethernet builds the view from cloud dps_data.
+        A registered quirk patches the result (core ``initialise_device``).
         """
         if ble := self.ble_device:
-            return ble.function
-        return self._cloud_dpspec_view()
+            function = ble.function
+        else:
+            function = self._cloud_dpspec_view()
+        if (quirk := self._quirk) is not None:
+            return quirk.patch_function(function)
+        return function
 
     @property
     def status_range(self) -> dict:
         """Read-only DP specs keyed by dpcode (core-compatible surface).
 
-        See ``function`` for the transport handling.
+        See ``function`` for the transport handling; quirks patch the result
+        the same way.
         """
         if ble := self.ble_device:
-            return ble.status_range
-        return self._cloud_dpspec_view()
+            status_range = ble.status_range
+        else:
+            status_range = self._cloud_dpspec_view()
+        if (quirk := self._quirk) is not None:
+            return quirk.patch_status_range(status_range)
+        return status_range
 
     @property
     def status(self) -> dict:

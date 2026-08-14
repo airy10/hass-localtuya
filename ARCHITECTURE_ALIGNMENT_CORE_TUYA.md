@@ -47,7 +47,7 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
 | Entity base | `TuyaEntity` (`entity.py:15-109`): unique_id `tuya.{device.id}{desc.key}`, `available = device.online`, has_entity_name | `LocalTuyaEntity` (`entity.py:175+`): RestoreEntity + ContextualLogger, config-driven `_dp_id`, per-DP getter/setter/is_available |
 | Entity classes | **Thin delegators** over `definition.X_wrapper` (e.g. `switch.py:954-997`: is_on/turn_on/_process_update all go through wrapper) | **Thick config-driven** classes touching raw DPs (`switch.py:50-151`: getter/setter/bitmap branching + `set_dp`) — target: wrapper-delegating bodies with config as construction source |
 | Device registry link | `get_device_info()` (`util.py:66-92`): identifiers `(tuya, device.id)`, manufacturer/model/model_id | `device_info` (`entity.py:278-297`): identifiers `(localtuya, local_{id})`, model = config model |
-| Quirks | `TUYA_QUIRKS_REGISTRY` keyed by product_id (`tuya_device_handlers/registry.py`) | **None** — hardcoded per-product tables in `mappings.py` (only 3 categories) |
+| Quirks | `TUYA_QUIRKS_REGISTRY` keyed by product_id (`tuya_device_handlers/registry.py`); ~22 spec-patching quirks in `tuya_device_handlers/devices/*` | `QUIRKS_REGISTRY` (`core/quirks.py`) — ported: 18 spec-patching quirks + 13 Fingerbot button-DP quirks, applied to `TuyaDevice.function`/`status_range`/`category` before wrapper resolution (§7.10) |
 
 ---
 
@@ -72,7 +72,9 @@ be transport-agnostic. This is exactly what we started with `color_data_spec`
    `get_device_stream_allocate`, doorbell/button events, cloud scenes, irrigation valves).
    We have none. (Our extra lock/remote/text/water_heater have no core equivalent either.)
 7. **Quirks registry** — core ships a product-id-keyed quirk system loaded from
-   `config/tuya_quirks/`. We hardcode 3 products.
+   `config/tuya_quirks/`. Ported into `core/quirks.py` (§7.10); only the
+   type-information-cls and feeder-schedule quirk kinds are omitted (no localtuya
+   equivalent). Custom-quirk loading from a user dir is still a gap.
 8. **`report_type` / `local_strategy` / `support_local`** — core uses these (from
    `/v1.0/m/life/devices/{id}/status` + `/dp-report-types`) to convert dpId→code on MQTT.
    For BLE we map dp_id↔code ourselves in `tuya_ble_lib`.
@@ -561,6 +563,34 @@ MQTT), description-driven construction with manual `dps` fallback, and
 file's header (light scene/music modes, cover movement state machine, vacuum
 action DPs, sensor base64 sub-sensors, …).
 
+### 7.10 Quirks registry — spec patches ported from core (DONE)
+
+Core's per-product quirk system (`tuya_device_handlers/devices/*.py`) is now
+ported into `core/quirks.py`. A quirk is a patch to the cloud device
+description, applied to `TuyaDevice.function`/`status_range`/`category`
+(coordinator `_quirk` property) *before* `dp_wrapper_by_code` /
+`definitions.resolve` build wrappers — so buggy/missing DP metadata in Tuya's
+catalog is corrected for the same products core fixes, and future core quirks
+port 1:1.
+
+- `DeviceQuirk` now mirrors core's builder API: `applies_to(...)`,
+  `add_dpid_enum` / `add_dpid_integer` / `add_dpid_boolean` /
+  `add_dpid_bitmap`, `remove_dpid`, `override_category`, and
+  `patch_function`/`patch_status_range`/`patched_category`.
+- Ported 18 spec-patching quirks (kettle, tubular motor, dehumidifier,
+  metered sockets ×4, tower fan, mini-split, temp/hum sensors ×3, contact
+  sensor, thermostats ×3, probe sensor, micro inverter) plus the existing 13
+  Fingerbot button-DP quirks.
+- Deliberately omitted: `override_dpid_type_information_cls`
+  (`InvertedIntegerTypeInformationEx`, the cl/clkg curtain motors) — core
+  applies it to cancel its *default* position inversion, but localtuya cover
+  inversion is config-driven (`position_inverted`), so those three are no-ops
+  for us; and `map_feeder_schedules_wrapper` (pet feeder) — we have no
+  feeder-schedule service.
+
+Tests: `tests/test_quirks.py` (patch/remove/category-override behavior +
+registry population + a wrapper-resolution check). Suite **172 passed**.
+
 ---
 
 ## 8. Next work
@@ -571,3 +601,8 @@ per-product path has been unified with the shared category-table resolver
 (`entity.py::_entity_specs_for_device` — BLE per-product overrides first,
 then `_described_entity_specs` for both transports). The manual `dps` path is
 intentionally kept as the fallback/escape hatch.
+
+The one remaining quirk-related gap is **custom-quirk loading**: core can load
+user quirk files from `config/tuya_quirks/`; ours is a fixed in-code registry.
+Porting that loader is optional and only matters for users who want to patch a
+product's spec without editing the component.

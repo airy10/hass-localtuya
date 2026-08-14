@@ -20,8 +20,10 @@ SYNC CHECKLIST (when the core component is updated):
        dpcode plus ``id``/``product_id`` (our ``TuyaDevice`` provides them).
      - ``_from_json`` accepts BOTH JSON strings (Ethernet cloud dps_data) and
        pre-parsed dicts (BLE ``TuyaBLEDeviceFunction.values``).
-     - the quirk hook is stubbed (no ``TUYA_QUIRKS_REGISTRY`` yet, see
-       ARCHITECTURE_ALIGNMENT_CORE_TUYA.md Phase 5).
+     - no ``type_information_cls`` quirk overrides: spec-patching quirks are
+       applied to ``TuyaDevice.function``/``status_range`` *before* this layer
+       reads them (``core/quirks.py``), so the ``TypeInformation`` built here
+       already reflects any per-product fixes.
 """
 
 from __future__ import annotations
