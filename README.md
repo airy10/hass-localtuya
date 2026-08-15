@@ -6,30 +6,34 @@
 ![logo](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/logo-small.png)
 
 
-__A Home Assistant custom Integration for local handling of Tuya-based devices.__
+__A Home Assistant custom Integration for local handling of Tuya-based Ethernet (Wifi) or BLE devices.__
 
-### **Usage and setup [Documentation](https://xzetsubou.github.io/hass-localtuya/)**
+### **Usage and setup [Documentation](https://airy10.github.io/hass-localtuya/)**
 
 <br>
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&repository=hass-localtuya&owner=xZetsubou)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&repository=hass-localtuya&owner=airy10)
 
+
+This https://xzetsubou.github.io/hass-localtuya/ clone is an experiment mix of xzetsubou localtuya component to control Ethernet devices, my ha_tuya_ble component for BLE devices (https://github.com/airy10/ha_tuya_ble) and Home Assistant Core Tuya component (in order to have entities created/handled the same way as with the cloud core component).
+The goal is to be able to control Tuya devices (Ethernet ones and BLE ones) locally - the Tuya Cloud is optionally used to automatically discover and configure local devices. After a device is configured, the cloud shouldn't be needed at all to control the device from Home Assistant.
+This is still very experimental and tested only with the devices I own.
+Full documentation hasn't been updated yet.
+
+AI agents were heavily used to merge these three Tuya components.
 
 
 ## __𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬__
 - Supports both Wifi and BLE devices
-- Supported Sub-devices - `Devices that function through gateways`
-- Remote entities - `Supports IR remotes through native remote entity`
 - Auto-configure devices - `Requires a cloud API setup`
 - Automatic insertion - `Some fields requires a cloud API setup`
 - Devices discovery - `Discovers Tuya devices on your network`
 - Cloud API - `Only to help you to setup devices, can work without it.`
 
 
-
 <br>
 
-[𝐑𝐞𝐩𝐨𝐫𝐭𝐢𝐧𝐠 𝐚𝐧 𝐢𝐬𝐬𝐮𝐞](https://xzetsubou.github.io/hass-localtuya/report_issue/)
+[𝐑𝐞𝐩𝐨𝐫𝐭𝐢𝐧𝐠 𝐚𝐧 𝐢𝐬𝐬𝐮𝐞](https://airy10.github.io/hass-localtuya/report_issue/)
 
 <!-- ### Notes
 
@@ -43,19 +47,8 @@ The Cloud API account configuration is not mandatory (LocalTuya can work also wi
 <details><summary> 𝐂𝐫𝐞𝐝𝐢𝐭𝐬 </summary>
 <p>
     
-[rospogrigio](https://github.com/rospogrigio), the original maintainer of LocalTuya. This fork was created when the [upstream](https://github.com/rospogrigio/localtuya) version was at `v5.2.1`.
-
-[NameLessJedi](https://github.com/NameLessJedi/localtuya-homeassistant) and [mileperhour](https://github.com/mileperhour/localtuya-homeassistant) being the major sources of inspiration, and whose code for switches is substantially unchanged.
-
-[TradeFace](https://github.com/TradeFace), for being the only one to provide the correct code for communication with the cover (in particular, the 0x0d command for the status instead of the 0x0a, and related needs such as double reply to be received): 
-
-sean6541, for the working (standard) Python Handler for Tuya devices.
-
-[jasonacox](https://github.com/jasonacox), for the [TinyTuya](https://github.com/jasonacox/tinytuya) project from where I got big help and references to upgrade integration.
-
-[uzlonewolf](https://github.com/uzlonewolf), for maintaining TinyTuya who improved the tool so much and introduced new features like new protocols, etc.
-
-[postlund](https://github.com/postlund), for the ideas, for coding 95% of the refactoring and boosting the quality of the upstream repository.
+[PlusPlus-ua](https://github.com/PlusPlus-ua), the original creator of my ha_tuya_ble integration
+[xZetsubou](https://github.com/xZetsubou), the author of the LocalTuya component I used as a basis for this project
 
 </p>
 </details> 
