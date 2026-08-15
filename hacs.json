@@ -1,6 +1,6 @@
 {
   "name": "Local Tuya (Ethernet + BLE)",
-  "homeassistant": "2026.8.22",
+  "homeassistant": "2026.8.15",
   "render_readme": true,
   "persistent_directory": "templates"
 }
