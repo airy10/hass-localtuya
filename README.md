@@ -1,13 +1,8 @@
-<a  href="https://www.buymeacoffee.com/mrbanderx3"  target="_blank"><img  src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png"  alt="Buy Me A Coffee"  style="height: 30px !important;width: 150px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
-
----
-
-
 ![logo](https://github.com/rospogrigio/localtuya-homeassistant/blob/master/img/logo-small.png)
-
 
 __A Home Assistant custom Integration for local handling of Tuya-based Ethernet (Wifi) or BLE devices.__
 
+### NOTE: this project still use the same name as the original localtuya component from xZetsubou - so you can't have them both installed at the same time
 ### **Usage and setup [Documentation](https://airy10.github.io/hass-localtuya/)**
 
 <br>
@@ -48,6 +43,7 @@ The Cloud API account configuration is not mandatory (LocalTuya can work also wi
 <p>
     
 [PlusPlus-ua](https://github.com/PlusPlus-ua), the original creator of my ha_tuya_ble integration
+
 [xZetsubou](https://github.com/xZetsubou), the author of the LocalTuya component I used as a basis for this project
 
 </p>
