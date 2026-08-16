@@ -10,15 +10,15 @@
       "service_data_uuid": "0000a201-0000-1000-8000-00805f9b34fb"
     }
   ],
-  "documentation": "https://github.com/xZetsubou/hass-localtuya/",
+  "documentation": "https://github.com/airy10/hass-localtuya/",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/xZetsubou/hass-localtuya/issues",
+  "issue_tracker": "https://github.com/airy10/hass-localtuya/issues",
   "requirements": [
     "bleak",
     "bleak-retry-connector",
     "pycryptodome",
     "tuya-device-sharing-sdk~=0.2.4"
   ],
-  "version": "2026.07.0"
+  "version": "2026.08.16"
 }
