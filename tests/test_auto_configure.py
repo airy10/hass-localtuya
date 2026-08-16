@@ -3,10 +3,17 @@ from custom_components.localtuya.core.ha_entities import (
     DATA_PLATFORMS,
     category_has_descriptions,
 )
-from custom_components.localtuya.const import PLATFORMS, CONF_NO_CLOUD, DEVICE_CLOUD_DATA
+from custom_components.localtuya.const import (
+    PLATFORMS,
+    CONF_NO_CLOUD,
+    DEVICE_CLOUD_DATA,
+    CONF_BLE_ADDRESS,
+    CONF_NODE_ID,
+)
 from custom_components.localtuya.config_flow import (
     LocalTuyaOptionsFlowHandler,
     NO_ADDITIONAL_ENTITIES,
+    devices_schema,
 )
 
 
@@ -38,9 +45,7 @@ async def test_auto_configure_device_stores_cloud_data_and_empty_entities(
     """Auto-configure persists cloud specs + empty entities (definition-driven)."""
     flow = LocalTuyaOptionsFlowHandler.__new__(LocalTuyaOptionsFlowHandler)
     entry = _FakeConfigEntry()
-    cloud = _FakeCloud(
-        {"dev1": {"category": "kg", "product_id": "x", "dps_data": {}}}
-    )
+    cloud = _FakeCloud({"dev1": {"category": "kg", "product_id": "x", "dps_data": {}}})
     monkeypatch.setattr(
         LocalTuyaOptionsFlowHandler, "config_entry", property(lambda self: entry)
     )
@@ -64,3 +69,39 @@ async def test_auto_configure_device_stores_cloud_data_and_empty_entities(
     assert captured["user_input"] == {NO_ADDITIONAL_ENTITIES: True}
     assert captured["entities"] == []
     assert flow.device_data[DEVICE_CLOUD_DATA]["category"] == "kg"
+
+
+def test_devices_schema_displays_ble_devices_without_host():
+    """BLE devices (no CONF_HOST) must not crash edit_device's device picker."""
+    ble_dev = {
+        CONF_BLE_ADDRESS: "AA:BB:CC:DD:EE:FF",
+        CONF_NODE_ID: None,
+        "entities": [],
+    }
+    eth_dev = {"host": "192.168.1.5", CONF_NODE_ID: None, "entities": []}
+    sub_dev = {CONF_NODE_ID: "node1", "entities": []}
+
+    devices = {}
+    for dev_id, configured_dev in {
+        "dev_ble": ble_dev,
+        "dev_eth": eth_dev,
+        "dev_sub": sub_dev,
+    }.items():
+        if configured_dev.get(CONF_NODE_ID, None):
+            devices[dev_id] = "Sub Device"
+        else:
+            devices[dev_id] = configured_dev.get(
+                "host", configured_dev.get(CONF_BLE_ADDRESS, "")
+            )
+
+    assert devices == {
+        "dev_ble": "AA:BB:CC:DD:EE:FF",
+        "dev_eth": "192.168.1.5",
+        "dev_sub": "Sub Device",
+    }
+
+    schema = devices_schema(
+        devices, {}, add_custom_device=False, existed_devices={"dev_ble": ble_dev}
+    )
+    options = schema.schema["selected_device"].config["options"]
+    assert "dev_ble (AA:BB:CC:DD:EE:FF)" in [opt["label"] for opt in options]

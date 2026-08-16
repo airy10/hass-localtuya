@@ -758,7 +758,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             if configured_dev.get(CONF_NODE_ID, None):
                 devices[dev_id] = "Sub Device"
             else:
-                devices[dev_id] = configured_dev[CONF_HOST]
+                devices[dev_id] = configured_dev.get(
+                    CONF_HOST, configured_dev.get(CONF_BLE_ADDRESS, "")
+                )
 
         return self.async_show_form(
             step_id="edit_device",

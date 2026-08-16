@@ -20,5 +20,5 @@
     "pycryptodome",
     "tuya-device-sharing-sdk~=0.2.4"
   ],
-  "version": "2026.08.16"
+  "version": "2026.08.16.2"
 }
