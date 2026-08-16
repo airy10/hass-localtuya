@@ -206,9 +206,7 @@ class DeviceQuirk:
         """Return the category with the quirk's override applied."""
         return self.category_override if self.category_override else category
 
-    def _patch_specs(
-        self, specs: dict[str, Any], *, write: bool
-    ) -> dict[str, Any]:
+    def _patch_specs(self, specs: dict[str, Any], *, write: bool) -> dict[str, Any]:
         """Apply this quirk's datapoint definitions to a spec surface.
 
         For each definition: remove the dpcode (explicit ``remove_dpid``),
@@ -347,12 +345,24 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         model_id="SP111",
     )
     .add_dpid_integer(
-        dpid=5, dpcode="cur_power", dpmode=DPMode.READ, unit="W",
-        min=0, max=50000, scale=1, step=1,
+        dpid=5,
+        dpcode="cur_power",
+        dpmode=DPMode.READ,
+        unit="W",
+        min=0,
+        max=50000,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=6, dpcode="cur_voltage", dpmode=DPMode.READ, unit="V",
-        min=0, max=3000, scale=1, step=1,
+        dpid=6,
+        dpcode="cur_voltage",
+        dpmode=DPMode.READ,
+        unit="V",
+        min=0,
+        max=3000,
+        scale=1,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -361,12 +371,24 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="QH3oyDNHKw9c1irH")
     .add_dpid_integer(
-        dpid=5, dpcode="cur_power", dpmode=DPMode.READ, unit="W",
-        min=0, max=50000, scale=1, step=1,
+        dpid=5,
+        dpcode="cur_power",
+        dpmode=DPMode.READ,
+        unit="W",
+        min=0,
+        max=50000,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=6, dpcode="cur_voltage", dpmode=DPMode.READ, unit="V",
-        min=0, max=2500, scale=1, step=1,
+        dpid=6,
+        dpcode="cur_voltage",
+        dpmode=DPMode.READ,
+        unit="V",
+        min=0,
+        max=2500,
+        scale=1,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -380,12 +402,24 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         model_id="WP3",
     )
     .add_dpid_integer(
-        dpid=5, dpcode="cur_power", dpmode=DPMode.READ, unit="W",
-        min=0, max=50000, scale=1, step=1,
+        dpid=5,
+        dpcode="cur_power",
+        dpmode=DPMode.READ,
+        unit="W",
+        min=0,
+        max=50000,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=6, dpcode="cur_voltage", dpmode=DPMode.READ, unit="V",
-        min=0, max=3000, scale=1, step=1,
+        dpid=6,
+        dpcode="cur_voltage",
+        dpmode=DPMode.READ,
+        unit="V",
+        min=0,
+        max=3000,
+        scale=1,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -399,16 +433,35 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         model_id="EP2",
     )
     .add_dpid_integer(
-        dpid=3, dpcode="add_ele", dpmode=DPMode.READ, unit="kWh",
-        min=0, max=500000, scale=3, step=1, report_type="sum",
+        dpid=3,
+        dpcode="add_ele",
+        dpmode=DPMode.READ,
+        unit="kWh",
+        min=0,
+        max=500000,
+        scale=3,
+        step=1,
+        report_type="sum",
     )
     .add_dpid_integer(
-        dpid=5, dpcode="cur_power", dpmode=DPMode.READ, unit="W",
-        min=0, max=50000, scale=1, step=1,
+        dpid=5,
+        dpcode="cur_power",
+        dpmode=DPMode.READ,
+        unit="W",
+        min=0,
+        max=50000,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=6, dpcode="cur_voltage", dpmode=DPMode.READ, unit="V",
-        min=0, max=5000, scale=1, step=1,
+        dpid=6,
+        dpcode="cur_voltage",
+        dpmode=DPMode.READ,
+        unit="V",
+        min=0,
+        max=5000,
+        scale=1,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -433,8 +486,19 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         dpcode="countdown_set",
         dpmode=DPMode.READ | DPMode.WRITE,
         enum_range=[
-            "cancel", "1h", "2h", "3h", "4h", "5h", "6h",
-            "7h", "8h", "9h", "10h", "11h", "12h",
+            "cancel",
+            "1h",
+            "2h",
+            "3h",
+            "4h",
+            "5h",
+            "6h",
+            "7h",
+            "8h",
+            "9h",
+            "10h",
+            "11h",
+            "12h",
         ],
     )
     .register(QUIRKS_REGISTRY)
@@ -463,16 +527,30 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="datzwoplui1zao16")
     .add_dpid_enum(
-        dpid=20, dpcode="temp_unit_convert",
-        dpmode=DPMode.READ | DPMode.WRITE, enum_range=["c", "f"],
+        dpid=20,
+        dpcode="temp_unit_convert",
+        dpmode=DPMode.READ | DPMode.WRITE,
+        enum_range=["c", "f"],
     )
     .add_dpid_integer(
-        dpid=27, dpcode="temp_current", dpmode=DPMode.READ, unit="℃",
-        min=-200, max=600, scale=1, step=1,
+        dpid=27,
+        dpcode="temp_current",
+        dpmode=DPMode.READ,
+        unit="℃",
+        min=-200,
+        max=600,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=46, dpcode="humidity_value", dpmode=DPMode.READ, unit="%",
-        min=0, max=100, scale=0, step=1,
+        dpid=46,
+        dpcode="humidity_value",
+        dpmode=DPMode.READ,
+        unit="%",
+        min=0,
+        max=100,
+        scale=0,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -483,10 +561,14 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     .applies_to(product_id="p6sqiuesvhmhvv4f")
     .override_category("mcs")
     .add_dpid_boolean(
-        dpid=101, dpcode="doorcontact_state", dpmode=DPMode.READ,
+        dpid=101,
+        dpcode="doorcontact_state",
+        dpmode=DPMode.READ,
     )
     .add_dpid_enum(
-        dpid=102, dpcode="battery_state", dpmode=DPMode.READ,
+        dpid=102,
+        dpcode="battery_state",
+        dpmode=DPMode.READ,
         enum_range=["low", "middle", "high"],
     )
     .register(QUIRKS_REGISTRY)
@@ -496,19 +578,35 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="x3o8epevyeo3z3oa")
     .add_dpid_enum(
-        dpid=20, dpcode="temp_unit_convert",
-        dpmode=DPMode.READ | DPMode.WRITE, enum_range=["c", "f"],
+        dpid=20,
+        dpcode="temp_unit_convert",
+        dpmode=DPMode.READ | DPMode.WRITE,
+        enum_range=["c", "f"],
     )
     .add_dpid_integer(
-        dpid=27, dpcode="temp_current", dpmode=DPMode.READ, unit="℃",
-        min=-200, max=600, scale=1, step=1,
+        dpid=27,
+        dpcode="temp_current",
+        dpmode=DPMode.READ,
+        unit="℃",
+        min=-200,
+        max=600,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=46, dpcode="humidity_value", dpmode=DPMode.READ, unit="%",
-        min=0, max=100, scale=0, step=1,
+        dpid=46,
+        dpcode="humidity_value",
+        dpmode=DPMode.READ,
+        unit="%",
+        min=0,
+        max=100,
+        scale=0,
+        step=1,
     )
     .add_dpid_enum(
-        dpid=101, dpcode="battery_state", dpmode=DPMode.READ,
+        dpid=101,
+        dpcode="battery_state",
+        dpmode=DPMode.READ,
         enum_range=["low", "middle", "high"],
     )
     .register(QUIRKS_REGISTRY)
@@ -518,19 +616,35 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="xeagimantb7d7apb")
     .add_dpid_enum(
-        dpid=20, dpcode="temp_unit_convert",
-        dpmode=DPMode.READ | DPMode.WRITE, enum_range=["c", "f"],
+        dpid=20,
+        dpcode="temp_unit_convert",
+        dpmode=DPMode.READ | DPMode.WRITE,
+        enum_range=["c", "f"],
     )
     .add_dpid_integer(
-        dpid=27, dpcode="temp_current", dpmode=DPMode.READ, unit="℃",
-        min=-200, max=600, scale=1, step=1,
+        dpid=27,
+        dpcode="temp_current",
+        dpmode=DPMode.READ,
+        unit="℃",
+        min=-200,
+        max=600,
+        scale=1,
+        step=1,
     )
     .add_dpid_integer(
-        dpid=46, dpcode="humidity_value", dpmode=DPMode.READ, unit="%",
-        min=0, max=100, scale=0, step=1,
+        dpid=46,
+        dpcode="humidity_value",
+        dpmode=DPMode.READ,
+        unit="%",
+        min=0,
+        max=100,
+        scale=0,
+        step=1,
     )
     .add_dpid_enum(
-        dpid=101, dpcode="battery_state", dpmode=DPMode.READ,
+        dpid=101,
+        dpcode="battery_state",
+        dpmode=DPMode.READ,
         enum_range=["low", "middle", "high"],
     )
     .register(QUIRKS_REGISTRY)
@@ -541,9 +655,17 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="cpmgn2cf")
     .add_dpid_enum(
-        dpid=4, dpcode="mode", dpmode=DPMode.READ | DPMode.WRITE,
+        dpid=4,
+        dpcode="mode",
+        dpmode=DPMode.READ | DPMode.WRITE,
         enum_range=[
-            "holiday", "auto", "manual", "comfort", "eco", "BOOST", "temp_auto",
+            "holiday",
+            "auto",
+            "manual",
+            "comfort",
+            "eco",
+            "BOOST",
+            "temp_auto",
         ],
     )
     .register(QUIRKS_REGISTRY)
@@ -553,7 +675,9 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="if6pqia2gbtvqa6l")
     .add_dpid_enum(
-        dpid=2, dpcode="mode", dpmode=DPMode.READ | DPMode.WRITE,
+        dpid=2,
+        dpcode="mode",
+        dpmode=DPMode.READ | DPMode.WRITE,
         enum_range=["auto", "home"],
     )
     .register(QUIRKS_REGISTRY)
@@ -568,7 +692,9 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         model_id="T510",
     )
     .add_dpid_enum(
-        dpid=2, dpcode="mode", dpmode=DPMode.READ | DPMode.WRITE,
+        dpid=2,
+        dpcode="mode",
+        dpmode=DPMode.READ | DPMode.WRITE,
         enum_range=["auto", "comfort", "eco", "holiday"],
     )
     .register(QUIRKS_REGISTRY)
@@ -579,8 +705,14 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
     DeviceQuirk()
     .applies_to(product_id="m7kacaxrxbxeegfs")
     .add_dpid_integer(
-        dpid=101, dpcode="ext_temp", dpmode=DPMode.READ, unit="℃",
-        min=-200, max=1000, scale=1, step=1,
+        dpid=101,
+        dpcode="ext_temp",
+        dpmode=DPMode.READ,
+        unit="℃",
+        min=-200,
+        max=1000,
+        scale=1,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )
@@ -595,8 +727,14 @@ for _product_id, _dp_id in FINGERBOT_SWITCH_DP.items():
         model_id="WVC-800W",
     )
     .add_dpid_integer(
-        dpid=10, dpcode="power_total", dpmode=DPMode.READ, unit="W",
-        min=0, max=50000000, scale=3, step=1,
+        dpid=10,
+        dpcode="power_total",
+        dpmode=DPMode.READ,
+        unit="W",
+        min=0,
+        max=50000000,
+        scale=3,
+        step=1,
     )
     .register(QUIRKS_REGISTRY)
 )

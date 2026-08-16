@@ -124,9 +124,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
                 else self.scale(DEFAULT_MAX)
             )
         if CONF_STEPSIZE in self._config:
-            self._step_size = self.scale(
-                self._config[CONF_STEPSIZE], scale_only=True
-            )
+            self._step_size = self.scale(self._config[CONF_STEPSIZE], scale_only=True)
         else:
             self._step_size = (
                 wrapper.value_step

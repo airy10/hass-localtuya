@@ -125,9 +125,7 @@ class TypeInformation[T](abc.ABC):
                     and (
                         type_information := cls._from_json(
                             dpcode=dpcode,
-                            type_data=_get_spec_attr(
-                                current_definition, "values"
-                            ),
+                            type_data=_get_spec_attr(current_definition, "values"),
                             report_type=_get_spec_attr(
                                 current_definition, "report_type"
                             ),
@@ -185,9 +183,7 @@ class BitmapTypeInformation(TypeInformation[int]):
             return None
         if isinstance(raw_value, int):
             return raw_value
-        if _should_log_warning(
-            device.id, f"invalid_bitmap|{self.dpcode}|{raw_value}"
-        ):
+        if _should_log_warning(device.id, f"invalid_bitmap|{self.dpcode}|{raw_value}"):
             _LOGGER.warning(
                 "Found invalid BITMAP value `%s` (%s) for datapoint `%s` in "
                 "product id `%s`; %s",
@@ -264,9 +260,11 @@ class EnumTypeInformation(TypeInformation[str]):
             dpcode=dpcode,
             type_data=type_data,
             report_type=report_type,
-            range=parsed["range"]
-            if "range" in parsed
-            else [v for _, v in sorted(parsed.items(), key=lambda kv: int(kv[0]))],
+            range=(
+                parsed["range"]
+                if "range" in parsed
+                else [v for _, v in sorted(parsed.items(), key=lambda kv: int(kv[0]))]
+            ),
         )
 
     def prepare_set_value(self, device: Any, value: Any) -> str:
@@ -286,9 +284,7 @@ class EnumTypeInformation(TypeInformation[str]):
         if raw_value in self.range:
             return raw_value
 
-        if _should_log_warning(
-            device.id, f"enum_out_range|{self.dpcode}|{raw_value}"
-        ):
+        if _should_log_warning(device.id, f"enum_out_range|{self.dpcode}|{raw_value}"):
             _LOGGER.warning(
                 "Found invalid ENUM value `%s` (%s) for datapoint `%s` in "
                 "product id `%s`, expected one of `%s`; %s",

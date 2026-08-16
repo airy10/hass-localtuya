@@ -103,9 +103,7 @@ class LocalTuyaSwitch(LocalTuyaEntity, SwitchEntity):
         try:
             return bytes.fromhex(mask)
         except ValueError:
-            _LOGGER.warning(
-                "Invalid bitmap_mask %r for %s, ignoring", mask, self.name
-            )
+            _LOGGER.warning("Invalid bitmap_mask %r for %s, ignoring", mask, self.name)
             return None
 
     @property

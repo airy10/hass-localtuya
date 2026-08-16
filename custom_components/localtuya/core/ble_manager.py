@@ -185,9 +185,7 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
 
         # Resolve the MAC from factory-info when an address is provided.
         if address:
-            mac = await self._cloud_api.async_get_device_factory_infos(
-                self._device_id
-            )
+            mac = await self._cloud_api.async_get_device_factory_infos(self._device_id)
             if isinstance(mac, tuple) and len(mac) == 2 and mac[1] == "ok":
                 if mac[0] and mac[0] != address.upper():
                     _LOGGER.debug(

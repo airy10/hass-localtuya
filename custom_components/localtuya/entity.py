@@ -290,7 +290,11 @@ def _dp_value_strings(device, code: str | None, dp_id: str | None) -> list[str]:
     ):
         if code is None or (spec := specs.get(code)) is None:
             continue
-        raw = spec.get("value") if isinstance(spec, dict) else getattr(spec, "value", None)
+        raw = (
+            spec.get("value")
+            if isinstance(spec, dict)
+            else getattr(spec, "value", None)
+        )
         if raw is not None:
             values.append(str(raw).lower())
     return values
@@ -518,8 +522,11 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
                 if status:
                     self.status_updated()
 
-                if updated_status_properties is None or await self._process_device_update(
-                    updated_status_properties, dp_timestamps
+                if (
+                    updated_status_properties is None
+                    or await self._process_device_update(
+                        updated_status_properties, dp_timestamps
+                    )
                 ):
                     self.schedule_update_ha_state()
 
@@ -561,9 +568,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
             sw_version=device_config.protocol_version,
         )
         if self._device.is_subdevice and self._device.id != self._device.gateway.id:
-            if gateway_device := dr.async_get(
-                self.hass
-            ).async_get_device_by_identifier(
+            if gateway_device := dr.async_get(self.hass).async_get_device_by_identifier(
                 (DOMAIN, f"local_{self._device.gateway.id}"),
                 self._device.config_entry.entry_id,
             ):
@@ -689,7 +694,9 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         """Send a wrapper-generated command to the device (core-tuya parity)."""
         if wrapper is None:
             return
-        await self._async_send_commands(wrapper.get_update_commands(self._device, value))
+        await self._async_send_commands(
+            wrapper.get_update_commands(self._device, value)
+        )
 
     async def _process_device_update(
         self,

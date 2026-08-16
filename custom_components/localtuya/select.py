@@ -71,13 +71,11 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         self._state = STATE_UNKNOWN
         if description is not None:
             definition = get_select_definition(device, description)
-            base_wrapper = (
-                definition.dpcode_wrapper if definition is not None else None
-            )
+            base_wrapper = definition.dpcode_wrapper if definition is not None else None
         else:
-            base_wrapper = dp_wrapper_by_id(
-                self._device, self._dp_id
-            ) or RawDPWrapper(self._dp_id)
+            base_wrapper = dp_wrapper_by_id(self._device, self._dp_id) or RawDPWrapper(
+                self._dp_id
+            )
 
         # Set Display options
         options = {}

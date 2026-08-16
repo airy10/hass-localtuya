@@ -237,7 +237,9 @@ def _climate(
 
 # Fingerbot program text pattern: position[/delay] steps separated by ';'
 # (e.g. "50/1000;100/500"), position/delay in 0-100 / 0-99 range.
-FINGERBOT_PROGRAM_PATTERN = r"^((\d{1,2}|100)(/\d{1,2})?)(;((\d{1,2}|100)(/\d{1,2})?))+$"
+FINGERBOT_PROGRAM_PATTERN = (
+    r"^((\d{1,2}|100)(/\d{1,2})?)(;((\d{1,2}|100)(/\d{1,2})?))+$"
+)
 
 MAPPINGS: dict[str, TuyaCategoryMapping] = {
     # CO2 Detector

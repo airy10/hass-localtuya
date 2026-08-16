@@ -318,7 +318,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                     max_kelvin,
                     self._lower_brightness,
                     self._upper_brightness,
-                    self._config.get(CONF_COLOR_TEMP_REVERSE, DEFAULT_COLOR_TEMP_REVERSE),
+                    self._config.get(
+                        CONF_COLOR_TEMP_REVERSE, DEFAULT_COLOR_TEMP_REVERSE
+                    ),
                 )
             else:
                 self._color_temp_wrapper = None
@@ -339,13 +341,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         # comparison), so it always resolves to a raw wrapper by dp_id.
         color_mode_dp = self._config.get(CONF_COLOR_MODE)
         self._color_mode_wrapper = (
-            RawDPWrapper(color_mode_dp)
-        ) if self.has_config(CONF_COLOR_MODE) else None
+            (RawDPWrapper(color_mode_dp)) if self.has_config(CONF_COLOR_MODE) else None
+        )
 
         scene_dp = self._config.get(CONF_SCENE)
         self._scene_wrapper = (
-            dp_wrapper_by_id(device, scene_dp) or RawDPWrapper(scene_dp)
-        ) if self.has_config(CONF_SCENE) else None
+            (dp_wrapper_by_id(device, scene_dp) or RawDPWrapper(scene_dp))
+            if self.has_config(CONF_SCENE)
+            else None
+        )
 
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
@@ -376,9 +380,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if self._color_data_wrapper is not None:
             color_data = self.dp_value(CONF_COLOR)
             # Write-only devices use the base64 raw color format.
-            self._color_data_wrapper._use_raw = bool(
-                is_write_only and not color_data
-            )
+            self._color_data_wrapper._use_raw = bool(is_write_only and not color_data)
 
             # Like the reference component, derive the HSV color type from the
             # cloud colour_data spec (per-channel min/max) so hue/sat remapping
@@ -389,9 +391,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                     self._color_data_wrapper._color_type_data = self._color_type_data
 
         if self.has_config(CONF_COLOR_MODE):
-            if (wrapper := dp_wrapper_by_id(
-                self._device, self._config.get(CONF_COLOR_MODE)
-            )) and getattr(wrapper, "options", None):
+            if (
+                wrapper := dp_wrapper_by_id(
+                    self._device, self._config.get(CONF_COLOR_MODE)
+                )
+            ) and getattr(wrapper, "options", None):
                 self._work_mode_range = wrapper.options
 
         if is_write_only and self._cached_status:
@@ -408,7 +412,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         """Turn on or control the light."""
         commands = []
         if not self.is_on or self._write_only:
-            commands.extend(self._switch_wrapper.get_update_commands(self._device, True))
+            commands.extend(
+                self._switch_wrapper.get_update_commands(self._device, True)
+            )
         features = self.supported_features
         color_modes = self.supported_color_modes
         brightness = None
@@ -637,10 +643,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_scene_mode(self):
         """Return true if the light is in scene mode."""
         color_mode = self.__get_color_mode()
-        return (
-            isinstance(color_mode, str)
-            and color_mode.startswith(self._modes.scene)
-        )
+        return isinstance(color_mode, str) and color_mode.startswith(self._modes.scene)
 
     @property
     def is_music_mode(self):
@@ -668,9 +671,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 return ColorMode.COLOR_TEMP
             return ColorMode.WHITE
         if (
-            (self.is_scene_mode or self.is_music_mode)
-            and ColorMode.HS in self.supported_color_modes
-        ):
+            self.is_scene_mode or self.is_music_mode
+        ) and ColorMode.HS in self.supported_color_modes:
             return ColorMode.HS
         if self.brightness and ColorMode.BRIGHTNESS in self.supported_color_modes:
             return ColorMode.BRIGHTNESS

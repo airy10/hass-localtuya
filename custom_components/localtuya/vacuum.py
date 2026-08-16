@@ -132,9 +132,13 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             self._fan_speed_wrapper = definition.fan_speed_wrapper
         else:
             self._fan_speed_wrapper = (
-                dp_wrapper_by_id(device, self._config.get(CONF_FAN_SPEED_DP))
-                or RawDPWrapper(self._config.get(CONF_FAN_SPEED_DP))
-            ) if self.has_config(CONF_FAN_SPEED_DP) else None
+                (
+                    dp_wrapper_by_id(device, self._config.get(CONF_FAN_SPEED_DP))
+                    or RawDPWrapper(self._config.get(CONF_FAN_SPEED_DP))
+                )
+                if self.has_config(CONF_FAN_SPEED_DP)
+                else None
+            )
 
     @property
     @override
@@ -233,7 +237,10 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
     @override
     async def async_send_command(
-        self, command: str, params: dict[str, Any] | list[Any] | None = None, **kwargs: Any
+        self,
+        command: str,
+        params: dict[str, Any] | list[Any] | None = None,
+        **kwargs: Any,
     ) -> None:
         """Send raw command."""
         if command == "set_mode" and "mode" in params:

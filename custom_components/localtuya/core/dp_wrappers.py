@@ -99,9 +99,7 @@ class DeviceWrapper[T]:
         """Read device status and convert to a Home Assistant value."""
         raise NotImplementedError
 
-    def get_update_commands(
-        self, device: Any, value: T
-    ) -> list[dict[str, Any]]:
+    def get_update_commands(self, device: Any, value: T) -> list[dict[str, Any]]:
         """Generate update commands for a Home Assistant action."""
         raise NotImplementedError
 
@@ -152,9 +150,7 @@ class DPCodeWrapper[T](DeviceWrapper[T]):
         """
         raise NotImplementedError
 
-    def get_update_commands(
-        self, device: Any, value: T
-    ) -> list[dict[str, Any]]:
+    def get_update_commands(self, device: Any, value: T) -> list[dict[str, Any]]:
         """Get the update commands for the dpcode.
 
         The Home Assistant value is converted back to a raw device value.
@@ -309,9 +305,7 @@ class DPCodeIntegerWrapper[T = float](
         self.native_unit = type_information.unit
         self.min_value = self.type_information.scale_value(type_information.min)
         self.max_value = self.type_information.scale_value(type_information.max)
-        self.value_step = self.type_information.scale_value(
-            type_information.step
-        )
+        self.value_step = self.type_information.scale_value(type_information.step)
 
 
 class DPCodeJsonWrapper[T = dict[str, Any]](
@@ -399,8 +393,7 @@ class BitmapMaskWrapper(DPCodeWrapper[bool]):
     def read_device_status(self, device: Any) -> bool:
         """Return True if any masked bit is set."""
         return any(
-            v & m
-            for v, m in zip(self._bitmap_value(device), self._mask, strict=True)
+            v & m for v, m in zip(self._bitmap_value(device), self._mask, strict=True)
         )
 
     def _convert_value_to_raw_value(self, device: Any, value: bool) -> bytes:
@@ -417,9 +410,7 @@ class BitmapMaskWrapper(DPCodeWrapper[bool]):
         dp_timestamps: dict[str, int] | None = None,
     ) -> bool:
         """Delegate skip decisions to the inner wrapper."""
-        return self._inner.skip_update(
-            device, updated_status_properties, dp_timestamps
-        )
+        return self._inner.skip_update(device, updated_status_properties, dp_timestamps)
 
 
 _WRAPPERS_BY_DPTYPE: dict[DPType, type[DPCodeWrapper]] = {

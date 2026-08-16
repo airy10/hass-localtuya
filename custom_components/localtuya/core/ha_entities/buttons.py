@@ -6,7 +6,13 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import (
+    DPCode,
+    DeviceCategory,
+    LocalTuyaEntity,
+    CONF_DEVICE_CLASS,
+    EntityCategory,
+)
 
 BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Scene Switch

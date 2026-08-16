@@ -1,5 +1,7 @@
 """Config flow for LocalTuya integration integration."""
 
+from __future__ import annotations
+
 import asyncio
 import errno
 import logging
@@ -8,8 +10,11 @@ import copy
 from importlib import import_module
 from functools import partial
 from collections.abc import Coroutine
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+
+if TYPE_CHECKING:
+    from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_registry as er
@@ -25,7 +30,6 @@ from homeassistant.helpers.selector import (
 import voluptuous as vol
 from homeassistant import exceptions
 from homeassistant.core import callback, HomeAssistant
-from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -119,7 +123,12 @@ EXPORT_CONFIG = "export_config"
 TUYA_CATEGORY = "category"
 
 # Using list method so we can translate options.
-CONFIGURE_MENU = [CONF_ADD_DEVICE, "add_ble_device", CONF_EDIT_DEVICE, CONF_CONFIGURE_CLOUD]
+CONFIGURE_MENU = [
+    CONF_ADD_DEVICE,
+    "add_ble_device",
+    CONF_EDIT_DEVICE,
+    CONF_CONFIGURE_CLOUD,
+]
 
 
 def col_to_select(
@@ -186,6 +195,7 @@ def qr_code_schema(sharing: SharingCloud) -> vol.Schema:
             )
         }
     )
+
 
 DEVICE_SCHEMA = vol.Schema(
     {
@@ -382,11 +392,9 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         # set to the User ID by _create_entry).
         if not self._async_current_entries():
             return await self.async_step_user()
-        # Hub exists: remember the discovered MAC so Options can pre-select it,
+        # Hub exists: remember the discovered MAC so Options can preselect it,
         # then direct the user to the Options flow.
-        self.hass.data.setdefault(DOMAIN, {})[DATA_PENDING_BLE] = (
-            discovery_info.address
-        )
+        self.hass.data.setdefault(DOMAIN, {})[DATA_PENDING_BLE] = discovery_info.address
         return self.async_abort(reason="ble_discovery")
 
     async def _create_entry(self, user_input):
@@ -659,9 +667,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             return self.async_abort(reason="no_ble_devices")
         return self.async_show_form(
             step_id="add_ble_device",
-            data_schema=vol.Schema(
-                {vol.Required(SELECTED_DEVICE): col_to_select(ble)}
-            ),
+            data_schema=vol.Schema({vol.Required(SELECTED_DEVICE): col_to_select(ble)}),
         )
 
     async def async_step_ble_cloud(self, user_input=None):
@@ -691,9 +697,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         # unavailable for sharing sessions).
         ble_address = getattr(self, "_ble_address", None)
         adv_uuid = (
-            getattr(self, "_ble_uuids", {}).get(ble_address)
-            if ble_address
-            else None
+            getattr(self, "_ble_uuids", {}).get(ble_address) if ble_address else None
         )
         if isinstance(self.cloud_data, SharingCloud) and adv_uuid:
             for dev_id, dev in self.cloud_data.device_list.items():
@@ -729,9 +733,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                     }
                     return await self.async_step_configure_device()
 
-        cloud = {
-            v.get(CONF_NAME, d): d for d, v in self.cloud_data.device_list.items()
-        }
+        cloud = {v.get(CONF_NAME, d): d for d, v in self.cloud_data.device_list.items()}
         return self.async_show_form(
             step_id="ble_cloud",
             data_schema=vol.Schema(
@@ -865,7 +867,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                         ]
                         return await self.async_step_configure_entity()
 
-                valid_data = await validate_input(self.hass, self.localtuya_data, user_input)
+                valid_data = await validate_input(
+                    self.hass, self.localtuya_data, user_input
+                )
                 self.dps_strings = valid_data[CONF_DPS_STRINGS]
                 # We will also get protocol version from valid date in case auto used.
                 self.device_data[CONF_PROTOCOL_VERSION] = valid_data[
@@ -935,21 +939,19 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 defaults[CONF_TRANSPORT] = self.device_data.get(
                     CONF_TRANSPORT, TRANSPORT_ETHERNET
                 )
-                defaults[CONF_BLE_ADDRESS] = self.device_data.get(
-                    CONF_BLE_ADDRESS, ""
-                )
+                defaults[CONF_BLE_ADDRESS] = self.device_data.get(CONF_BLE_ADDRESS, "")
                 # Prefill values captured by an upstream step (e.g.
                 # async_step_ble_cloud). setdefault() would be a no-op here
                 # because the keys above were already initialized to "".
-                defaults[CONF_DEVICE_ID] = user_in.get(CONF_DEVICE_ID) or self.device_data.get(
-                    CONF_DEVICE_ID, ""
-                )
-                defaults[CONF_LOCAL_KEY] = user_in.get(CONF_LOCAL_KEY) or self.device_data.get(
-                    CONF_LOCAL_KEY, ""
-                )
-                defaults[CONF_FRIENDLY_NAME] = user_in.get(CONF_FRIENDLY_NAME) or self.device_data.get(
-                    CONF_FRIENDLY_NAME, ""
-                )
+                defaults[CONF_DEVICE_ID] = user_in.get(
+                    CONF_DEVICE_ID
+                ) or self.device_data.get(CONF_DEVICE_ID, "")
+                defaults[CONF_LOCAL_KEY] = user_in.get(
+                    CONF_LOCAL_KEY
+                ) or self.device_data.get(CONF_LOCAL_KEY, "")
+                defaults[CONF_FRIENDLY_NAME] = user_in.get(
+                    CONF_FRIENDLY_NAME
+                ) or self.device_data.get(CONF_FRIENDLY_NAME, "")
 
             if defaults[CONF_DEVICE_ID] in [cloud_devs, self.selected_device]:
                 dev_id = defaults[CONF_DEVICE_ID]
@@ -1305,7 +1307,9 @@ async def setup_localtuya_devices(
             devices_cfg.append(device_data)
 
     # Connect to the devices to ensure the are usable.
-    validate_devices = [validate_input(hass, localtuya_data, dev) for dev in devices_cfg]
+    validate_devices = [
+        validate_input(hass, localtuya_data, dev) for dev in devices_cfg
+    ]
     results = await asyncio.gather(*validate_devices, return_exceptions=True)
 
     # Merge test results with devices config
@@ -1616,9 +1620,7 @@ async def detect_ble_dps(
                 _LOGGER.debug("BLE DP detection: failed to stop device", exc_info=True)
 
 
-async def validate_input(
-    hass: HomeAssistant, entry_runtime: HassLocalTuyaData, data
-):
+async def validate_input(hass: HomeAssistant, entry_runtime: HassLocalTuyaData, data):
     """Validate the user input allows us to connect."""
     logger = pytuya.ContextualLogger()
     logger.set_logger(_LOGGER, data[CONF_DEVICE_ID], True, data[CONF_FRIENDLY_NAME])

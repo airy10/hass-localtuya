@@ -5,7 +5,13 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import (
+    DPCode,
+    DeviceCategory,
+    LocalTuyaEntity,
+    CONF_DEVICE_CLASS,
+    EntityCategory,
+)
 
 # All descriptions can be found here:
 # https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq

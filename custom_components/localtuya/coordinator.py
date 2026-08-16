@@ -13,15 +13,12 @@ from typing import Any, NamedTuple
 from homeassistant.core import HomeAssistant, CALLBACK_TYPE, callback, State
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ID, CONF_DEVICES, CONF_HOST, CONF_DEVICE_ID
-from homeassistant.components import bluetooth
 from homeassistant.helpers.event import async_track_time_interval, async_call_later
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
     dispatcher_send,
 )
-
-from bleak_retry_connector import get_device
 
 from .core.ble_manager import TuyaBLEDeviceManager
 from .core.cloud_api import TuyaCloudApi
@@ -153,7 +150,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
     @property
     def ble_device(self):
         """Return the wrapped TuyaBLEDevice for BLE transports, else None."""
-        if self._interface is not None and self._device_config.transport == TRANSPORT_BLE:
+        if (
+            self._interface is not None
+            and self._device_config.transport == TRANSPORT_BLE
+        ):
             return self._interface.ble_device
         return None
 
@@ -502,9 +502,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                         self._device_config.enable_debug,
                         self,
                     )
-                    self._interface = create_transport(
-                        "ethernet", protocol=protocol
-                    )
+                    self._interface = create_transport("ethernet", protocol=protocol)
                     self._interface.enable_debug(
                         self._device_config.enable_debug, self.friendly_name
                     )
@@ -647,6 +645,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._interface is not None:
             return self._interface
         try:
+            from bleak_retry_connector import get_device
+            from homeassistant.components import bluetooth
+
             address = self._device_config.ble_address
             if not address:
                 self.warning("BLE device has no ble_address configured")
@@ -957,7 +958,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     if self._device_config.transport != TRANSPORT_BLE:
                         discovery = self.hass.data[DOMAIN].get(DATA_DISCOVERY)
                         if discovery and (local_gw := discovery.devices.get(new_gw.id)):
-                            new_ip = local_gw.get(CONF_TUYA_IP, self._device_config.host)
+                            new_ip = local_gw.get(
+                                CONF_TUYA_IP, self._device_config.host
+                            )
                             new_data[CONF_DEVICES][dev_id][CONF_HOST] = new_ip
                             self.info(f"IP has been updated to: {new_ip}")
 

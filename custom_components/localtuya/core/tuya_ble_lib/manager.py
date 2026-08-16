@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class TuyaBLEDeviceCredentials:
     uuid: str
@@ -39,6 +40,7 @@ class TuyaBLEDeviceCredentials:
             self.status_range,
         )
 
+
 class AbstaractTuyaBLEDeviceManager(ABC):
     """Abstaract manager of the Tuya BLE devices credentials."""
 
@@ -67,13 +69,7 @@ class AbstaractTuyaBLEDeviceManager(ABC):
         status_range: List | None,
     ) -> TuyaBLEDeviceCredentials | None:
         """Checks and creates credentials of the Tuya BLE device."""
-        if (
-            uuid and 
-            local_key and 
-            device_id and
-            category and
-            product_id
-        ):
+        if uuid and local_key and device_id and category and product_id:
             return TuyaBLEDeviceCredentials(
                 uuid,
                 local_key,

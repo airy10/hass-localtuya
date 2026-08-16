@@ -1,10 +1,14 @@
 black==24.8.0
+bleak
+bleak-retry-connector
 codespell==2.4.1
 flake8==3.9.2
-homeassistant==2025.1.0
+homeassistant==2026.7.0
 mypy==0.901
+pycryptodome
 pydocstyle==6.1.1
 pylint-strict-informational==0.1
 pylint==2.8.2
 pytest-asyncio
 pytest-cov
+tuya-device-sharing-sdk~=0.2.4

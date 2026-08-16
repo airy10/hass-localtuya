@@ -78,9 +78,7 @@ class LocalTuyaEvent(LocalTuyaEntity, EventEntity):
             return True
         if self._dpcode_wrapper.skip_update(
             self._device, updated_status_properties, dp_timestamps
-        ) or not (
-            event_data := self._dpcode_wrapper.read_device_status(self._device)
-        ):
+        ) or not (event_data := self._dpcode_wrapper.read_device_status(self._device)):
             return False
 
         event_type, event_attributes = event_data

@@ -5,7 +5,13 @@
     Modified by: xZetsubou
 """
 
-from .base import DPCode, DeviceCategory, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from .base import (
+    DPCode,
+    DeviceCategory,
+    LocalTuyaEntity,
+    CONF_DEVICE_CLASS,
+    EntityCategory,
+)
 from homeassistant.components.cover import CoverDeviceClass
 
 # from const.py this is temporarily.

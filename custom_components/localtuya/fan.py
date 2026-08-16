@@ -102,18 +102,10 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
             self._switch_wrapper = (
                 definition.switch_wrapper if definition is not None else None
             )
-            speed_inner = (
-                definition.speed_wrapper if definition is not None else None
-            )
-            osc_inner = (
-                definition.oscillate_wrapper if definition is not None else None
-            )
-            dir_inner = (
-                definition.direction_wrapper if definition is not None else None
-            )
-            mode_inner = (
-                definition.mode_wrapper if definition is not None else None
-            )
+            speed_inner = definition.speed_wrapper if definition is not None else None
+            osc_inner = definition.oscillate_wrapper if definition is not None else None
+            dir_inner = definition.direction_wrapper if definition is not None else None
+            mode_inner = definition.mode_wrapper if definition is not None else None
         else:
             # Manual config-driven path: cloud spec wrappers fall back to a
             # raw wrapper. Speed/direction conversion lives in the decorators.
@@ -123,18 +115,24 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
 
             speed_dp = self._config.get(CONF_FAN_SPEED_CONTROL)
             speed_inner = (
-                dp_wrapper_by_id(device, speed_dp) or RawDPWrapper(speed_dp)
-            ) if self.has_config(CONF_FAN_SPEED_CONTROL) else None
+                (dp_wrapper_by_id(device, speed_dp) or RawDPWrapper(speed_dp))
+                if self.has_config(CONF_FAN_SPEED_CONTROL)
+                else None
+            )
 
             osc_dp = self._config.get(CONF_FAN_OSCILLATING_CONTROL)
             osc_inner = (
-                dp_wrapper_by_id(device, osc_dp) or RawDPWrapper(osc_dp)
-            ) if self.has_config(CONF_FAN_OSCILLATING_CONTROL) else None
+                (dp_wrapper_by_id(device, osc_dp) or RawDPWrapper(osc_dp))
+                if self.has_config(CONF_FAN_OSCILLATING_CONTROL)
+                else None
+            )
 
             dir_dp = self._config.get(CONF_FAN_DIRECTION)
             dir_inner = (
-                dp_wrapper_by_id(device, dir_dp) or RawDPWrapper(dir_dp)
-            ) if self.has_config(CONF_FAN_DIRECTION) else None
+                (dp_wrapper_by_id(device, dir_dp) or RawDPWrapper(dir_dp))
+                if self.has_config(CONF_FAN_DIRECTION)
+                else None
+            )
 
             # No manual fan_mode flow option; preset modes are only available
             # through the definition-driven (cloud) path.

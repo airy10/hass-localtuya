@@ -4,6 +4,7 @@ Provides IntegerTypeData/EnumTypeData (cloud-spec type parsing) and
 find_dpcode/find_dpid/get_dptype (code<->dp_id resolution) shared by both
 transports. Ported from ha_tuya_ble base.py/devices.py/util.py (2026.5.14).
 """
+
 from __future__ import annotations
 
 import json
@@ -180,7 +181,11 @@ def find_dpcode(
         order.append("status")
     for dpcode in dpcodes:
         for key in order:
-            d = {"status_range": status_range, "function": function, "status": status}.get(key)
+            d = {
+                "status_range": status_range,
+                "function": function,
+                "status": status,
+            }.get(key)
             if d is None or dpcode not in d:
                 continue
             if dptype == DPType.ENUM and d[dpcode].type == DPType.ENUM:
@@ -188,7 +193,9 @@ def find_dpcode(
                     continue
                 return enum_type
             if dptype == DPType.INTEGER and d[dpcode].type == DPType.INTEGER:
-                if not (integer_type := IntegerTypeData.from_json(dpcode, d[dpcode].values)):
+                if not (
+                    integer_type := IntegerTypeData.from_json(dpcode, d[dpcode].values)
+                ):
                     continue
                 return integer_type
             if dptype not in (DPType.ENUM, DPType.INTEGER):

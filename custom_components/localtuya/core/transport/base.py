@@ -82,7 +82,9 @@ class Transport(ABC):
         """Return supported datapoints, or None when detection is unavailable."""
 
     @abstractmethod
-    def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
+    def enable_debug(
+        self, enable: bool = False, friendly_name: str | None = None
+    ) -> None:
         """Enable debug logging for the device."""
 
     @abstractmethod
@@ -152,11 +154,11 @@ class EthernetTransport(Transport):
 
     async def detect_available_dps(self, cid: str | None = None) -> dict | None:
         """Return supported datapoints, preserving an unavailable response."""
-        return self._numeric_status(
-            await self._protocol.detect_available_dps(cid=cid)
-        )
+        return self._numeric_status(await self._protocol.detect_available_dps(cid=cid))
 
-    def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
+    def enable_debug(
+        self, enable: bool = False, friendly_name: str | None = None
+    ) -> None:
         """Enable debug logging."""
         self._protocol.enable_debug(enable, friendly_name)
 
@@ -319,7 +321,9 @@ class BluetoothTransport(Transport):
         """Return the datapoint ids currently known from the device."""
         return self._status_by_dp_id()
 
-    def enable_debug(self, enable: bool = False, friendly_name: str | None = None) -> None:
+    def enable_debug(
+        self, enable: bool = False, friendly_name: str | None = None
+    ) -> None:
         """Enable debug logging (BLE lib logs already; no-op)."""
         _LOGGER.debug("BLE enable_debug(%s) for %s", enable, friendly_name)
 

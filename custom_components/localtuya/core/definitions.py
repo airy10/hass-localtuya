@@ -160,13 +160,23 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
     if switch is None:
         return None
 
-    lower = int(_config_value(configs, CONF_BRIGHTNESS_LOWER, DEFAULT_LIGHT_BRIGHTNESS_LOWER))
-    upper = int(_config_value(configs, CONF_BRIGHTNESS_UPPER, DEFAULT_LIGHT_BRIGHTNESS_UPPER))
-    min_kelvin = int(_config_value(configs, CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_LIGHT_MIN_KELVIN))
-    max_kelvin = int(_config_value(configs, CONF_COLOR_TEMP_MAX_KELVIN, DEFAULT_LIGHT_MAX_KELVIN))
+    lower = int(
+        _config_value(configs, CONF_BRIGHTNESS_LOWER, DEFAULT_LIGHT_BRIGHTNESS_LOWER)
+    )
+    upper = int(
+        _config_value(configs, CONF_BRIGHTNESS_UPPER, DEFAULT_LIGHT_BRIGHTNESS_UPPER)
+    )
+    min_kelvin = int(
+        _config_value(configs, CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_LIGHT_MIN_KELVIN)
+    )
+    max_kelvin = int(
+        _config_value(configs, CONF_COLOR_TEMP_MAX_KELVIN, DEFAULT_LIGHT_MAX_KELVIN)
+    )
     reverse = bool(_config_value(configs, CONF_COLOR_TEMP_REVERSE, False))
 
-    color_type_data = ColorTypeData.from_config(getattr(device, "color_data_spec", None))
+    color_type_data = ColorTypeData.from_config(
+        getattr(device, "color_data_spec", None)
+    )
 
     return LightDefinition(
         switch_wrapper=switch,
@@ -288,9 +298,7 @@ def get_humidifier_definition(
     return HumidifierDefinition(
         switch_wrapper=switch,
         mode_wrapper=resolve(device, conf.get("humidifier_mode_dp")),
-        target_humidity_wrapper=resolve(
-            device, conf.get("humidifier_set_humidity_dp")
-        ),
+        target_humidity_wrapper=resolve(device, conf.get("humidifier_set_humidity_dp")),
         current_humidity_wrapper=resolve(
             device, conf.get("humidifier_current_humidity_dp")
         ),
@@ -423,9 +431,7 @@ def get_binary_sensor_definition(
         return None
     configs = getattr(description, "entity_configs", {}) or {}
     on_values = configs.get(CONF_STATE_ON)
-    return DPCodeDefinition(
-        dpcode_wrapper=BinarySensorWrapper(wrapper, on_values)
-    )
+    return DPCodeDefinition(dpcode_wrapper=BinarySensorWrapper(wrapper, on_values))
 
 
 @dataclass

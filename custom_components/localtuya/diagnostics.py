@@ -27,7 +27,14 @@ DEVICE_CLOUD_INFO = "device_cloud_info"
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_OBFUSCATE = {"ip": 1, "uid": 3, CONF_LOCAL_KEY: 3, "lat": 0, "lon": 0, "ble_address": 1}
+DATA_OBFUSCATE = {
+    "ip": 1,
+    "uid": 3,
+    CONF_LOCAL_KEY: 3,
+    "lat": 0,
+    "lon": 0,
+    "ble_address": 1,
+}
 
 
 async def async_get_config_entry_diagnostics(
@@ -111,7 +118,11 @@ async def async_get_device_diagnostics(
             data["status"] = copy.deepcopy(
                 {
                     str(dp.id): {
-                        "value": dp.value if not isinstance(dp.value, bytes) else dp.value.hex(),
+                        "value": (
+                            dp.value
+                            if not isinstance(dp.value, bytes)
+                            else dp.value.hex()
+                        ),
                         "type": str(dp.type),
                         "timestamp": dp.timestamp,
                     }

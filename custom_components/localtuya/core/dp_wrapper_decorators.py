@@ -267,9 +267,7 @@ class ScalingIntegerWrapper(DecoratorWrapper[float]):
 class PercentageWrapper(DecoratorWrapper[int]):
     """Wraps raw integer DP as a 0..100 percentage (with optional scale)."""
 
-    def __init__(
-        self, inner: DPCodeWrapper[Any], scale: float | None = None
-    ) -> None:
+    def __init__(self, inner: DPCodeWrapper[Any], scale: float | None = None) -> None:
         super().__init__(inner)
         self.min_value = 0
         self.max_value = 100
@@ -347,7 +345,9 @@ class BinarySensorWrapper(DecoratorWrapper[bool]):
     def __init__(self, inner: DPCodeWrapper[Any], on_values: str | None = None) -> None:
         super().__init__(inner)
         self._on_values = {
-            value.lower() for value in (on_values or "true,1,pir,on").split(",") if value
+            value.lower()
+            for value in (on_values or "true,1,pir,on").split(",")
+            if value
         }
 
     def read_device_status(self, device: Any) -> bool | None:
@@ -469,9 +469,7 @@ class FanSpeedPercentageWrapper(DecoratorWrapper[int]):
     def _to_ha(self, raw: Any) -> int | None:
         if self._ordered_list is not None:
             if str(raw) in self._ordered_list:
-                return ordered_list_item_to_percentage(
-                    self._ordered_list, str(raw)
-                )
+                return ordered_list_item_to_percentage(self._ordered_list, str(raw))
             return None
         return ranged_value_to_percentage(self._speed_range, int(raw))
 
@@ -509,9 +507,7 @@ class FanDirectionWrapper(DecoratorWrapper[str]):
 class BrightnessWrapper(DecoratorWrapper[int]):
     """Wraps a light brightness DP: device range (lower..upper) <-> 0..255."""
 
-    def __init__(
-        self, inner: DPCodeWrapper[Any], lower: int, upper: int
-    ) -> None:
+    def __init__(self, inner: DPCodeWrapper[Any], lower: int, upper: int) -> None:
         super().__init__(inner)
         self._lower = lower
         self._upper = upper
@@ -645,9 +641,7 @@ class StringColorWrapper(DecoratorWrapper[tuple[float, float, int]]):
             return self._to_color_raw(hue, sat, self._brightness_to_raw(brightness))
         if self._is_rgb_encoded(current):
             # v1/rgb-encoded: the 2-hex value field is already 0..255.
-            rgb = color_util.color_hsv_to_RGB(
-                hue, sat, int(brightness * 100 / 255)
-            )
+            rgb = color_util.color_hsv_to_RGB(hue, sat, int(brightness * 100 / 255))
             if self._color_type_data:
                 h = self._color_type_data.remap_h_from(hue)
                 s = self._color_type_data.remap_s_from(sat)

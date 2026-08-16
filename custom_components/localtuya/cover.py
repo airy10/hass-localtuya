@@ -111,9 +111,7 @@ def flow_schema(dps):
 class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
     """Tuya cover device."""
 
-    def __init__(
-        self, device, config_entry, switchid, description=None, **kwargs
-    ):
+    def __init__(self, device, config_entry, switchid, description=None, **kwargs):
         """Initialize a new LocalTuyaCover."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         commands_set = DEF_CMD_SET
@@ -142,8 +140,10 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         else:
             set_dp = self._config.get(CONF_SET_POSITION_DP)
             set_inner = (
-                dp_wrapper_by_id(device, set_dp) or RawDPWrapper(set_dp)
-            ) if self.has_config(CONF_SET_POSITION_DP) else None
+                (dp_wrapper_by_id(device, set_dp) or RawDPWrapper(set_dp))
+                if self.has_config(CONF_SET_POSITION_DP)
+                else None
+            )
 
         if set_inner is not None and self._position_inverted:
             set_inner = InvertedPercentageWrapper(set_inner)
@@ -273,7 +273,10 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
 
         elif self._config[CONF_POSITIONING_MODE] == MODE_SET_POSITION:
             converted_position = int(kwargs[ATTR_POSITION])
-            if 0 <= converted_position <= 100 and self._set_position_wrapper is not None:
+            if (
+                0 <= converted_position <= 100
+                and self._set_position_wrapper is not None
+            ):
                 await self._async_send_wrapper_updates(
                     self._set_position_wrapper, converted_position
                 )

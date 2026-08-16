@@ -305,39 +305,33 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
 
         # Conversion wrappers (core parity): the entity stays thin and all
         # temperature/humidity/mode conversion lives in the decorators.
-        target_unit_from = f_to_c if self._target_temp_forced_to_celsius is True else None
+        target_unit_from = (
+            f_to_c if self._target_temp_forced_to_celsius is True else None
+        )
         target_unit_to = c_to_f if self._target_temp_forced_to_celsius is True else None
-        current_unit_from = f_to_c if self._target_temp_forced_to_celsius is False else None
+        current_unit_from = (
+            f_to_c if self._target_temp_forced_to_celsius is False else None
+        )
 
         if description is not None:
             # Definition-driven: resolve the DP wrappers by dpcode. Humidity,
             # swing and eco DPs are not in the category tables, so they stay
             # None for the auto-configured path.
             definition = get_climate_definition(device, description)
-            switch_inner = (
-                definition.switch_wrapper if definition is not None else None
-            )
+            switch_inner = definition.switch_wrapper if definition is not None else None
             target_inner = (
-                definition.target_temp_wrapper
-                if definition is not None
-                else None
+                definition.target_temp_wrapper if definition is not None else None
             )
             current_inner = (
-                definition.current_temp_wrapper
-                if definition is not None
-                else None
+                definition.current_temp_wrapper if definition is not None else None
             )
             hvac_mode_inner = (
                 definition.hvac_mode_wrapper if definition is not None else None
             )
             hvac_action_inner = (
-                definition.hvac_action_wrapper
-                if definition is not None
-                else None
+                definition.hvac_action_wrapper if definition is not None else None
             )
-            preset_inner = (
-                definition.preset_wrapper if definition is not None else None
-            )
+            preset_inner = definition.preset_wrapper if definition is not None else None
             fan_speed_inner = (
                 definition.fan_speed_wrapper if definition is not None else None
             )
@@ -359,28 +353,24 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             current_humidity_inner = self._resolve_inner(
                 device, CONF_CURRENT_HUMIDITY_DP
             )
-            target_humidity_inner = self._resolve_inner(
-                device, CONF_TARGET_HUMIDITY_DP
-            )
+            target_humidity_inner = self._resolve_inner(device, CONF_TARGET_HUMIDITY_DP)
             swing_v_inner = self._resolve_inner(device, CONF_SWING_MODE_DP)
-            swing_h_inner = self._resolve_inner(
-                device, CONF_SWING_HORIZONTAL_DP
-            )
+            swing_h_inner = self._resolve_inner(device, CONF_SWING_HORIZONTAL_DP)
 
         self._switch_wrapper = switch_inner
         self._target_temp_wrapper = self._temp_wrapper(
-            target_inner, self._precision_target,
-            unit_from=target_unit_from, unit_to=target_unit_to,
+            target_inner,
+            self._precision_target,
+            unit_from=target_unit_from,
+            unit_to=target_unit_to,
         )
         self._current_temp_wrapper = self._temp_wrapper(
-            current_inner, self._precision, unit_from=current_unit_from,
+            current_inner,
+            self._precision,
+            unit_from=current_unit_from,
         )
-        self._current_humidity_wrapper = self._humidity_wrapper(
-            current_humidity_inner
-        )
-        self._target_humidity_wrapper = self._humidity_wrapper(
-            target_humidity_inner
-        )
+        self._current_humidity_wrapper = self._humidity_wrapper(current_humidity_inner)
+        self._target_humidity_wrapper = self._humidity_wrapper(target_humidity_inner)
         self._hvac_mode_wrapper = self._selector_wrapper(
             hvac_mode_inner, self._hvac_mode_set
         )
@@ -419,9 +409,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Build a HumidityCoefficientWrapper for a resolved humidity DP wrapper."""
         if inner is None:
             return None
-        return HumidityCoefficientWrapper(
-            inner, coefficient=self._humidity_coefficient
-        )
+        return HumidityCoefficientWrapper(inner, coefficient=self._humidity_coefficient)
 
     def _selector_wrapper(self, inner, selector, default=None):
         """Build a DictSelectorWrapper for a resolved enum DP wrapper."""
@@ -494,21 +482,15 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         commands = []
         if not self._is_on:
             commands.extend(
-                self._switch_wrapper.get_update_commands(
-                    self._device, self._state_on
-                )
+                self._switch_wrapper.get_update_commands(self._device, self._state_on)
             )
         if hvac_mode in self._hvac_mode_set.names and self._hvac_mode_wrapper:
             commands.extend(
-                self._hvac_mode_wrapper.get_update_commands(
-                    self._device, hvac_mode
-                )
+                self._hvac_mode_wrapper.get_update_commands(self._device, hvac_mode)
             )
         elif hvac_mode == HVACMode.OFF:
             commands.extend(
-                self._switch_wrapper.get_update_commands(
-                    self._device, self._state_off
-                )
+                self._switch_wrapper.get_update_commands(self._device, self._state_off)
             )
         await self._async_send_commands(commands)
 

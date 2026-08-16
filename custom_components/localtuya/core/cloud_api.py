@@ -240,7 +240,9 @@ class TuyaCloudApi:
         )
         return "ok"
 
-    async def async_get_device_specifications(self, device_id, force_update=False) -> dict[str, dict]:
+    async def async_get_device_specifications(
+        self, device_id, force_update=False
+    ) -> dict[str, dict]:
         """Obtain the DP ID mappings for a device."""
 
         if not force_update and device_id in self._device_specifications_cache:
@@ -259,7 +261,9 @@ class TuyaCloudApi:
         self._device_specifications_cache[device_id] = resp["result"]
         return resp["result"], "ok"
 
-    async def async_get_device_factory_infos(self, device_id) -> tuple[str, str] | tuple[dict, str]:
+    async def async_get_device_factory_infos(
+        self, device_id
+    ) -> tuple[str, str] | tuple[dict, str]:
         """Obtain the factory info (MAC) for a device."""
 
         if not (
@@ -279,16 +283,16 @@ class TuyaCloudApi:
         mac = self._format_factory_mac(result[0].get("mac", ""))
         return mac, "ok"
 
-    async def async_get_devices_factory_infos(self, device_ids: list[str]) -> dict[str, str]:
+    async def async_get_devices_factory_infos(
+        self, device_ids: list[str]
+    ) -> dict[str, str]:
         """Return {device_id: mac} for a batch of devices (fewer API calls).
 
         Used to auto-match a discovered BLE address to its cloud device;
         ``async_get_device_factory_infos`` covers the single-device case.
         """
         macs: dict[str, str] = {}
-        for chunk in (
-            device_ids[i : i + 20] for i in range(0, len(device_ids), 20)
-        ):
+        for chunk in (device_ids[i : i + 20] for i in range(0, len(device_ids), 20)):
             if not (
                 resp := await self.async_make_request(
                     "GET",

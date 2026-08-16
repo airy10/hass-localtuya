@@ -214,7 +214,10 @@ class SharingCloud:
             sharing = entry.data.get(CONF_SHARING_DATA)
             if not sharing or sharing.get(CONF_USER_CODE) != user_code:
                 continue
-            new_data = {**entry.data, CONF_SHARING_DATA: {**sharing, CONF_TOKEN_INFO: token_info}}
+            new_data = {
+                **entry.data,
+                CONF_SHARING_DATA: {**sharing, CONF_TOKEN_INFO: token_info},
+            }
             self._hass.config_entries.async_update_entry(entry, data=new_data)
 
     async def async_connect(self):

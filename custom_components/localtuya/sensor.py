@@ -136,9 +136,8 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
         ):
             self._attr_native_unit_of_measurement = unit
         # For enum DPs, we can assume it's an ENUM sensor (core parity)
-        if (
-            self._attr_device_class is None
-            and isinstance(self._dpcode_wrapper, DPCodeEnumWrapper)
+        if self._attr_device_class is None and isinstance(
+            self._dpcode_wrapper, DPCodeEnumWrapper
         ):
             self._attr_device_class = SensorDeviceClass.ENUM
             self._attr_options = self._dpcode_wrapper.options

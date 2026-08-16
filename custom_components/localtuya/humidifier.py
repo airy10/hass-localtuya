@@ -103,18 +103,12 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
                 definition.switch_wrapper if definition is not None else None
             )
             target_inner = (
-                definition.target_humidity_wrapper
-                if definition is not None
-                else None
+                definition.target_humidity_wrapper if definition is not None else None
             )
             current_inner = (
-                definition.current_humidity_wrapper
-                if definition is not None
-                else None
+                definition.current_humidity_wrapper if definition is not None else None
             )
-            mode_inner = (
-                definition.mode_wrapper if definition is not None else None
-            )
+            mode_inner = definition.mode_wrapper if definition is not None else None
         else:
             # Cloud spec wrappers for the configured DPs (core parity); DPs
             # with no cloud spec fall back to a raw wrapper.
@@ -122,19 +116,29 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
                 device, self._dp_id
             ) or RawDPWrapper(self._dp_id)
             target_inner = (
-                dp_wrapper_by_id(device, self._config.get(self._dp_set_humidity))
-                or RawDPWrapper(self._config.get(self._dp_set_humidity))
-            ) if self.has_config(self._dp_set_humidity) else None
-            current_inner = (
-                dp_wrapper_by_id(
-                    device, self._config.get(self._dp_current_humidity)
+                (
+                    dp_wrapper_by_id(device, self._config.get(self._dp_set_humidity))
+                    or RawDPWrapper(self._config.get(self._dp_set_humidity))
                 )
-                or RawDPWrapper(self._config.get(self._dp_current_humidity))
-            ) if self.has_config(self._dp_current_humidity) else None
+                if self.has_config(self._dp_set_humidity)
+                else None
+            )
+            current_inner = (
+                (
+                    dp_wrapper_by_id(
+                        device, self._config.get(self._dp_current_humidity)
+                    )
+                    or RawDPWrapper(self._config.get(self._dp_current_humidity))
+                )
+                if self.has_config(self._dp_current_humidity)
+                else None
+            )
             mode_dp = self._config.get(self._dp_mode)
             mode_inner = (
-                dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp)
-            ) if self.has_config(self._dp_mode) else None
+                (dp_wrapper_by_id(device, mode_dp) or RawDPWrapper(mode_dp))
+                if self.has_config(self._dp_mode)
+                else None
+            )
 
         self._target_humidity_wrapper = target_inner
         self._current_humidity_wrapper = current_inner
@@ -149,9 +153,7 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
         self._available_modes = DictSelector(modes)
 
         self._mode_wrapper = (
-            DictSelectorWrapper(
-                mode_inner, self._available_modes, default="unknown"
-            )
+            DictSelectorWrapper(mode_inner, self._available_modes, default="unknown")
             if mode_inner is not None
             else None
         )
@@ -200,9 +202,7 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
     @override
     async def async_set_humidity(self, humidity: int) -> None:
         """Set new target humidity."""
-        await self._async_send_wrapper_updates(
-            self._target_humidity_wrapper, humidity
-        )
+        await self._async_send_wrapper_updates(self._target_humidity_wrapper, humidity)
 
     @override
     async def async_set_mode(self, mode: str) -> None:
@@ -216,5 +216,6 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
         if self._mode_wrapper is not None:
             return self._mode_wrapper.options
         return self._available_modes.names
+
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaHumidifier, flow_schema)
