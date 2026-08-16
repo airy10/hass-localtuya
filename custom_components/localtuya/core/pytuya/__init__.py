@@ -295,7 +295,12 @@ class MessageDispatcher(ContextualLogger):
             response = await asyncio.wait_for(future, timeout=timeout)
             return response
         except asyncio.TimeoutError:
-            self.abort()
+            # Only abandon the timed-out request. Cancelling every listener
+            # here would cascade CancelledError into unrelated in-flight
+            # commands (status refresh, heartbeats), spurious reconnects and
+            # a whole-device teardown from a single slow reply.
+            self.listeners.pop(seqno, True)
+            future.cancel()
             raise TimeoutError(
                 f"Command {cmd} timed out waiting for sequence number {seqno}"
             )
@@ -346,20 +351,37 @@ class MessageDispatcher(ContextualLogger):
                 break
                 # self.buffer = self.buffer[: suffix_index + 4]
 
-            header = parser.parse_header(self.buffer, logger=self)
+            try:
+                header = parser.parse_header(self.buffer, logger=self)
+            except Exception:  # pylint: disable=broad-except
+                # Corrupt header (e.g. claimed length > 2000). Drop the buffer so
+                # a misbehaving device cannot grow it without bound, and so the
+                # exception never escapes data_received().
+                self.debug(f"Failed to parse header, discarding: {self.buffer!r}")
+                self.buffer = b""
+                break
+
             if len(self.buffer) < header.total_length:
                 self.debug(f"Not enough data to parse: {self.buffer}")
                 break  # not enough data.
 
             hmac_key = self.local_key if self.version >= 3.4 else None
             no_retcode = False
-            msg = parser.unpack_message(
-                self.buffer,
-                header=header,
-                hmac_key=hmac_key,
-                no_retcode=no_retcode,
-                logger=self,
-            )
+            try:
+                msg = parser.unpack_message(
+                    self.buffer,
+                    header=header,
+                    hmac_key=hmac_key,
+                    no_retcode=no_retcode,
+                    logger=self,
+                )
+            except Exception:  # pylint: disable=broad-except
+                # Same rationale as the header parse above: never let a bad
+                # message keep the buffer growing or escape data_received().
+                self.debug(f"Failed to unpack message, discarding: {self.buffer!r}")
+                self.buffer = b""
+                break
+
             self.buffer = self.buffer[header.total_length :]
             self._dispatch(msg)
 

@@ -30,6 +30,7 @@ from .const import (
     CHARACTERISTIC_WRITE,
     GATT_MTU,
     MANUFACTURER_DATA_ID,
+    MAX_INPUT_LENGTH,
     RESPONSE_WAIT_TIMEOUT,
     SERVICE_UUID,
     TuyaBLECode,
@@ -328,6 +329,7 @@ class TuyaBLEDevice:
         self._input_expected_length = 0
         self._input_expected_responses: dict[int, asyncio.Future[int] | None] = {}
         # self._input_future: asyncio.Future[int] | None = None
+        self._reconnect_task: asyncio.Task | None = None
 
         self._datapoints = TuyaBLEDataPoints(self)
 
@@ -701,6 +703,9 @@ class TuyaBLEDevice:
         """Stop the TuyaBLE."""
         _LOGGER.debug("%s: Stop", self.address)
         await self._execute_disconnect()
+        if self._reconnect_task is not None:
+            self._reconnect_task.cancel()
+            self._reconnect_task = None
 
     def _disconnected(self, client: BleakClientWithServiceCache) -> None:
         """Disconnected callback."""
@@ -721,12 +726,15 @@ class TuyaBLEDevice:
             self.rssi,
         )
         if was_paired:
-            _LOGGER.debug(
-                "%s: Scheduling reconnect; RSSI: %s",
-                self.address,
-                self.rssi,
-            )
-            asyncio.create_task(self._reconnect())
+            # Only one reconnect loop may run at a time; a device that flaps
+            # would otherwise accumulate an unbounded pile of reconnect tasks.
+            if self._reconnect_task is None or self._reconnect_task.done():
+                _LOGGER.debug(
+                    "%s: Scheduling reconnect; RSSI: %s",
+                    self.address,
+                    self.rssi,
+                )
+                self._reconnect_task = asyncio.create_task(self._reconnect())
 
     def _disconnect(self) -> None:
         """Disconnect from device."""
@@ -905,25 +913,30 @@ class TuyaBLEDevice:
 
     async def _reconnect(self) -> None:
         """Attempt reconnects until shutdown or a connection succeeds."""
-        while not self._expected_disconnect:
-            _LOGGER.debug("%s: Reconnect, ensuring connection", self.address)
-            async with self._seq_num_lock:
-                self._current_seq_num = 1
-            try:
-                await self._ensure_connected()
-                if self._expected_disconnect:
+        task = asyncio.current_task()
+        try:
+            while not self._expected_disconnect:
+                _LOGGER.debug("%s: Reconnect, ensuring connection", self.address)
+                async with self._seq_num_lock:
+                    self._current_seq_num = 1
+                try:
+                    await self._ensure_connected()
+                    if self._expected_disconnect:
+                        return
+                    _LOGGER.debug("%s: Reconnect, connection ensured", self.address)
                     return
-                _LOGGER.debug("%s: Reconnect, connection ensured", self.address)
-                return
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                _LOGGER.debug(
-                    "%s: Reconnect, failed to ensure connection - backing off",
-                    self.address,
-                    exc_info=True,
-                )
-                await asyncio.sleep(BLEAK_BACKOFF_TIME)
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    _LOGGER.debug(
+                        "%s: Reconnect, failed to ensure connection - backing off",
+                        self.address,
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(BLEAK_BACKOFF_TIME)
+        finally:
+            if self._reconnect_task is task:
+                self._reconnect_task = None
 
     @staticmethod
     def _calc_crc16(data: bytes) -> int:
@@ -1481,8 +1494,21 @@ class TuyaBLEDevice:
         if packet_num == self._input_expected_packet_num:
             if packet_num == 0:
                 self._input_buffer = bytearray()
-                self._input_expected_length, pos = self._unpack_int(data, pos)
+                try:
+                    self._input_expected_length, pos = self._unpack_int(data, pos)
+                except TuyaBLEDataFormatError:
+                    self._clean_input()
+                    return
                 pos += 1
+                if self._input_expected_length > MAX_INPUT_LENGTH:
+                    _LOGGER.error(
+                        "%s: Notification claims unreasonable length %s, "
+                        "discarding input stream",
+                        self.address,
+                        self._input_expected_length,
+                    )
+                    self._clean_input()
+                    return
             self._input_buffer += data[pos:]
             self._input_expected_packet_num += 1
         else:

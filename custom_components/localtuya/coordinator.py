@@ -108,6 +108,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_reconnect: asyncio.Task | None = None
         self._task_shutdown_entities: asyncio.Task | None = None
         self._task_ble_refresh: asyncio.Task | None = None
+        self._task_connect_subdevices: asyncio.Task | None = None
         self._unsub_refresh: CALLBACK_TYPE | None = None
         self._unsub_new_entity: CALLBACK_TYPE | None = None
         self._unsub_fingerbot: CALLBACK_TYPE | None = None
@@ -213,7 +214,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 if isinstance(f.values, dict) and "h" in f.values:
                     return f.values
         # Ethernet: cloud dps_data holds the same type spec (JSON string).
-        dps_data = self._cloud_device_data().get("dps_data", {})
+        dps_data = self._cloud_device_data().get("dps_data") or {}
         for dp_data in dps_data.values():
             if not dp_data:
                 continue
@@ -341,7 +342,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     def _cloud_dpspec_view(self) -> dict:
         """Build a dpcode-keyed spec view from the Ethernet cloud dps_data."""
-        dps_data = self._cloud_device_data().get("dps_data", {})
+        dps_data = self._cloud_device_data().get("dps_data") or {}
         view = {}
         for dp_id, data in dps_data.items():
             if not data or not isinstance(data, dict):
@@ -362,11 +363,16 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         except AttributeError:
             device_data = {}
         if not device_data:
-            return self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {})
+            return self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}) or {}
         if not device_data.get("dps_data"):
-            device_data["dps_data"] = (
-                self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}).get("dps_data")
-            )
+            # Only backfill when the persisted snapshot actually has dps_data;
+            # otherwise we would write ``dps_data = None`` into the live cloud
+            # entry and crash ``_cloud_dpspec_view``/``color_data_spec`` below.
+            persisted_dps = (
+                self._device_config.as_dict().get(DEVICE_CLOUD_DATA, {}) or {}
+            ).get("dps_data")
+            if persisted_dps:
+                device_data["dps_data"] = persisted_dps
         return device_data
 
     def dp_type(self, code: str):
@@ -452,13 +458,18 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     async def _connect_subdevices(self):
         """Gateway: connect to sub-devices one by one."""
-        if not self.sub_devices:
-            return
+        task = asyncio.current_task()
+        try:
+            if not self.sub_devices:
+                return
 
-        for subdevice in self.sub_devices.values():
-            if not self.connected or self.is_closing:
-                break
-            await subdevice.async_connect()
+            for subdevice in self.sub_devices.values():
+                if not self.connected or self.is_closing:
+                    break
+                await subdevice.async_connect()
+        finally:
+            if self._task_connect_subdevices is task:
+                self._task_connect_subdevices = None
 
     async def _make_connection(self):
         """Subscribe localtuya entity events."""
@@ -618,7 +629,13 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 await self.set_status()
 
             if self.sub_devices:
-                asyncio.create_task(self._connect_subdevices())
+                if (
+                    self._task_connect_subdevices is None
+                    or self._task_connect_subdevices.done()
+                ):
+                    self._task_connect_subdevices = asyncio.create_task(
+                        self._connect_subdevices()
+                    )
 
                 self._interface.keep_alive(len(self.sub_devices) > 0)
 
@@ -778,6 +795,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             self._task_reconnect,
             self._task_connect,
             self._task_ble_refresh,
+            self._task_connect_subdevices,
         ]
         pending_tasks = [task for task in tasks if task and task.cancel()]
         await asyncio.gather(*pending_tasks, return_exceptions=True)
@@ -843,6 +861,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             # This a workaround for >= 3.4 devices, since there is an issue on waiting for the correct seqno
             try:
                 await self._interface.update_dps(cid=self._node_id)
+            except asyncio.CancelledError:
+                self.debug("Refresh cancelled")
             except TimeoutError:
                 pass
 

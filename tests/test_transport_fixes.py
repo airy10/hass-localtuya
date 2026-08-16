@@ -1,14 +1,23 @@
 """Regression tests for the BLE transport review fixes."""
 
 import asyncio
+import logging
+import struct
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 from bleak_retry_connector import BleakError
 
-from custom_components.localtuya.const import DPType, TRANSPORT_BLE, TRANSPORT_ETHERNET
+from custom_components.localtuya.const import (
+    DEVICE_CLOUD_DATA,
+    DPType,
+    TRANSPORT_BLE,
+    TRANSPORT_ETHERNET,
+)
 from custom_components.localtuya.coordinator import TuyaDevice
+from custom_components.localtuya.core.pytuya import MessageDispatcher
+from custom_components.localtuya.core.pytuya.const import Affix
 from custom_components.localtuya.core.sharing_cloud import SharingCloud
 from custom_components.localtuya.core.transport import (
     BluetoothTransport,
@@ -583,3 +592,207 @@ def test_persisted_dps_values_parses_dps_strings():
         "38": "on",
         "9": "0",
     }
+
+
+def test_cloud_dpspec_view_handles_missing_dps_data():
+    """An offline BLE device (no dps_data) must not crash spec resolution.
+
+    Regression for the platform-setup crash seen when a configured BLE device
+    is not found at startup: ``_cloud_device_data`` used to write
+    ``dps_data = None`` into the live cloud entry, which then crashed
+    ``_cloud_dpspec_view`` with "'NoneType' object has no attribute 'items'".
+    """
+    tuya_device = object.__new__(TuyaDevice)
+    tuya_device.id = "device_id"
+    tuya_device._interface = None
+    tuya_device._device_config = SimpleNamespace(
+        transport=TRANSPORT_ETHERNET, as_dict=lambda: {}
+    )
+    tuya_device._hass_entry = SimpleNamespace(
+        cloud_data=SimpleNamespace(
+            device_list={"device_id": {"id": "device_id", "category": "dd"}}
+        )
+    )
+
+    assert tuya_device._cloud_dpspec_view() == {}
+
+
+def test_cloud_device_data_handles_none_persisted_snapshot():
+    """A None DEVICE_CLOUD_DATA snapshot must resolve to an empty dict."""
+    tuya_device = object.__new__(TuyaDevice)
+    tuya_device.id = "device_id"
+    tuya_device._interface = None
+    tuya_device._device_config = SimpleNamespace(
+        transport=TRANSPORT_ETHERNET,
+        as_dict=lambda: {DEVICE_CLOUD_DATA: None},
+    )
+    tuya_device._hass_entry = SimpleNamespace(
+        cloud_data=SimpleNamespace(device_list={})
+    )
+
+    assert tuya_device._cloud_device_data() == {}
+
+
+def test_dispatcher_discards_buffer_on_corrupt_header():
+    """A header claiming >2000 bytes must discard the buffer, not grow it."""
+    dispatcher = MessageDispatcher("devid", Mock(), 3.1, "0123456789abcdef")
+    dispatcher.set_logger(logging.getLogger("test"), "devid")
+
+    corrupt = (
+        Affix.prefix_55aa.bin
+        + struct.pack(">III", 1, 8, 3000)  # seqno, cmd, length > 2000
+        + b"\x00" * 8
+        + Affix.suffix_55aa.bin
+    )
+
+    # Before the fix this raised DecodeError and left the buffer intact.
+    dispatcher.add_data(corrupt)
+
+    assert dispatcher.buffer == b""
+
+
+@pytest.mark.asyncio
+async def test_ble_reconnect_task_is_deduplicated():
+    """Repeated disconnects must not pile up reconnect tasks."""
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device._is_paired = True
+    device._expected_disconnect = False
+
+    async def _fake_reconnect():
+        return None
+
+    device._reconnect = _fake_reconnect
+    client = SimpleNamespace(is_connected=False)
+
+    device._disconnected(client)
+    first = device._reconnect_task
+    assert first is not None
+
+    device._is_paired = True
+    device._disconnected(client)
+
+    assert device._reconnect_task is first
+    await first
+
+
+@pytest.mark.asyncio
+async def test_ble_stop_cancels_pending_reconnect():
+    """stop() cancels a pending reconnect task."""
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device._execute_disconnect = AsyncMock()
+
+    task = asyncio.create_task(asyncio.sleep(10))
+    device._reconnect_task = task
+
+    await device.stop()
+
+    assert device._reconnect_task is None
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+@pytest.mark.asyncio
+async def test_dispatcher_timeout_aborts_only_timed_out_listener():
+    """A timed-out command must not cancel unrelated in-flight listeners.
+
+    Regression for the abort-cascade: the old ``wait_for`` called
+    ``abort()`` on any timeout, cancelling every other listener (status
+    refresh, heartbeats) and triggering spurious reconnects.
+    """
+    dispatcher = MessageDispatcher("devid", Mock(), 3.1, "0123456789abcdef")
+    dispatcher.set_logger(logging.getLogger("test"), "devid")
+
+    survivor = asyncio.Future()
+    dispatcher.listeners[42] = survivor
+
+    with pytest.raises(TimeoutError):
+        await dispatcher.wait_for(7, 1, timeout=0.01)
+
+    assert 42 in dispatcher.listeners
+    assert not survivor.cancelled()
+    assert 7 not in dispatcher.listeners
+
+
+@pytest.mark.asyncio
+async def test_connect_subdevices_task_is_deduplicated():
+    """A pending _connect_subdevices task must not be re-spawned.
+
+    Mirrors the dedup guard in ``_make_connection``: only one task may run
+    at a time, and the handle is cleared when it completes.
+    """
+    device = object.__new__(TuyaDevice)
+    device._task_connect_subdevices = None
+    device.sub_devices = {"s1": SimpleNamespace(async_connect=AsyncMock())}
+    device._interface = SimpleNamespace(is_connected=True)
+    device.is_closing = False
+
+    if (
+        device._task_connect_subdevices is None
+        or device._task_connect_subdevices.done()
+    ):
+        device._task_connect_subdevices = asyncio.create_task(
+            device._connect_subdevices()
+        )
+    first = device._task_connect_subdevices
+    assert first is not None
+
+    if (
+        device._task_connect_subdevices is None
+        or device._task_connect_subdevices.done()
+    ):
+        device._task_connect_subdevices = asyncio.create_task(
+            device._connect_subdevices()
+        )
+    assert device._task_connect_subdevices is first
+
+    await first
+    assert device._task_connect_subdevices is None
+
+
+def test_ble_notification_rejects_oversized_input_length():
+    """A notification claiming an unreasonable length must not grow the buffer.
+
+    Regression for the unbounded ``_input_buffer`` growth: the expected
+    length varint could claim up to 2^35 bytes and the buffer would grow
+    toward it until the guard tripped.
+    """
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device._input_expected_packet_num = 0
+
+    data = (
+        TuyaBLEDevice._pack_int(0)  # packet_num = 0
+        + TuyaBLEDevice._pack_int(0x1000000)  # claimed length > MAX_INPUT_LENGTH
+        + b"\x00"  # skipped byte after the length varint
+        + b"\x00" * 4  # payload chunk
+    )
+
+    device._notification_handler(None, bytearray(data))
+
+    assert device._input_buffer is None  # _clean_input() ran
+    assert device._input_expected_length == 0
+    assert device._input_expected_packet_num == 0
+
+
+def test_ble_notification_discards_bad_length_varint():
+    """A 5-byte length varint (>= 2^28) must be cleaned up, not raise.
+
+    ``_unpack_int`` rejects 5-byte varints with ``TuyaBLEDataFormatError``
+    before the MAX_INPUT_LENGTH guard runs; the handler now converts that
+    into the same graceful discard path instead of raising out of the
+    bleak notification callback.
+    """
+    device = TuyaBLEDevice(None, SimpleNamespace(address="AA:BB:CC:DD:EE:FF"))
+    device._input_expected_packet_num = 0
+
+    data = (
+        TuyaBLEDevice._pack_int(0)  # packet_num = 0
+        + TuyaBLEDevice._pack_int(0x10000000)  # 5-byte varint -> DataFormatError
+        + b"\x00"
+        + b"\x00" * 4
+    )
+
+    device._notification_handler(None, bytearray(data))
+
+    assert device._input_buffer is None
+    assert device._input_expected_length == 0
+    assert device._input_expected_packet_num == 0
