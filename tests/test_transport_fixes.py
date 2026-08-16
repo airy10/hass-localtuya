@@ -796,3 +796,62 @@ def test_ble_notification_discards_bad_length_varint():
     assert device._input_buffer is None
     assert device._input_expected_length == 0
     assert device._input_expected_packet_num == 0
+
+
+@pytest.mark.asyncio
+async def test_abort_connect_retains_ble_transport_on_transient_failure():
+    """A transient BLE connect failure must keep the transport (no rebuild).
+
+    Tearing the BLE transport down on every failed attempt forced
+    ``async_prepare_ble``'s pre-built stack (manager, device, transport,
+    callbacks) to be rebuilt from scratch on each reconnect.
+    """
+    device = object.__new__(TuyaDevice)
+    device._node_id = None
+    device._fake_gateway = False
+    device._device_config = SimpleNamespace(transport=TRANSPORT_BLE)
+    device.is_closing = False
+    device._unsub_fingerbot = None
+    interface = SimpleNamespace(close=AsyncMock())
+    device._interface = interface
+
+    await device.abort_connect()
+
+    assert device._interface is interface
+    interface.close.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_abort_connect_closes_ble_transport_on_close():
+    """close() (is_closing) must still tear the BLE transport down."""
+    device = object.__new__(TuyaDevice)
+    device._node_id = None
+    device._fake_gateway = False
+    device._device_config = SimpleNamespace(transport=TRANSPORT_BLE)
+    device.is_closing = True
+    device._unsub_fingerbot = None
+    interface = SimpleNamespace(close=AsyncMock())
+    device._interface = interface
+
+    await device.abort_connect()
+
+    assert device._interface is None
+    interface.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_abort_connect_closes_ethernet_transport_on_failure():
+    """Ethernet transports still close on abort (rebuild is the norm there)."""
+    device = object.__new__(TuyaDevice)
+    device._node_id = None
+    device._fake_gateway = False
+    device._device_config = SimpleNamespace(transport=TRANSPORT_ETHERNET)
+    device.is_closing = False
+    device._unsub_fingerbot = None
+    interface = SimpleNamespace(close=AsyncMock())
+    device._interface = interface
+
+    await device.abort_connect()
+
+    assert device._interface is None
+    interface.close.assert_awaited_once()

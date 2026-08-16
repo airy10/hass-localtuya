@@ -761,16 +761,26 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 break
 
     async def abort_connect(self):
-        """Abort the connect process to the interface[device]"""
+        """Abort the connect process to the interface[device].
+
+        BLE devices own their reconnecting client (see ``disconnected``), so a
+        transient connect failure must not tear the transport down: doing so
+        forces ``async_prepare_ble``'s pre-built stack to be rebuilt from
+        scratch (manager, device, transport, callbacks) on every reconnect
+        attempt. Only an explicit ``close()`` (``is_closing`` is set before
+        this is called) destroys it.
+        """
         if self.is_subdevice:
             self._interface = None
             self._task_connect = None
 
-        if self._unsub_fingerbot is not None:
+        keep_ble = self._device_config.transport == TRANSPORT_BLE and not self.is_closing
+
+        if self._unsub_fingerbot is not None and not keep_ble:
             self._unsub_fingerbot()
             self._unsub_fingerbot = None
 
-        if self._interface is not None:
+        if self._interface is not None and not keep_ble:
             await self._interface.close()
             self._interface = None
 
