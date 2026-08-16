@@ -5,7 +5,41 @@ The Tuya integration integrates all Powered by Tuya devices you have added to th
 !!! note
     LocalTuya uses the cloud to obtain your device's data, making the configuration of devices much simpler.
 
+There are two ways to connect to the Tuya cloud:
+
+1. **[Smart Life QR sharing](#smart-life-qr-sharing-login-recommended)** `Recommended` - Scan a QR code with the Smart Life app. No Tuya IoT Platform project required.
+2. **[Tuya IoT Platform credentials](#configuration-of-the-tuya-iot-platform)** `Legacy` - Create a cloud project on the Tuya IoT Platform and use its credentials.
+
+## Smart Life QR sharing login (Recommended)
+
+This method does **not** require creating a project on the Tuya IoT Platform. It uses the `tuya-device-sharing-sdk` to authorize the integration through the Smart Life app directly.
+
+### Prerequisites
+
+- Your devices need first to be added in the [Tuya Smart or Smart Life app](https://developer.tuya.com/docs/iot/tuya-smart-app-smart-life-app-advantages?id=K989rqa49rluq#title-1-Download){target="_blank"}.
+
+### Get your user code
+
+1. Open the `Smart Life` app on your phone.
+2. Go to `Profile` and find your **User Code**.
+
+### Set up the integration
+
+1. When adding a new hub, choose `Scan a QR code with the Smart Life app (Recommended)`.
+2. Enter your Smart Life **user code** and submit.
+3. A **QR code** is shown in Home Assistant.
+4. In the Smart Life app, go to `Profile` -> `Add Device/Scan` and scan the QR code, then authorize access.
+5. Go back to Home Assistant and submit. The sharing session is stored and the hub is created.
+
+!!! note "Session expiry"
+    If the Smart Life sharing session expires (e.g. the token is no longer valid), LocalTuya will trigger a re-authentication flow automatically. You can also re-scan the QR code at any time from `Options` -> `Manage Cloud API account` -> `Re-scan QR code with the Smart Life app`.
+
+!!! tip "Scenes"
+    Scenes are cloud-discovered and only available when using the Smart Life QR sharing session. The legacy Tuya IoT Platform login has no scene endpoint.
+
 ## Configuration of the Tuya IoT Platform
+
+The legacy login method. LocalTuya uses the credentials of a Tuya IoT Platform cloud project.
 
 ### Prerequisites
 
@@ -44,6 +78,9 @@ This is a separate account from the one you made for the app. You cannot log in 
 ![](https://www.home-assistant.io/images/integrations/tuya/image_005.png)
 
 ### Get authorization data
+
+!!! note
+    The following applies to the **Tuya IoT Platform** login method (legacy). When adding a hub, choose `Log in with Tuya IoT Platform credentials (Legacy)` and fill these fields.
 
 Click the created project to enter the `Project Overview` page and get the `Authorization Key`. You will need these for setting up the integration. in the next step.
 

@@ -12,11 +12,11 @@
         Before adding any device, ensure that `Smart Life` and `Tuya Smart` apps are closed on your phones. Devices shouldn't be added to different local integrations as __some__ Tuya devices can only accept one local connection at a time.
 
 After setting up the integration, you can now manage your devices by `adding` or `editing` them.<br>
-Go to hub `Configure` (1) a menu will show up (2) Choose `Add new device`
+Go to hub `Configure` (1) a menu will show up (2) Choose `Add new device` (or `Add a BLE device` for BLE devices)
 { .annotate }
 
 1. ![](../images/configure.png)
-2. "The `Reconfigure existing device` option will appear if there are devices that have already been set up."<br><br> ![](../images/options.png)
+2. The options menu lists: `Add new device`, `Add a BLE device` *(only when a cloud API account is configured)*, `Reconfigure existing device` *(only if there are devices already set up)* and `Manage Cloud API account`.<br><br> ![](../images/options.png)
 
 
 !!! Note "Discovery"
@@ -37,10 +37,18 @@ Go to hub `Configure` (1) a menu will show up (2) Choose `Add new device`
         The device's IP Address e.g., `192.168.1.55`. <br>`This is automatically inserted if you choose a discovered device`
 
     ??? info "Device ID"
-        The device ID See [top note](#top).<br>`Automatically inserted if you choose a discovered device`
+        The device ID See the note at the top of this page.<br>`Automatically inserted if you choose a discovered device`
 
     ??? info "Local Key"
-        The localkey for the device. See [top note](#top) <br>`Automatically inserted if the cloud API is configured and the device is added to the account`
+        The localkey for the device. See the note at the top of this page <br>`Automatically inserted if the cloud API is configured and the device is added to the account`
+
+    ??? info "Transport"
+        The protocol used to talk to the device: `ethernet` (Wi-Fi) or `ble`. 
+        BLE devices are usually added through the dedicated `Add a BLE device` flow, which pre-fills this field.
+
+    ??? info "(Optional) BLE Address"
+        The Bluetooth MAC address of the device, only used when `Transport` is `ble`. 
+        Automatically inserted when a BLE device is added from the discovery flow.
 
     ??? info "(optional) Enable Debug"
         Device will send `Debug messages` in logs. `Use it if you have issues and want to track them` <br>
@@ -184,4 +192,26 @@ There are two ways to create templates
         platform: binary_sensor
         state_on: '1'
     ```
+
+### Add a BLE device
+!!! note "Prerequisites"
+    BLE devices can only be added when a cloud API account is configured, because the device credentials (`local_key`) and the DP specs are fetched from the cloud.
+
+BLE devices are added from the hub options menu: `Configure` -> `Add a BLE device`.
+
+1. A list of Tuya BLE devices discovered in range of the Home Assistant host is shown. Select the device and click `Submit`.
+
+    !!! note ""
+        If no BLE device is found, make sure the device is powered on and near the Home Assistant host. Home Assistant must be running on a host with a Bluetooth adapter (the `bluetooth` integration).
+
+2. LocalTuya will try to match the discovered device to a device on your cloud account automatically:
+    - With the **Smart Life QR sharing** session, devices are matched by their advertisement UUID.
+    - With the **Tuya IoT Platform** credentials, devices are matched by their factory-info MAC address.
+    
+    If no match is found, you will be asked to pick the cloud device manually. This pre-fills the `Device ID`, `Local Key`, `Transport: ble` and the `BLE Address`.
+
+3. The rest of the setup (`Configure device`, `Configure device entities`) works the same as for Wi-Fi devices.
+
+!!! note "BLE discovery"
+    When a Tuya BLE device is detected while Home Assistant is running, a notification suggests opening the integration `Options` -> `Add a BLE Device` to add it.
 

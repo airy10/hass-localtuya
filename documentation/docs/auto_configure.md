@@ -1,14 +1,17 @@
 # Auto configure devices
-Localtuya can disocver you device entities if cloud is enable because the feature at the moment rely on `DP code` and [Devices Category](https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq#title-6-List%20of%20category%20code){target="_blank"}.
+Localtuya can discover your device entities if cloud is enabled because the feature relies on `DP code` and [Devices Category](https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq#title-6-List%20of%20category%20code){target="_blank"}.
 
-By known the `category` we use that to get all the possible entities from stored data.<br> Data stored in `/localtuya/core/ha_entities` (1)
+By knowing the `category` we use that to get all the possible entities from stored data.<br> Data stored in `custom_components/localtuya/core/ha_entities` (1)
 {.annotate}
 
 1. Files are named with entities type <br> <br> ![](images/dev/ha_entities_dir.png)
 
 ??? info "DPCodes data"
     All known `Codes` are stored in `base.py` in `DPCode Class`. <br>
-    If class doesn't contains your `DPCode` Add it, `DPCode class sorted in alphabetically`.
+    If class doesn't contain your `DPCode` add it, `DPCode class sorted in alphabetically`.
+
+??? info "Definition-driven runtime"
+    The auto-configured device keeps its cloud data (`category` + DP specs) in the config entry. At setup, the runtime resolves entities by `DPCode` from the `ha_entities` tables (`core/definitions.py`), so entities stay in sync with the device's cloud DP specs. A per-product `quirks` registry (`core/quirks.py`) can patch specs for known products.
 
 
 !!! tip annotate "How to get the `Codes and DP`"
@@ -25,8 +28,8 @@ By known the `category` we use that to get all the possible entities from stored
 
 _Now that we know the device `category` and `Codes` we can start add the entities._
 
-In `/localtuya/core/ha_entities` open the file named with `entity type` you want to add.<br>
-All files contains `constant dict` (1) includes all known `categories` and possible entities.<br>
+In `custom_components/localtuya/core/ha_entities` open the file named with `entity type` you want to add.<br>
+All files contain a `constant dict` (1) including all known `categories` and possible entities.<br>
 {.annotate}
 
 1. e.g `COVERS or SWITCHES`
@@ -61,6 +64,19 @@ Using `LocalTuyaEntity class` we pass entity parameters `id` and `DPs config nam
             |current_state              |DPCode  | The code that wanted to use for current_state
             |current_position_dp        |DPCode  | The code that wanted to use for current_position_dp
             |set_position_dp            |DPCode  | The code that wanted to use for set_position_dp -->
+
+??? example "Add `event` into `EVENTS` in `sp` category (doorbell)"
+    ```python 
+    "sp": (
+        LocalTuyaEntity(
+            id=DPCode.ALARM_MESSAGE,
+            name="Doorbell message",
+            device_class=EventDeviceClass.DOORBELL,
+            wrapper_class=Base64Utf8StringEventWrapper,
+        ),
+    ),
+    ```
+    Event entities need a `wrapper_class` (from `core/dp_wrapper_decorators.py`) that maps the raw DP value to an event type.
 
 # Examples 
 

@@ -5,6 +5,7 @@
 | ----------- | ---------------------------------------------------------|-------------------------------------
 | `localtuya.reload`          |                                                 | Reload All `localtuya` entries
 | `localtuya.set_dp`          | `#!json {"data": {"device_id", "dp", "value"}}` | Set new value for one `DP` or multi 
+| `localtuya.update_dps`      | `#!json {"data": {"device_id", "dps"}}`          | Request the device to report current values for the specified datapoints (sends `UPDATEDPS` command)
 | `localtuya.remote_add_code` | `#!json {"data": {"target", "device_name", "command_name", "base64", "head", "key" }}` | Manually add code into remote device. 
 
 
@@ -38,6 +39,16 @@
     ```yaml 
     service: localtuya.reload
     ```
+
+=== "Update DPs Service"
+    Request the device to report current values for the specified datapoints.
+    ```yaml title="Request DP 18, 19 and 20"
+    action: localtuya.update_dps
+    data:
+      device_id: 11100118278aab4de001
+      dps: [18, 19, 20]
+    ```
+    If `dps` is omitted, all detected and whitelisted DPs will be refreshed.
 
 === "Add Remote Code"
     Add a TV button using `head/key` or `base64`

@@ -3,7 +3,7 @@ Click on `Configure` (1) a menu will show up (2) Choose `Reconfigure existing de
 { .annotate }
 
 1. ![](../images/configure.png)
-2. ![](../images/options.png)
+2. The options menu lists: `Add new device`, `Add a BLE device` *(only when a cloud API account is configured)*, `Reconfigure existing device` and `Manage Cloud API account`.<br> ![](../images/options.png)
 
 
 The `Reconfigure existing device` (1) operates similarly to the _`Add Device`_ steps, but it allows you to modify existing entities or add new ones

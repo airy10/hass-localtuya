@@ -18,6 +18,7 @@ that can be used on automation or monitoring your device behaviour from [Develop
 | --------------------------------- | ------------------------------------ 
 | `localtuya_status_update`         | `#!json {"data": {"device_id", "old_status", "new_status"} }` 
 | `localtuya_device_dp_triggered`   | `#!json {"data": {"device_id", "dp", "value"} }`              
+| `localtuya_fingerbot_button_pressed` | `#!json {"data": {"device_id"} }`            
 
 
 Examples 
@@ -68,6 +69,24 @@ Examples
 
         ```
 
+=== "localtuya_fingerbot_button_pressed"
+
+    ```yaml title=""
+    # Fired on the HA bus when a BLE fingerbot's physical button is pressed.
+    trigger:
+      - platform: event
+        event_type: localtuya_fingerbot_button_pressed
+    condition: []
+    action:
+      - service: persistent_notification.create
+        data:
+          message: "{{ trigger.event.data }}"
+
+    ```
+
+!!! note "Event platform entities"
+    Some devices (e.g. doorbells, scene remotes, fingerbots) are exposed as `event` entities (the `Event` platform). For those, subscribe to the entity's `pressed` event type instead of using raw `localtuya_device_dp_triggered`. BLE fingerbots also fire `localtuya_fingerbot_button_pressed` on the HA bus.
+
 !!! annotate warning "Database flooding"
     If the recorder is enabled, devices like temperature sensors may update frequently (e.g., every second). 
     This can cause excessive events and significantly increase database size. 
@@ -79,4 +98,5 @@ Examples
             event_types:
               - localtuya_status_update
               - localtuya_device_dp_triggered
+              - localtuya_fingerbot_button_pressed
         ```

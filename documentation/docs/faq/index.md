@@ -1,5 +1,14 @@
 # FAQ
 
+#### BLE Devices
+!!! abstract ""
+    BLE devices are supported, but adding them **requires a cloud API account** (the `local_key` and the DP specs are fetched from the cloud). 
+    Add them from the hub options: `Configure` -> `Add a BLE device`.
+    The Home Assistant host must be running with a Bluetooth adapter (the `bluetooth` integration) and be close enough to the device.
+    BLE credentials/specs are persisted locally, so after the initial setup the devices reconnect without the cloud.
+
+<Br>
+
 #### Low Power Devices
 !!! abstract ""
     A device that has [Low Power Mode](https://developer.tuya.com/en/docs/iot-device-dev/Low_consumption_Wi_Fi?id=Kay3gha1um42e){target="_blank"}, applied on such as __`Wi-Fi door locks and sensors`__. <br>
@@ -40,7 +49,8 @@
     Most of the cloud-pulled DPS aren't really useful; they might be encrypted or have empty values. 
     However, it won't change the fact that the device contains these DPS, so using them is up to the user.
 
-<!-- ### Scenes Controllers
+#### Scenes Controllers
 !!! abstract ""
-    If you want to control Home Assistant automations from scene control devices, such as `remotes or switches`, you should consider adding them and relying on [events](/ha_events/) -->
+    Scenes are cloud-discovered and exposed as `scene` entities, but only when the hub uses the **Smart Life QR sharing** session (the legacy Tuya IoT Platform login has no scene endpoint).
+    If you want to control Home Assistant automations from scene control devices, such as `remotes or switches`, you should consider adding them and relying on [events](../ha_events.md)
 
