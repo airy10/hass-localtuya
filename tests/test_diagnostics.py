@@ -44,15 +44,6 @@ def _make_entry():
     return ConfigEntry(**entry_data)
 
 
-def _make_device_entry(entry, dev_id):
-    kwargs = {"identifiers": {("localtuya", f"localtuya_{dev_id}")}}
-    if "config_entry_id" in inspect.signature(DeviceEntry).parameters:
-        kwargs["config_entry_id"] = entry.entry_id
-    else:
-        kwargs["config_entries"] = {entry.entry_id}
-    return DeviceEntry(**kwargs)
-
-
 def _make_config():
     return {
         DEVICE_CONFIG["device_id"]: {
@@ -85,7 +76,10 @@ async def test_device_diagnostics_surfaces_ble_spec_and_status():
     )
     hass.data[DOMAIN].setdefault("discovery", None)
 
-    dev_entry = _make_device_entry(entry, dev_id)
+    dev_entry = DeviceEntry(
+        identifiers={("localtuya", f"localtuya_{dev_id}")},
+        config_entries={entry.entry_id},
+    )
 
     data = await diagnostics.async_get_device_diagnostics(hass, entry, dev_entry)
 
@@ -110,7 +104,10 @@ async def test_device_diagnostics_skips_when_no_ble_device():
     )
     hass.data[DOMAIN].setdefault("discovery", None)
 
-    dev_entry = _make_device_entry(entry, dev_id)
+    dev_entry = DeviceEntry(
+        identifiers={("localtuya", f"localtuya_{dev_id}")},
+        config_entries={entry.entry_id},
+    )
 
     data = await diagnostics.async_get_device_diagnostics(hass, entry, dev_entry)
 
