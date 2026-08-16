@@ -10,7 +10,7 @@ __A Home Assistant custom Integration for local handling of Tuya-based Ethernet 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=integration&repository=hass-localtuya&owner=airy10)
 
 
-This https://xzetsubou.github.io/hass-localtuya/ clone is an experiment mix of xzetsubou localtuya component to control Ethernet devices, my ha_tuya_ble component for BLE devices (https://github.com/airy10/ha_tuya_ble) and Home Assistant Core Tuya component (in order to have entities created/handled the same way as with the cloud core component).
+This [https://github.com/xZetsubou/hass-localtuya/](https://github.com/xZetsubou/hass-localtuya/) clone is an experiment mix of xzetsubou localtuya component to control Ethernet devices, my ha_tuya_ble component for BLE devices (https://github.com/airy10/ha_tuya_ble) and Home Assistant Core Tuya component (in order to have entities created/handled the same way as with the cloud core component).
 The goal is to be able to control Tuya devices (Ethernet ones and BLE ones) locally - the Tuya Cloud is optionally used to automatically discover and configure local devices. After a device is configured, the cloud shouldn't be needed at all to control the device from Home Assistant.
 This is still very experimental and tested only with the devices I own.
 Full documentation hasn't been updated yet.
