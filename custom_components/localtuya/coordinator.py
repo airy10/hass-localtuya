@@ -774,7 +774,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             self._interface = None
             self._task_connect = None
 
-        keep_ble = self._device_config.transport == TRANSPORT_BLE and not self.is_closing
+        keep_ble = (
+            self._device_config.transport == TRANSPORT_BLE and not self.is_closing
+        )
 
         if self._unsub_fingerbot is not None and not keep_ble:
             self._unsub_fingerbot()
