@@ -4,3 +4,4 @@ tuyadebug/
 .idea/
 .pre-commit-config.yaml
 .coverage
+AGENTS.md
