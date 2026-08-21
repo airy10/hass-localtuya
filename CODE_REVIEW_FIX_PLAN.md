@@ -91,7 +91,7 @@ Locations: `core/pytuya/__init__.py:1097-1104`, `:512`.
 
 ## 🟠 Medium priority
 
-### 5. Timestamp written to `uid` instead of `t` — `[ ] OPEN`
+### 5. Timestamp written to `uid` instead of `t` — `[x] FIXED`
 
 Location: `core/pytuya/__init__.py:1297-1299`.
 

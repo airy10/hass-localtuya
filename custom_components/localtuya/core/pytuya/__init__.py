@@ -1301,7 +1301,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             json_data["reqType"] = reqType
         if "t" in json_data:
             t = time.time()
-            json_data["uid"] = int(t) if json_data["t"] == "int" else str(int(t))
+            # "t" doubles as a type marker in the templates ("int"); swap in
+            # the unix timestamp in the marked format.
+            json_data["t"] = int(t) if json_data["t"] == "int" else str(int(t))
 
         payload = json.dumps(json_data, separators=(",", ":")) if json_data else ""
 
