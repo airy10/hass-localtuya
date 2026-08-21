@@ -144,7 +144,7 @@ where needed.
 - `discovery.datagram_received`: `except (json.JSONDecodeError, Exception)`
   redundant tuple.
 
-### 10. Migration path v1 fall-through risk — `[ ] OPEN`
+### 10. Migration path v1 fall-through risk — `[x] FIXED`
 
 Location: `__init__.py:228-334`. Version-1 entries fall through to the ≤3
 branch which indexes `CONF_ENTITIES` structures v1 layouts may not have;

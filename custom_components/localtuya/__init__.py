@@ -144,8 +144,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if entry is None:
             return
 
-        hass_data: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
-
         if device_id not in device_cache or device_id not in device_cache.get(
             device_id, {}
         ):
@@ -232,10 +230,16 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Migrate old entries merging all of them in one."""
     new_version = ENTRIES_VERSION
-    stored_entries = hass.config_entries.async_entries(DOMAIN)
     if config_entry.version == 1:
-        # This an old version of original integration no need to put it here.
-        pass
+        # This an old version of original integration: its data layout is not
+        # migratable here, fail the migration so HA flags the entry instead
+        # of crashing inside the v3 branch below.
+        _LOGGER.error(
+            "Entry %s uses unsupported config version 1; "
+            "remove and re-add the integration.",
+            config_entry.entry_id,
+        )
+        return False
     # Update to version 3
     if config_entry.version == 2:
         # Switch config flow to selectors convert DP IDs from int to str require HA 2022.4.
@@ -328,6 +332,12 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 )
                 current_entity += 1
         hass.config_entries.async_update_entry(config_entry, data=new_data, version=4)
+
+    if config_entry.version >= new_version:
+        _LOGGER.debug(
+            "Entry %s already at version %s.", config_entry.entry_id, new_version
+        )
+        return True
 
     _LOGGER.info(
         "Entry %s successfully migrated to version %s.",
