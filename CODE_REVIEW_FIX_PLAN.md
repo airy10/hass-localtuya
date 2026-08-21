@@ -153,7 +153,7 @@ success log fires even when nothing migrated.
 **Fix**: explicit `elif` chain keyed on version, each branch returns after
 updating; guard final log.
 
-### 11. Heartbeat restart race — `[ ] OPEN`
+### 11. Heartbeat restart race — `[x] FIXED`
 
 Location: `core/pytuya/__init__.py:628-675`. `clean_up_session()` cancels
 `heartbeater` but the reference clears only when the loop body exits. If

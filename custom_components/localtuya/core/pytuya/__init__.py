@@ -548,6 +548,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """
 
         async def _action(on_devs, off_devs):
+            task = asyncio.current_task()
             try:
                 self.debug(f"Sub-Devices States Update: {on_devs=} {off_devs=}")
                 listener = self.listener and self.listener()
@@ -566,7 +567,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             except asyncio.CancelledError:
                 pass
             finally:
-                self._sub_devs_query_task = None
+                if self._sub_devs_query_task is task:
+                    self._sub_devs_query_task = None
 
         if (data := decoded_message.get("data")) and isinstance(data, dict):
             on_devs, off_devs = data.get("online", []), data.get("offline", [])
@@ -634,6 +636,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             self.debug("Started keep alive loop.")
             fail_attempt = 0
             delta = 0
+            task = asyncio.current_task()
             while True:
                 start = time.monotonic()
                 try:
@@ -655,7 +658,10 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 delta = (time.monotonic() - start) - HEARTBEAT_INTERVAL
                 delta = max(0, min(delta, HEARTBEAT_INTERVAL))
 
-            self.heartbeater = None
+            # Only clear the reference while this loop still owns it: a new
+            # heartbeater may have been started after this one was cancelled.
+            if self.heartbeater is task:
+                self.heartbeater = None
             if self.transport is not None:
                 self.clean_up_session()
 
@@ -702,27 +708,33 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     async def close(self):
         """Close connection and abort all outstanding listeners."""
         self.debug("Closing connection")
+        # Capture before clean_up_session(), which clears the references.
+        heartbeater = self.heartbeater
+        sub_devs_query_task = self._sub_devs_query_task
         self.clean_up_session()
 
         # The tasks above were just cancelled: gather with
         # return_exceptions=True so the CancelledError they raise is not
         # propagated into whoever called close() mid-teardown.
-        if self.heartbeater:
-            await asyncio.gather(self.heartbeater, return_exceptions=True)
-
-        if self._sub_devs_query_task:
-            await asyncio.gather(self._sub_devs_query_task, return_exceptions=True)
+        for task in (heartbeater, sub_devs_query_task):
+            if task:
+                await asyncio.gather(task, return_exceptions=True)
 
     def clean_up_session(self):
         """Clean up session."""
         self.debug(f"Cleaning up session.")
         self.local_key = self.real_local_key
 
+        # Clear the references synchronously: keep_alive() checks
+        # ``heartbeater is None`` and must start a replacement right away
+        # instead of skipping it while the cancelled loop winds down.
         if self.heartbeater:
             self.heartbeater.cancel()
+            self.heartbeater = None
 
         if self._sub_devs_query_task:
             self._sub_devs_query_task.cancel()
+            self._sub_devs_query_task = None
 
         if self.is_connected:
             self.transport.close()
