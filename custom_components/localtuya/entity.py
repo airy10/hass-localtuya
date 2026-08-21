@@ -85,6 +85,7 @@ async def async_setup_entry(
         if device_key not in hass_entry_data.devices:
             continue
 
+        device: TuyaDevice = hass_entry_data.devices[device_key]
         entities_to_setup: list[tuple[dict, Any]] = [
             (entity, None)
             for entity in dev_entry[CONF_ENTITIES]
@@ -92,44 +93,49 @@ async def async_setup_entry(
         ]
 
         if not entities_to_setup:
-            device: TuyaDevice = hass_entry_data.devices[device_key]
             # No manual entities: resolve via the single runtime resolver —
             # BLE per-product overrides first, then the shared category-table
             # derivation (definition-driven, both transports).
             entities_to_setup = _entity_specs_for_device(device, domain, dev_entry)
 
-        if entities_to_setup:
-            device: TuyaDevice = hass_entry_data.devices[device_key]
-            dps_config_fields = list(get_dps_for_platform(flow_schema))
+        if not entities_to_setup:
+            continue
 
-            for entity_config, description in entities_to_setup:
-                # Add DPS used by this platform to the request list
-                for dp_conf in dps_config_fields:
-                    if dp_conf in entity_config:
-                        device.dps_to_request[entity_config[dp_conf]] = None
+        device_entities: list[LocalTuyaEntity] = []
+        dps_config_fields = list(get_dps_for_platform(flow_schema))
 
-                kwargs = {
-                    # we need add_entites_callback in-case we want to add sub-entites, such as electric sensor "phase_a"
-                    "add_entites_callback": async_add_entities,
-                    "config": entity_config,
-                }
-                if description is not None:
-                    kwargs["description"] = description
-                entities.append(
-                    entity_class(
-                        device,
-                        dev_entry,
-                        entity_config[CONF_ID],
-                        **kwargs,
-                    )
+        for entity_config, description in entities_to_setup:
+            # Add DPS used by this platform to the request list
+            for dp_conf in dps_config_fields:
+                if dp_conf in entity_config:
+                    device.dps_to_request[entity_config[dp_conf]] = None
+
+            kwargs = {
+                # we need add_entites_callback in-case we want to add sub-entites, such as electric sensor "phase_a"
+                "add_entites_callback": async_add_entities,
+                "config": entity_config,
+            }
+            if description is not None:
+                kwargs["description"] = description
+            device_entities.append(
+                entity_class(
+                    device,
+                    dev_entry,
+                    entity_config[CONF_ID],
+                    **kwargs,
                 )
-    # Once the entities have been created, add to the TuyaDevice instance
+            )
+
+        # Entities must be attached to their OWN device: restore-on-reconnect
+        # and new-entity dispatch are routed through TuyaDevice._entities.
+        device.add_entities(device_entities)
+        entities.extend(device_entities)
+
     if entities:
-        device.add_entities(entities)
         async_add_entities(entities)
 
-        if async_setup_services:
-            await async_setup_services(hass, entities)
+    if async_setup_services:
+        await async_setup_services(hass, entities)
 
     # Runtime discovery: devices that become available after setup (e.g. a BLE
     # device that paired/bound at runtime) fire LOCALTUYA_DISCOVERY_NEW, so

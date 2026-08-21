@@ -45,7 +45,7 @@ dict copies) — inconsistent with the other sites.
 **Fix**: deep-copy each nested level touched (`devices = dict(...)`,
 `dev_entry = dict(...)` pattern) in all three sites.
 
-### 2. Entities added to the wrong device — `[ ] OPEN`
+### 2. Entities added to the wrong device — `[x] FIXED`
 
 Location: `entity.py:75-129` (generic platform setup).
 
