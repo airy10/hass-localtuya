@@ -972,20 +972,22 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             if not cloud_localkey or self.local_key == cloud_localkey:
                 return
 
-            new_data = self._entry.data.copy()
+            new_data = {**self._entry.data}
+            new_devices = dict(new_data[CONF_DEVICES])
             self.local_key = cloud_localkey
 
             if self._node_id:
                 from .core.helpers import get_gateway_by_deviceid
 
+                dev_entry = dict(new_devices[dev_id])
                 # Update Node ID.
                 if new_node_id := cloud_devs[dev_id].get(CONF_NODE_ID):
-                    new_data[CONF_DEVICES][dev_id][CONF_NODE_ID] = new_node_id
+                    dev_entry[CONF_NODE_ID] = new_node_id
 
                 # Update Gateway ID and IP
                 if new_gw := get_gateway_by_deviceid(dev_id, cloud_devs):
                     self.info(f"Gateway ID has been updated to: {new_gw.id}")
-                    new_data[CONF_DEVICES][dev_id][CONF_GATEWAY_ID] = new_gw.id
+                    dev_entry[CONF_GATEWAY_ID] = new_gw.id
 
                     if self._device_config.transport != TRANSPORT_BLE:
                         discovery = self.hass.data[DOMAIN].get(DATA_DISCOVERY)
@@ -993,10 +995,14 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                             new_ip = local_gw.get(
                                 CONF_TUYA_IP, self._device_config.host
                             )
-                            new_data[CONF_DEVICES][dev_id][CONF_HOST] = new_ip
+                            dev_entry[CONF_HOST] = new_ip
                             self.info(f"IP has been updated to: {new_ip}")
+                new_devices[dev_id] = dev_entry
 
-            new_data[CONF_DEVICES][dev_id][CONF_LOCAL_KEY] = self.local_key
+            dev_entry = dict(new_devices[dev_id])
+            dev_entry[CONF_LOCAL_KEY] = self.local_key
+            new_devices[dev_id] = dev_entry
+            new_data[CONF_DEVICES] = new_devices
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
             self.hass.config_entries.async_update_entry(self._entry, data=new_data)
             self.info(f"Local-key has been updated")

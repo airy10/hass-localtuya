@@ -169,24 +169,27 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if not entry.state == ConfigEntryState.LOADED:
             return
 
-        if device := hass_data.devices.get(device_ip):
-            ...
-
         # hass.create_task(hass_data.cloud_data.async_get_devices_list())
-        new_data = entry.data.copy()
+        new_devices = dict(entry.data[CONF_DEVICES])
         updated = False
         for dev_id, host in device_cache[device_id].items():
-            if dev_id not in entry.data[CONF_DEVICES]:
+            if dev_id not in new_devices:
                 continue
-            dev_entry = entry.data[CONF_DEVICES][dev_id]
-            if host != device_ip:
-                updated = True
-                new_data[CONF_DEVICES][dev_id][CONF_HOST] = device_ip
-                device_cache[device_id][dev_id] = device_ip
+            dev_entry = new_devices[dev_id]
+            if host != device_ip or (
+                (p_key := dev_entry.get(CONF_PRODUCT_KEY)) and p_key != product_key
+            ):
+                # Deep-copy: async_update_entry must be able to diff old vs new
+                # data; mutating entry.data in place breaks that.
+                new_devices[dev_id] = dev_entry = dict(dev_entry)
+                if host != device_ip:
+                    updated = True
+                    dev_entry[CONF_HOST] = device_ip
+                    device_cache[device_id][dev_id] = device_ip
 
-            if (p_key := dev_entry.get(CONF_PRODUCT_KEY)) and p_key != product_key:
-                updated = True
-                new_data[CONF_DEVICES][dev_id][CONF_PRODUCT_KEY] = product_key
+                if (p_key := dev_entry.get(CONF_PRODUCT_KEY)) and p_key != product_key:
+                    updated = True
+                    dev_entry[CONF_PRODUCT_KEY] = product_key
         # Update settings if something changed, otherwise try to connect. Updating
         # settings triggers a reload of the config entry, which tears down the device
         # so no need to connect in that case.
@@ -194,6 +197,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
             _LOGGER.debug(
                 "Updating keys for device %s: %s %s", device_id, device_ip, product_key
             )
+            new_data = {**entry.data, CONF_DEVICES: new_devices}
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
             hass.config_entries.async_update_entry(entry, data=new_data)
 
@@ -475,13 +479,11 @@ async def _async_connect_cloud(
         *(tuya_api.async_get_device_functions(dev_id) for dev_id in missing),
         return_exceptions=True,
     )
-    new_data = entry.data.copy()
+    new_devices = dict(entry.data[CONF_DEVICES])
     for dev_id in missing:
         if cloud_spec := tuya_api.device_list.get(dev_id):
-            new_data[CONF_DEVICES][dev_id] = {
-                **new_data[CONF_DEVICES][dev_id],
-                DEVICE_CLOUD_DATA: cloud_spec,
-            }
+            new_devices[dev_id] = {**new_devices[dev_id], DEVICE_CLOUD_DATA: cloud_spec}
+    new_data = {**entry.data, CONF_DEVICES: new_devices}
     hass.config_entries.async_update_entry(entry, data=new_data)
 
 

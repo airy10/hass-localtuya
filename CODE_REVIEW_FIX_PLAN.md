@@ -22,7 +22,7 @@ fix branch.
 
 ## 🔴 High priority
 
-### 1. Shallow-copy mutation of persisted entry data — `[ ] OPEN`
+### 1. Shallow-copy mutation of persisted entry data — `[x] FIXED`
 
 Locations:
 - `__init__.py:176-198` (`_device_discovered`)
