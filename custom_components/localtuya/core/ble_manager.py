@@ -188,9 +188,12 @@ class TuyaBLEDeviceManager(AbstaractTuyaBLEDeviceManager):
             mac = await self._cloud_api.async_get_device_factory_infos(self._device_id)
             if isinstance(mac, tuple) and len(mac) == 2 and mac[1] == "ok":
                 if mac[0] and mac[0] != address.upper():
+                    # Credentials are keyed by device_id regardless; a mismatch
+                    # only means the configured address is stale, so resolve
+                    # against the configured device_id and say so.
                     _LOGGER.debug(
                         "BLE device %s: factory-info MAC %s does not match, "
-                        "falling back to configured device_id %s",
+                        "resolving via configured device_id %s",
                         address,
                         mac[0],
                         self._device_id,

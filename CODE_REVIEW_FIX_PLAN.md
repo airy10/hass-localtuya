@@ -172,7 +172,7 @@ timeouts → linear startup delay with offline BLE devices.
 
 **Fix**: `asyncio.gather` concurrently.
 
-### 13. Misleading dead check in BLE MAC verification — `[ ] OPEN`
+### 13. Misleading dead check in BLE MAC verification — `[x] FIXED`
 
 Location: `ble_manager.py:186-198`. Fetches factory-info MAC, compares… and
 only logs. Comment claims fallback that doesn't happen. Implement the
