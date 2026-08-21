@@ -511,8 +511,6 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.dps_cache = {}
         self.dps_whitelist = UPDATE_DPS_WHITELIST
         self.dispatched_dps = {}  # Store payload so we can trigger an event in HA.
-        self.dps_whitelist = UPDATE_DPS_WHITELIST
-        self.dispatched_dps = {}  # Store payload so we can trigger an event in HA.
         self._last_command_sent = 1  # The time last command was sent
         self._write_lock = asyncio.Lock()  # To serialize writes
         self.enable_debug(enable_debug)
