@@ -75,7 +75,7 @@ teardown of other tasks/unsubs.
 **Fix**: `await asyncio.gather(self.heartbeater, return_exceptions=True)`
 (same for `_sub_devs_query_task`).
 
-### 4. Session-key HMAC mismatch ignored + fixed nonce — `[ ] OPEN`
+### 4. Session-key HMAC mismatch ignored + fixed nonce — `[x] FIXED`
 
 Locations: `core/pytuya/__init__.py:1097-1104`, `:512`.
 

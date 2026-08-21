@@ -509,8 +509,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.heartbeater: asyncio.Task | None = None
         self._sub_devs_query_task: asyncio.Task | None = None
         self.dps_cache = {}
-        self.local_nonce = b"0123456789abcdef"  # not-so-random random key
-        self.remote_nonce = b""
+        self.dps_whitelist = UPDATE_DPS_WHITELIST
+        self.dispatched_dps = {}  # Store payload so we can trigger an event in HA.
         self.dps_whitelist = UPDATE_DPS_WHITELIST
         self.dispatched_dps = {}  # Store payload so we can trigger an event in HA.
         self._last_command_sent = 1  # The time last command was sent
@@ -1050,6 +1050,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     async def _negotiate_session_key(self):
         self.remote_nonce = b""
+        self.local_nonce = os.urandom(16)
         self.local_key = self.real_local_key
         self.dispatcher.local_key = self.real_local_key
 
@@ -1105,6 +1106,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 binascii.hexlify(hmac_check),
                 binascii.hexlify(payload[16:48]),
             )
+            # The peer failed to prove possession of the local key: aborting
+            # here avoids deriving a session key from unauthenticated data.
+            return False
 
         # self.debug("session local nonce: %r remote nonce: %r", self.local_nonce, self.remote_nonce)
         rkey_hmac = hmac.new(self.local_key, self.remote_nonce, sha256).digest()
