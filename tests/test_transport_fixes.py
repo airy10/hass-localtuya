@@ -18,6 +18,7 @@ from custom_components.localtuya.const import (
 from custom_components.localtuya.coordinator import TuyaDevice
 from custom_components.localtuya.core.pytuya import MessageDispatcher
 from custom_components.localtuya.core.pytuya.const import Affix
+from custom_components.localtuya.core import sharing_cloud as sharing_cloud_module
 from custom_components.localtuya.core.sharing_cloud import SharingCloud
 from custom_components.localtuya.core.transport import (
     BluetoothTransport,
@@ -175,7 +176,7 @@ def test_ble_status_range_is_loaded_without_functions():
                 "code": "temperature",
                 "dp_id": 2,
                 "type": DPType.INTEGER,
-                "values": "{\"min\":0}",
+                "values": '{"min":0}',
             }
         ],
     )
@@ -310,6 +311,61 @@ async def test_sharing_cloud_stores_device_dp_metadata():
 
     assert dps_data["1"]["code"] == "switch"
     assert sharing.device_list["device"]["dps_data"] == dps_data
+
+
+@pytest.mark.asyncio
+async def test_sharing_cloud_retries_transient_cache_failure(monkeypatch):
+    calls = []
+
+    def flaky_update_device_cache():
+        calls.append(1)
+        if len(calls) < 3:
+            raise RuntimeError("token is expired")
+
+    async def run_job(fn, *args):
+        return fn(*args)
+
+    sharing = object.__new__(SharingCloud)
+    sharing._hass = SimpleNamespace(async_add_executor_job=run_job)
+    manager = SimpleNamespace(update_device_cache=flaky_update_device_cache)
+    sleeps = []
+
+    async def fake_sleep(delay):
+        sleeps.append(delay)
+
+    monkeypatch.setattr(sharing_cloud_module.asyncio, "sleep", fake_sleep)
+
+    result = await sharing._update_device_cache_with_retry(manager)
+
+    assert result is None
+    assert len(calls) == 3
+    assert sleeps == [5, 15]
+
+
+@pytest.mark.asyncio
+async def test_sharing_cloud_gives_up_after_final_retry(monkeypatch):
+    calls = []
+
+    def dead_update_device_cache():
+        calls.append(1)
+        raise RuntimeError("token is expired")
+
+    async def run_job(fn, *args):
+        return fn(*args)
+
+    sharing = object.__new__(SharingCloud)
+    sharing._hass = SimpleNamespace(async_add_executor_job=run_job)
+    manager = SimpleNamespace(update_device_cache=dead_update_device_cache)
+
+    async def fake_sleep(delay):
+        pass
+
+    monkeypatch.setattr(sharing_cloud_module.asyncio, "sleep", fake_sleep)
+
+    result = await sharing._update_device_cache_with_retry(manager)
+
+    assert result is not None and "token is expired" in result
+    assert len(calls) == 3
 
 
 @pytest.mark.asyncio

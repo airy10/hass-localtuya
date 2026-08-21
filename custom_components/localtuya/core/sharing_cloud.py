@@ -17,6 +17,7 @@ entry instead of per-device credentials).
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 from typing import Any
@@ -48,6 +49,15 @@ CONF_ENDPOINT = "endpoint"
 CONF_TOKEN_INFO = "token_info"
 CONF_ACCESS_TOKEN = "access_token"
 CONF_REFRESH_TOKEN = "refresh_token"
+
+# At HA boot the network route is often not ready yet, so the SDK's internal
+# access-token refresh (``CustomerApi.refresh_access_token_if_need``) can fail
+# silently (the exception is swallowed there) and the request goes out signed
+# with the stale token -> the server answers "token is expired"/"sign invalid"
+# even though the refresh token is still perfectly valid. Retry a few times
+# with backoff before declaring the session dead and starting a reauth flow.
+SHARING_CONNECT_ATTEMPTS = 3
+SHARING_RETRY_DELAYS = (5, 15)
 
 
 def decode_uuid_from_advertisement(service_info: Any) -> str | None:
@@ -235,16 +245,43 @@ class SharingCloud:
         manager = await self._get_manager()
         if manager is None:
             return _LOGGER.debug("No sharing session to list devices for")
-        try:
-            await self._hass.async_add_executor_job(manager.update_device_cache)
-        except Exception as err:
-            _LOGGER.warning("Sharing session expired/invalid: %s", err)
-            return f"session_error: {err}"
+        if (err := await self._update_device_cache_with_retry(manager)) is not None:
+            return err
 
         self.device_list = {}
         for device in manager.device_map.values():
             self.device_list[device.id] = self._device_to_dict(device)
         return "ok"
+
+    async def _update_device_cache_with_retry(self, manager) -> str | None:
+        """Run ``update_device_cache``, retrying transient boot-time failures.
+
+        Returns ``None`` on success or the error string after the final attempt.
+        """
+        last_err: Exception | None = None
+        for attempt in range(SHARING_CONNECT_ATTEMPTS):
+            try:
+                await self._hass.async_add_executor_job(manager.update_device_cache)
+                if attempt:
+                    _LOGGER.info("Sharing cloud reachable again after retry")
+                return None
+            except Exception as err:
+                last_err = err
+                if attempt >= len(SHARING_RETRY_DELAYS):
+                    break
+                delay = SHARING_RETRY_DELAYS[attempt]
+                _LOGGER.info(
+                    "Sharing cloud request failed (%s); retrying in %ds "
+                    "(attempt %d/%d)",
+                    err,
+                    delay,
+                    attempt + 1,
+                    SHARING_CONNECT_ATTEMPTS,
+                )
+                await asyncio.sleep(delay)
+
+        _LOGGER.warning("Sharing session expired/invalid: %s", last_err)
+        return f"session_error: {last_err}"
 
     @staticmethod
     def _device_to_dict(device) -> dict[str, Any]:
