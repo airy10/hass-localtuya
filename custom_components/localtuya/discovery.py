@@ -95,7 +95,7 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
                 data = data.decode()
             decoded = json.loads(data)
             self.device_found(decoded)
-        except (json.JSONDecodeError, Exception) as ex:
+        except Exception as ex:
             # _LOGGER.debug("Bordcast from app from ip: %s", addr[0])
             _LOGGER.debug(
                 "Failed to decode broadcast from %r: %r [%s]", addr[0], data, ex

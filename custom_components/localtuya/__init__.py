@@ -415,7 +415,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     for dev in connect_to_devices:
         await dev.async_prepare_ble()
 
-    await async_remove_orphan_entities(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS.values())
 
     # Scenes are cloud-discovered (not per-DP configurable), so they are not
@@ -542,25 +541,6 @@ async def async_remove_config_entry_device(
     _LOGGER.info("Device %s removed.", dev_id)
 
     return True
-
-
-async def async_remove_orphan_entities(hass, entry):
-    """Remove entities associated with config entry that has been removed."""
-    return
-    ent_reg = er.async_get(hass)
-    entities = {
-        ent.unique_id: ent.entity_id
-        for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id)
-    }
-    _LOGGER.info("ENTITIES ORPHAN %s", entities)
-    return
-
-    for entity in entry.data[CONF_ENTITIES]:
-        if entity[CONF_ID] in entities:
-            del entities[entity[CONF_ID]]
-
-    for entity_id in entities.values():
-        ent_reg.async_remove(entity_id)
 
 
 def _run_async_listen(hass: HomeAssistant, entry: ConfigEntry):

@@ -475,7 +475,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self.is_sleep and not self._status:
             self.status_updated(RESTORE_STATES)
 
-        name, host = self._device_config.name, self._device_config.host
+        host = self._device_config.host
         retry = 0
         max_retries = 3
         update_localkey = False
@@ -583,11 +583,6 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     if self.is_subdevice or "key" in str(e):
                         # TODO: Add exceptions for pytuya.
                         update_localkey = True
-            except:
-                if self._fake_gateway:
-                    self.warning(f"Failed to use {name} as gateway.")
-                    await self.abort_connect()
-                    update_localkey = True
 
         # Connect and configure the entities, at this point the device should be ready to get commands.
         if self.connected and not self.is_closing:

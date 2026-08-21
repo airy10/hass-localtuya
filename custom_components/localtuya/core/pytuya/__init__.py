@@ -1057,7 +1057,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             rkey = await self.exchange_quick(
                 MessagePayload(CMDType.SESS_KEY_NEG_START, self.local_nonce), 2
             )
-        except:
+        except asyncio.CancelledError:
+            raise
+        except Exception:
             # Device may instantly disconnect if we sent send wrong localkey.
             if not self.is_connected:
                 raise ConnectionAbortedError("Session key negotiation failed on step 1")
@@ -1360,11 +1362,7 @@ async def connect(
             raise OSError(
                 errno.EHOSTUNREACH,
                 os.strerror(errno.EHOSTUNREACH) + f" ('{address}', '{port}')",
-            )
-        raise ex
-    except (Exception, asyncio.CancelledError) as ex:
-        raise ex
-    except:
-        raise Exception(f"The host refused to connect")
+            ) from ex
+        raise
 
     return protocol

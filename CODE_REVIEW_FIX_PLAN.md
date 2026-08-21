@@ -131,7 +131,7 @@ Location: `coordinator.py:1076-1078` (`_dispatch_status`), `:942`
 (`_shutdown_entities`). Use `async_dispatcher_send`; make call sites async
 where needed.
 
-### 9. Dead / broken code cleanup — `[ ] OPEN`
+### 9. Dead / broken code cleanup — `[x] FIXED`
 
 - `async_remove_orphan_entities`: unconditional `return` at line 547 + debug
   `return` at 554 — entire function dead incl. "ENTITIES ORPHAN" log.
