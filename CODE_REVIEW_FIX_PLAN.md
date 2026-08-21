@@ -164,7 +164,7 @@ creating a replacement → connection without keep-alive until next reconnect.
 `keep_alive_loop` never own the clearing race — set reference None before
 awaiting gather in close paths).
 
-### 12. Blocking sequential BLE prepare during setup — `[ ] OPEN`
+### 12. Blocking sequential BLE prepare during setup — `[x] FIXED`
 
 Location: `__init__.py:411-412`. `dev.async_prepare_ble()` awaited serially
 for all devices before forwarding platforms; each attempt can burn bleak

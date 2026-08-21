@@ -422,8 +422,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Pre-initialize BLE transports so auto-config can resolve device
     # category/product_id (fetched from the cloud during initialize()) at
     # platform setup time, without requiring a live BLE connection.
-    for dev in connect_to_devices:
-        await dev.async_prepare_ble()
+    await asyncio.gather(
+        *(dev.async_prepare_ble() for dev in connect_to_devices),
+        return_exceptions=True,
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS.values())
 
