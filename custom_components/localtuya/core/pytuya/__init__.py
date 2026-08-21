@@ -706,11 +706,14 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.debug("Closing connection")
         self.clean_up_session()
 
+        # The tasks above were just cancelled: gather with
+        # return_exceptions=True so the CancelledError they raise is not
+        # propagated into whoever called close() mid-teardown.
         if self.heartbeater:
-            await self.heartbeater
+            await asyncio.gather(self.heartbeater, return_exceptions=True)
 
         if self._sub_devs_query_task:
-            await self._sub_devs_query_task
+            await asyncio.gather(self._sub_devs_query_task, return_exceptions=True)
 
     def clean_up_session(self):
         """Clean up session."""

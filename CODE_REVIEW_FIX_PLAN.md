@@ -63,7 +63,7 @@ With multi-device entries, every platform's entities get attached to one
 **Fix**: track entities per device and call `add_entities` inside the
 per-device loop; keep a single `async_add_entities` call per device batch.
 
-### 3. `TuyaProtocol.close()` can raise `CancelledError` into callers — `[ ] OPEN`
+### 3. `TuyaProtocol.close()` can raise `CancelledError` into callers — `[x] FIXED`
 
 Location: `core/pytuya/__init__.py:704-713`.
 
