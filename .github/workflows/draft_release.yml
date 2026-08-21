@@ -8,9 +8,9 @@ name: Generate Draft Release
 
 on:
   push:
-    workflow_dispatch:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: write
