@@ -125,7 +125,7 @@ commands vanish invisibly.
 **Fix**: warn on failure; re-queue payload into `_pending_status` so the next
 connect/set attempt retries it.
 
-### 8. Sync dispatcher calls in async context — `[ ] OPEN`
+### 8. Sync dispatcher calls in async context — `[x] FIXED`
 
 Location: `coordinator.py:1076-1078` (`_dispatch_status`), `:942`
 (`_shutdown_entities`). Use `async_dispatcher_send`; make call sites async

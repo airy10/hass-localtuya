@@ -17,7 +17,6 @@ from homeassistant.helpers.event import async_track_time_interval, async_call_la
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
-    dispatcher_send,
 )
 
 from .core.ble_manager import TuyaBLEDeviceManager
@@ -943,7 +942,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 return
 
         signal = f"localtuya_{self._device_config.id}"
-        dispatcher_send(self.hass, signal, None)
+        async_dispatcher_send(self.hass, signal, None)
 
         if self.is_closing:
             return
@@ -1084,7 +1083,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     def _dispatch_status(self, updated_dpcodes: list[str] | None = None):
         signal = f"localtuya_{self._device_config.id}"
-        dispatcher_send(self.hass, signal, self._status, updated_dpcodes)
+        async_dispatcher_send(self.hass, signal, self._status, updated_dpcodes)
 
     def _handle_event(self, old_status: dict, new_status: dict):
         """Handle events in HA when devices updated."""
