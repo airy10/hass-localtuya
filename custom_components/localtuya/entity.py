@@ -236,7 +236,7 @@ def get_entity_config(config_entry, dp_id) -> dict:
     for entity in config_entry[CONF_ENTITIES]:
         if entity[CONF_ID] == dp_id:
             return entity
-    raise Exception(f"missing entity config for id {dp_id}")
+    raise KeyError(f"missing entity config for id {dp_id}")
 
 
 def _dpcode_to_id(device) -> dict[str, Any]:

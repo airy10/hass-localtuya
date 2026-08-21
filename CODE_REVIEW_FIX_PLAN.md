@@ -182,7 +182,7 @@ documented behavior or remove the check.
 
 ## 🟡 Low priority
 
-### 14. Nits bundle — `[ ] OPEN`
+### 14. Nits bundle — `[x] FIXED`
 
 - `is_sleep` getter performs `setattr(self, "low_power", True)` side effect
   (`coordinator:401-409`) — move flag setting out of the property.

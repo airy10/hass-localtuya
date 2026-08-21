@@ -129,7 +129,7 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
         dps = event.data.get("dps")
         try:
-            await device._interface.update_dps(dps=dps, cid=device._node_id)
+            await device.interface.update_dps(dps=dps, cid=device._node_id)
         except TimeoutError:
             pass
 

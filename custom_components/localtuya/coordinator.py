@@ -103,6 +103,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._pending_status: dict[str, dict[str, Any]] = {}
 
         self.is_closing = False
+        self.low_power = self._device_config.sleep_time > 0
         self._task_connect: asyncio.Task | None = None
         self._task_reconnect: asyncio.Task | None = None
         self._task_shutdown_entities: asyncio.Task | None = None
@@ -136,6 +137,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
     def config_entry(self) -> ConfigEntry:
         """Return the config entry this device belongs to."""
         return self._entry
+
+    @property
+    def interface(self) -> Transport | None:
+        """Return the active transport, if any."""
+        return self._interface
 
     @property
     def connected(self):
@@ -401,7 +407,6 @@ class TuyaDevice(TuyaListener, ContextualLogger):
     def is_sleep(self):
         """Return whether the device is sleep or not."""
         if (device_sleep := self._device_config.sleep_time) > 0:
-            setattr(self, "low_power", True)
             last_update = time.monotonic() - self._last_update_time
             return last_update < device_sleep
 
@@ -492,7 +497,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                         break
                     if not gateway.connected and gateway.is_connecting:
                         return await self.abort_connect()
-                    self._interface = gateway._interface
+                    self._interface = gateway.interface
                     if not self._interface:
                         break
                     if self._device_config.enable_debug:
@@ -944,7 +949,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         if self.is_subdevice:
             self.info(f"Sub-device disconnected due to: {exc}")
-        elif hasattr(self, "low_power"):
+        elif self.low_power:
             m, s = divmod((int(time.monotonic() - self._last_update_time)), 60)
             h, m = divmod(m, 60)
             self.info(f"The device is still out of reach since: {h}h:{m}m:{s}s")

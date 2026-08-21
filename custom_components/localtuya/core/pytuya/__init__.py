@@ -532,14 +532,17 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """Return error details in JSON."""
         try:
             spayload = json.dumps(payload)
-            # spayload = payload.replace('\"','').replace('\'','')
         except Exception:  # pylint: disable=broad-except
             spayload = '""'
 
         vals = (error_codes[number], str(number), spayload)
         self.debug("ERROR %s - %s - payload: %s", *vals)
 
-        return json.loads('{ "Error":"%s", "Err":"%s", "Payload":%s }' % vals)
+        return {
+            "Error": error_codes[number],
+            "Err": str(number),
+            "Payload": json.loads(spayload) if spayload != '""' else "",
+        }
 
     def _msg_subdevs_query(self, decoded_message):
         """
