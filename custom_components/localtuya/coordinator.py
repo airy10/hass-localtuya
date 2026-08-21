@@ -842,8 +842,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 # NOTE: This will override the status if the BLE device fails to receive the signal.
                 if self.is_write_only:
                     self.status_updated(payload)
-            except (TimeoutError, Exception) as ex:
-                self.debug(f"Failed to set values {payload} --> {ex}", force=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception as ex:
+                self.warning(f"Failed to set values {payload} --> {ex}")
+                self._pending_status.update(payload)
         elif not self.connected:
             self.error(f"Device is not connected.")
 

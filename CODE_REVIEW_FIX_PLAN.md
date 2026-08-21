@@ -114,7 +114,7 @@ is logged as a setup error.
 
 **Fix**: return `False`.
 
-### 7. Silent command loss in `set_status` — `[ ] OPEN`
+### 7. Silent command loss in `set_status` — `[x] FIXED`
 
 Location: `coordinator.py:834-848`.
 
