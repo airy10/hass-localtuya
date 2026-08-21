@@ -346,7 +346,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             entry.entry_id,
             entry.version,
         )
-        return
+        return False
 
     if entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING:
         tuya_api = SharingCloud(hass, entry.data.get(CONF_SHARING_DATA))

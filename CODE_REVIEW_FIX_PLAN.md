@@ -107,7 +107,7 @@ corrupts both fields.
 
 **Fix**: write to `json_data["t"]` (keep upstream semantics).
 
-### 6. `async_setup_entry` returns `None` for stale entries — `[ ] OPEN`
+### 6. `async_setup_entry` returns `None` for stale entries — `[x] FIXED`
 
 Location: `__init__.py:339-345`. HA expects `True`/`False`; returning `None`
 is logged as a setup error.
@@ -222,5 +222,18 @@ Phase C (HA compliance/UX): #6, #7, #8
 Phase D (hygiene): #9, #10, #11
 Phase E (perf/cleanup): #12, #13, #14
 
+## Commit process (mandatory for every fix)
+
+Full pre-commit review cycle, in order:
+1. **diff** — review the complete diff before staging
+2. **black** — `.venv/bin/black --check <changed files>` must pass
+3. **tests** — `.venv/bin/python -m pytest tests/ -q`, all must pass
+   (baseline: 203 passed)
+4. **plan doc** — flip the finding's checkbox to `[x] FIXED`
+5. **commit** — individual commit per fix
+
 Each fix lands as an individual commit on the fix branch; this document's
-checkboxes are flipped to `[x] FIXED (<sha>)` in the same commit.
+checkboxes are flipped to `[x] FIXED` in the same commit.
+
+Test environment: venv at `$PWD/.venv` (→ `$HOME/.venv/hass`); full HA
+core tree at `$HOME/Sources/Others/homeassistant-core`.
