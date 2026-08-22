@@ -46,6 +46,29 @@ COUNT_DOWN_HOURS = {
 }
 
 SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
+    # Smart Kettle
+    DeviceCategory.BH: (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_SETTING_QUICK_C,
+            entity_category=EntityCategory.CONFIG,
+            name="Quick Heat Temperature",
+            custom_configs=localtuya_selector(
+                {
+                    "light_boil": "Light",
+                    "moderate_boil": "Moderate",
+                    "strong_boil": "Strong",
+                }
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WORK_TYPE,
+            entity_category=EntityCategory.CONFIG,
+            name="Kettle Work Mode",
+            custom_configs=localtuya_selector(
+                {"heating": "Heating", "keep_warm": "Keep Warm"}
+            ),
+        ),
+    ),
     # Smart panel with switches and zigbee hub ?
     # Not documented
     DeviceCategory.DGNZK: (
@@ -126,6 +149,28 @@ SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
                     "4": "4",
                     "5": "5",
                 }
+            ),
+        ),
+    ),
+    # CO2 Detector
+    DeviceCategory.CO2BJ: (
+        LocalTuyaEntity(
+            id=DPCode.ALARM_VOLUME,
+            name="Volume",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector(
+                {"low": "Low", "middle": "Middle", "high": "High", "mute": "Mute"}
+            ),
+        ),
+    ),
+    # Smart Odor Eliminator-Pro
+    DeviceCategory.CWJWQ: (
+        LocalTuyaEntity(
+            id=DPCode.WORK_MODE,
+            entity_category=EntityCategory.CONFIG,
+            name="Odor Elimination Mode",
+            custom_configs=localtuya_selector(
+                {"deodorization": "Deodorization", "sterilization": "Sterilization"}
             ),
         ),
     ),
@@ -651,6 +696,48 @@ SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             ),
         ),
     ),
+    # Electric blanket
+    DeviceCategory.DR: (
+        LocalTuyaEntity(
+            id=DPCode.LEVEL,
+            icon="mdi:thermometer-lines",
+            name="Blanket Level",
+            custom_configs=localtuya_selector(
+                {"1": "Level 1", "2": "Level 2", "3": "Level 3"}
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.LEVEL_1,
+            icon="mdi:thermometer-lines",
+            name="Side A Level",
+            custom_configs=localtuya_selector(
+                {"1": "Level 1", "2": "Level 2", "3": "Level 3"}
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.LEVEL_2,
+            icon="mdi:thermometer-lines",
+            name="Side B Level",
+            custom_configs=localtuya_selector(
+                {"1": "Level 1", "2": "Level 2", "3": "Level 3"}
+            ),
+        ),
+    ),
+    # Electric desk
+    DeviceCategory.SJZ: (
+        LocalTuyaEntity(
+            id=DPCode.LEVEL,
+            name="Desk Level",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector({"1": "1", "2": "2", "3": "3", "4": "4"}),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.UP_DOWN,
+            name="Desk Up/Down",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector({"up": "Up", "down": "Down"}),
+        ),
+    ),
     # Smart Camera
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
     DeviceCategory.SP: (
@@ -1158,6 +1245,24 @@ SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
                 {"cloudy": "Cloudy", "rainy": "Rainy", "snowy": "Snowy"}
             ),
         ),
+        LocalTuyaEntity(
+            id=DPCode.WEATHER_DELAY,
+            name="Weather Delay",
+            icon="mdi:weather-rainy",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector({"0": "0", "1": "1", "2": "2", "3": "3"}),
+        ),
+    ),
+    # Micro Storage Inverter
+    DeviceCategory.XNYJCN: (
+        LocalTuyaEntity(
+            id=DPCode.WORK_MODE,
+            name="Inverter Work Mode",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector(
+                {"self_use": "Self Use", "feed_in": "Feed In", "backup": "Backup"}
+            ),
+        ),
     ),
     # sous vide cookers
     # https://developer.tuya.com/en/docs/iot/f?id=K9r2v9hgmyk3h
@@ -1542,3 +1647,6 @@ SELECTS[DeviceCategory.TDQ] = SELECTS[DeviceCategory.KG]
 
 # Heater
 SELECTS[DeviceCategory.RS] = SELECTS[DeviceCategory.KT]
+
+# Smart Camera - Low power consumption camera (duplicate of `sp`)
+SELECTS[DeviceCategory.DGHSXJ] = SELECTS[DeviceCategory.SP]

@@ -199,6 +199,21 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.DIAGNOSTIC,
             state_class=SensorStateClass.MEASUREMENT,
         ),
+        LocalTuyaEntity(
+            id=DPCode.EC_CURRENT,
+            device_class=SensorDeviceClass.CONDUCTIVITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ORP_CURRENT,
+            name="ORP",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PH_CURRENT,
+            device_class=SensorDeviceClass.PH,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
         *BATTERY_SENSORS,
     ),
     # Smart Kettle
@@ -242,6 +257,29 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=SensorDeviceClass.CO2,
             state_class=SensorStateClass.MEASUREMENT,
         ),
+        LocalTuyaEntity(
+            id=DPCode.CH2O_VALUE,
+            name="Formaldehyde",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PM10,
+            name="PM10",
+            device_class=SensorDeviceClass.PM10,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PM25_VALUE,
+            name="PM2.5",
+            device_class=SensorDeviceClass.PM25,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VOC_VALUE,
+            name="VOC",
+            device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
         *BATTERY_SENSORS,
     ),
     # Two-way temperature and humidity switch
@@ -259,6 +297,27 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             name="Temperature",
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUR_CURRENT,
+            name="Current",
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfElectricCurrent.AMPERE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUR_POWER,
+            name="Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUR_VOLTAGE,
+            name="Voltage",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfElectricPotential.VOLT),
         ),
     ),
     # CO Detector
@@ -328,6 +387,16 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.PM25_VALUE,
             # name="pm25",
             device_class=SensorDeviceClass.PM25,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.AIR_QUALITY_INDEX,
+            name="Air Quality Index",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PM10,
+            name="PM10",
+            device_class=SensorDeviceClass.PM10,
             state_class=SensorStateClass.MEASUREMENT,
         ),
     ),
@@ -552,6 +621,13 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.DIAGNOSTIC,
             icon="mdi:network",
         ),
+        LocalTuyaEntity(
+            id=DPCode.PRO_ADD_ELE,
+            name="Total Production",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
     ),
     # IoT Switch
     # Note: Undocumented
@@ -587,6 +663,39 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             state_class=SensorStateClass.TOTAL_INCREASING,
             custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.001),
         ),
+        LocalTuyaEntity(
+            id=DPCode.BRIGHT_VALUE,
+            name="Illuminance",
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_VALUE,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_HUMIDITY,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_TEMPERATURE,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
     ),
     # Luminance Sensor
     # https://developer.tuya.com/en/docs/iot/categoryldcg?id=Kaiuz3n7u69l8
@@ -618,6 +727,29 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.CO2_VALUE,
             # name="carbon_dioxide",
             device_class=SensorDeviceClass.CO2,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CH2O_VALUE,
+            name="Formaldehyde",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PM10,
+            name="PM10",
+            device_class=SensorDeviceClass.PM10,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PM25_VALUE,
+            name="PM2.5",
+            device_class=SensorDeviceClass.PM25,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VOC_VALUE,
+            name="VOC",
+            device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
             state_class=SensorStateClass.MEASUREMENT,
         ),
         *BATTERY_SENSORS,
@@ -979,6 +1111,103 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
         ),
+        LocalTuyaEntity(
+            id=DPCode.ATMOSPHERIC_PRESSTURE,
+            name="Air Pressure",
+            device_class=SensorDeviceClass.PRESSURE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.BRIGHT_VALUE,
+            name="Illuminance",
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.DEW_POINT_TEMP,
+            name="Dew Point",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.FEELLIKE_TEMP,
+            name="Feels Like",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HEAT_INDEX,
+            name="Heat Index",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_OUTDOOR,
+            name="Humidity Outdoor",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.RAIN_24H,
+            name="Precipitation Today",
+            device_class=SensorDeviceClass.PRECIPITATION,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.RAIN_RATE,
+            name="Precipitation Intensity",
+            device_class=SensorDeviceClass.PRECIPITATION_INTENSITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT_EXTERNAL,
+            name="Temperature External",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.UV_INDEX,
+            name="UV Index",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_HUMIDITY,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_TEMPERATURE,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WINDCHILL_INDEX,
+            name="Wind Chill",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WINDSPEED_AVG,
+            name="Wind Speed",
+            device_class=SensorDeviceClass.WIND_SPEED,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WIND_DIRECT,
+            name="Wind Direction",
+            device_class=SensorDeviceClass.WIND_DIRECTION,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
         *BATTERY_SENSORS,
     ),
     # Gas Detector
@@ -1126,16 +1355,6 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
         *BATTERY_SENSORS,
     ),
-    # Thermostat
-    # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
-    "wk": {
-        LocalTuyaEntity(
-            id=(DPCode.TEMP_CURRENT, DPCode.TEMPFLOOR),
-            name="External temperature",
-            device_class=SensorDeviceClass.TEMPERATURE,
-            state_class=SensorStateClass.MEASUREMENT,
-        ),
-    },
     # Thermostatic Radiator Valve
     # Not documented
     "wkf": BATTERY_SENSORS,
@@ -1169,6 +1388,13 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             state_class=SensorStateClass.MEASUREMENT,
             custom_configs=localtuya_sensor(LIGHT_LUX),
         ),
+        LocalTuyaEntity(
+            id=DPCode.EXT_TEMP,
+            name="External Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
         *BATTERY_SENSORS,
     ),
     # Pressure Sensor
@@ -1189,6 +1415,21 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             # name="smoke_amount",
             icon="mdi:smoke-detector",
             entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.EC_CURRENT,
+            device_class=SensorDeviceClass.CONDUCTIVITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ORP_CURRENT,
+            name="ORP",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PH_CURRENT,
+            device_class=SensorDeviceClass.PH,
             state_class=SensorStateClass.MEASUREMENT,
         ),
         *BATTERY_SENSORS,
@@ -1335,6 +1576,27 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:arrow-up-down",
             entity_category=EntityCategory.DIAGNOSTIC,
         ),
+        LocalTuyaEntity(
+            id=DPCode.POWER_TOTAL,
+            name="Total Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SUPPLY_FREQUENCY,
+            name="Supply Frequency",
+            device_class=SensorDeviceClass.FREQUENCY,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TOTAL_POWER,
+            name="Total Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
     ),
     # Robot Vacuum
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
@@ -1419,6 +1681,34 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.FILTER_LIFE,
             # name="filter_life",
             icon="mdi:ticket-percent-outline",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.FILTER_DURATION,
+            name="Filter Duration",
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PUMP_TIME,
+            name="Pump Time",
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.UV_RUNTIME,
+            name="UV Runtime",
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WATER_LEVEL,
+            name="Water Level State",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.WATER_TIME,
+            name="Water Time",
+            device_class=SensorDeviceClass.DURATION,
             state_class=SensorStateClass.MEASUREMENT,
         ),
     ),
@@ -1589,6 +1879,39 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.001),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.BRIGHT_VALUE,
+            name="Illuminance",
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_VALUE,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_HUMIDITY,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.VA_TEMPERATURE,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
         ),
     ),
     # Dehumidifier
@@ -1781,6 +2104,10 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         LocalTuyaEntity(
             id=DPCode.DATA_IDENTIFICATION,
         ),
+        LocalTuyaEntity(
+            id=DPCode.STATUS,
+            name="Cat Litter Box Status",
+        ),
     ),
     # Smart Water Meter
     # https://developer.tuya.com/en/docs/iot/f?id=Ka8n052xu7w4c
@@ -1891,6 +2218,241 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:shield-lock-outline",
         ),
         *BATTERY_SENSORS,
+    ),
+    # Single Phase power meter
+    DeviceCategory.AQCZ: (
+        LocalTuyaEntity(
+            id=DPCode.CUR_CURRENT,
+            name="Current",
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfElectricCurrent.AMPERE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUR_POWER,
+            name="Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUR_VOLTAGE,
+            name="Voltage",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfElectricPotential.VOLT),
+        ),
+    ),
+    # Smart Odor Eliminator-Pro
+    DeviceCategory.CWJWQ: (
+        LocalTuyaEntity(
+            id=DPCode.WORK_STATE_E,
+            name="Odor Elimination Status",
+        ),
+        *BATTERY_SENSORS,
+    ),
+    # Cooking thermometer
+    DeviceCategory.SWTZ: (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT_2,
+            name="Temperature 2",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        *BATTERY_SENSORS,
+    ),
+    # Smart indoor garden
+    DeviceCategory.SZ: (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_CURRENT,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+    ),
+    # Water tester
+    DeviceCategory.SZJCY: (
+        LocalTuyaEntity(
+            id=DPCode.TDS_IN,
+            name="Total Dissolved Solids",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        *BATTERY_SENSORS,
+    ),
+    # Gateway control
+    DeviceCategory.WG2: (*BATTERY_SENSORS,),
+    # Thermostat
+    DeviceCategory.WK: (*BATTERY_SENSORS,),
+    # Micro Storage Inverter
+    DeviceCategory.XNYJCN: (
+        LocalTuyaEntity(
+            id=DPCode.CURRENT_SOC,
+            name="Battery SOC",
+            device_class=SensorDeviceClass.BATTERY,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            custom_configs=localtuya_sensor(PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PV_POWER_TOTAL,
+            name="Total PV Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PV_POWER_CHANNEL_1,
+            name="PV Channel 1 Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PV_POWER_CHANNEL_2,
+            name="PV Channel 2 Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.BATTERY_POWER,
+            name="Battery Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.INVERTER_OUTPUT_POWER,
+            name="Inverter Output Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUMULATIVE_ENERGY_GENERATED_PV,
+            name="Lifetime PV Energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUMULATIVE_ENERGY_OUTPUT_INV,
+            name="Lifetime Inverter Output",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUMULATIVE_ENERGY_DISCHARGED,
+            name="Lifetime Battery Discharge",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUMULATIVE_ENERGY_CHARGED,
+            name="Lifetime Battery Charge",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CUML_E_EXPORT_OFFGRID1,
+            name="Lifetime Offgrid Port",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+    ),
+    # VESKA-micro inverter
+    DeviceCategory.ZNNBQ: (
+        LocalTuyaEntity(
+            id=DPCode.REVERSE_ENERGY_TOTAL,
+            name="Total Energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.POWER_TOTAL,
+            name="Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.WATT),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+    ),
+    # Pool HeatPump
+    DeviceCategory.ZNRB: (
+        LocalTuyaEntity(
+            id=DPCode.COMPRESSOR_STRENGTH,
+            name="Compressor Strength",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_AROUND,
+            name="Outside Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_COILER,
+            name="Coil Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_EFFLUENT,
+            name="Flow Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_VENTING,
+            name="Heat Exchanger Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
     ),
 }
 

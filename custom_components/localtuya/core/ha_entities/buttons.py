@@ -146,16 +146,6 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
     ),
     # Smart Pet Feeder
-    # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
-    DeviceCategory.CWWSQ: (
-        LocalTuyaEntity(
-            id=DPCode.FACTORY_RESET,
-            name="Factory Reset",
-            icon="mdi:cog-counterclockwise",
-            entity_category=EntityCategory.CONFIG,
-        ),
-    ),
-    # Cat litter box
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
     DeviceCategory.MSP: (
         LocalTuyaEntity(
@@ -168,6 +158,12 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.REBOOT,
             name="Reboot",
             icon="mdi:restart",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.MANUAL_CLEAN,
+            name="Manual Clean",
+            icon="mdi:broom",
             entity_category=EntityCategory.CONFIG,
         ),
     ),
@@ -229,6 +225,17 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.CLEAR_ENERGY,
             name="Clear Energy",
             icon="mdi:lightning-bolt-circle",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Lawn mower
+    # Smart Camera
+    # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
+    DeviceCategory.SP: (
+        LocalTuyaEntity(
+            id=DPCode.DEVICE_RESTART,
+            name="Restart",
+            icon="mdi:restart",
             entity_category=EntityCategory.CONFIG,
         ),
     ),

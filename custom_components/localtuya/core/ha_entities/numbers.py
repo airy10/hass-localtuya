@@ -37,6 +37,15 @@ def localtuya_numbers(_min, _max, _step=1, _scale=1, unit=None) -> dict:
 
 
 NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
+    # White noise machine
+    DeviceCategory.BZYD: (
+        LocalTuyaEntity(
+            id=DPCode.VOLUME_SET,
+            name="Volume",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 100),
+        ),
+    ),
     # Smart panel with switches and zigbee hub ?
     # Not documented
     DeviceCategory.DGNZK: (
@@ -186,6 +195,15 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
     ),
+    # CO2 Detector
+    DeviceCategory.CO2BJ: (
+        LocalTuyaEntity(
+            id=DPCode.ALARM_TIME,
+            name="Alarm Duration",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 3600, unit=UnitOfTime.SECONDS),
+        ),
+    ),
     # Human Presence Sensor
     # https://developer.tuya.com/en/docs/iot/categoryhps?id=Kaiuz42yhn1hs
     DeviceCategory.HPS: (
@@ -207,6 +225,12 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             name="Far Detection CM",
             icon="mdi:signal-distance-variant",
             entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 1000),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TARGET_DIS_CLOSEST,
+            name="Target Distance Closest",
+            icon="mdi:signal-distance-variant",
             custom_configs=localtuya_numbers(0, 1000),
         ),
     ),
@@ -555,6 +579,27 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(1, 100),
         ),
+        LocalTuyaEntity(
+            id=DPCode.IPC_BRIGHT,
+            name="Video Brightness",
+            icon="mdi:brightness-6",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 100),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.IPC_CONTRAST,
+            name="Video Contrast",
+            icon="mdi:contrast-circle",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 100),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.IPC_SHARP,
+            name="Video Sharpness",
+            icon="mdi:image-filter-center-focus",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 100),
+        ),
     ),
     # Dimmer Switch
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
@@ -714,6 +759,21 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(32, 212, 1),
         ),
     ),
+    # Cooking thermometer
+    DeviceCategory.SWTZ: (
+        LocalTuyaEntity(
+            id=DPCode.COOK_TEMPERATURE,
+            name="Cook Temperature",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 300),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.COOK_TEMPERATURE_2,
+            name="Cook Temperature 2",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 300),
+        ),
+    ),
     # Thermostat
     DeviceCategory.WK: (
         LocalTuyaEntity(
@@ -725,6 +785,60 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.TEMPACTIVATE,
             name="Calibration swing",
             custom_configs=localtuya_numbers(1, 9),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CORRECTION,
+            name="Temperature Correction",
+            icon="mdi:thermometer-check",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(-9, 9),
+        ),
+    ),
+    # Gateway control
+    DeviceCategory.WG2: (
+        LocalTuyaEntity(
+            id=DPCode.DELAY_SET,
+            name="Arm Delay",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 65535),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ALARM_DELAY_TIME,
+            name="Alarm Delay",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 65535),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ALARM_TIME,
+            name="Siren Duration",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 65535),
+        ),
+    ),
+    # Micro Storage Inverter
+    DeviceCategory.XNYJCN: (
+        LocalTuyaEntity(
+            id=DPCode.BACKUP_RESERVE,
+            name="Battery Backup Reserve",
+            icon="mdi:battery-charging-80",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.OUTPUT_POWER_LIMIT,
+            name="Inverter Output Power Limit",
+            icon="mdi:transmission-tower",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 10000, unit=UnitOfPower.WATT),
+        ),
+    ),
+    # Pool HeatPump
+    DeviceCategory.ZNRB: (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_SET,
+            name="Temperature",
+            device_class=NumberDeviceClass.TEMPERATURE,
+            custom_configs=localtuya_numbers(0, 40, unit=UnitOfTemperature.CELSIUS),
         ),
     ),
     # Temperature and Humidity Sensor
@@ -1064,7 +1178,23 @@ NUMBERS[DeviceCategory.WXKG] = (
 )
 
 # Water Valve
-NUMBERS[DeviceCategory.SFKZQ] = NUMBERS[DeviceCategory.KG]
+NUMBERS[DeviceCategory.SFKZQ] = (
+    *NUMBERS[DeviceCategory.KG],
+    LocalTuyaEntity(
+        id=DPCode.COUNTDOWN_7,
+        icon="mdi:timer",
+        entity_category=EntityCategory.CONFIG,
+        name="Irrigation 7 Timer",
+        custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
+    ),
+    LocalTuyaEntity(
+        id=DPCode.COUNTDOWN_8,
+        icon="mdi:timer",
+        entity_category=EntityCategory.CONFIG,
+        name="Irrigation 8 Timer",
+        custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
+    ),
+)
 
 # Water Detector
 # https://developer.tuya.com/en/docs/iot/categorysj?id=Kaiuz3iub2sli

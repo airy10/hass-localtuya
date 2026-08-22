@@ -24,6 +24,30 @@ CHILD_LOCK = (
     ),
 )
 SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
+    # White noise machine
+    DeviceCategory.BZYD: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CHILD_LOCK,
+            name="Child Lock",
+            icon="mdi:account-lock",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_MUSIC,
+            name="Music",
+            icon="mdi:music",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SNOOZE,
+            name="Snooze",
+            icon="mdi:alarm-snooze",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Smart Kettle
     # https://developer.tuya.com/en/docs/iot/fbh?id=K9gf484m21yq7
     DeviceCategory.BH: (
@@ -50,6 +74,14 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.WATER,
             name="Water",
             icon="mdi:water",
+        ),
+    ),
+    # Smart Odor Eliminator-Pro
+    # Undocumented
+    DeviceCategory.CWJWQ: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Switch",
         ),
     ),
     # Smart Pet Feeder
@@ -103,6 +135,46 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         LocalTuyaEntity(
             id=DPCode.SWITCH,
             name="Plug",
+        ),
+    ),
+    # Electric blanket
+    # https://developer.tuya.com/en/docs/iot/categorydr?id=Kaiuz22dyc66p
+    DeviceCategory.DR: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Power",
+            icon="mdi:power",
+            device_class=SwitchDeviceClass.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_1,
+            name="Side A Power",
+            icon="mdi:alpha-a",
+            device_class=SwitchDeviceClass.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_2,
+            name="Side B Power",
+            icon="mdi:alpha-b",
+            device_class=SwitchDeviceClass.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PREHEAT,
+            name="Preheat",
+            icon="mdi:radiator",
+            device_class=SwitchDeviceClass.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PREHEAT_1,
+            name="Side A Preheat",
+            icon="mdi:radiator",
+            device_class=SwitchDeviceClass.SWITCH,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PREHEAT_2,
+            name="Side B Preheat",
+            icon="mdi:radiator",
+            device_class=SwitchDeviceClass.SWITCH,
         ),
     ),
     # Circuit Breaker
@@ -316,6 +388,12 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Cat litter box
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
     DeviceCategory.MSP: (
+        LocalTuyaEntity(
+            id=DPCode.AUTO_CLEAN,
+            name="Auto Clean",
+            icon="mdi:auto-fix",
+            entity_category=EntityCategory.CONFIG,
+        ),
         LocalTuyaEntity(
             id=DPCode.SWITCH,
         ),
@@ -539,6 +617,85 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # Weather Station
+    DeviceCategory.QXJ: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Switch",
+            device_class=SwitchDeviceClass.OUTLET,
+        ),
+    ),
+    # Electric desk
+    # Undocumented
+    DeviceCategory.SJZ: (
+        LocalTuyaEntity(
+            id=DPCode.CHILD_LOCK,
+            name="Child Lock",
+            icon="mdi:account-lock",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Smart indoor garden
+    # https://developer.tuya.com/en/docs/iot/categorysz?id=Kaiuz4e6h7up0
+    DeviceCategory.SZ: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Power",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.PUMP,
+            name="Pump",
+        ),
+    ),
+    # Gateway control
+    # https://developer.tuya.com/en/docs/iot/wg?id=Kbcdadk79ejok
+    DeviceCategory.WG2: (
+        LocalTuyaEntity(
+            id=DPCode.MUFFLING,
+            name="Mute",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Micro Storage Inverter
+    DeviceCategory.XNYJCN: (
+        LocalTuyaEntity(
+            id=DPCode.FEEDIN_POWER_LIMIT_ENABLE,
+            name="Output Power Limit",
+            icon="mdi:transmission-tower",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Smoke Alarm
+    # https://developer.tuya.com/en/docs/iot/categoryywbj?id=Kaiuz3f6sf952
+    DeviceCategory.YWBJ: (
+        LocalTuyaEntity(
+            id=DPCode.MUFFLING,
+            name="Mute",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Hejhome whitelabel Fingerbot
+    # Undocumented
+    DeviceCategory.ZNJXS: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Switch",
+        ),
+    ),
+    # Pool HeatPump
+    # Undocumented
+    DeviceCategory.ZNRB: (
+        LocalTuyaEntity(
+            id=DPCode.CHILD_LOCK,
+            name="Child Lock",
+            icon="mdi:account-lock",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+            name="Switch",
+        ),
+    ),
     # Generic products, EV Charger
     # https://support.tuya.com/en/help/_detail/K9g77zfmlnwal
     DeviceCategory.QT: (
@@ -674,6 +831,18 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            id=DPCode.MOTION_AREA_SWITCH,
+            name="Use Motion Detection Zone",
+            icon="mdi:selection-multiple",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.IPC_AUTO_SIREN,
+            name="Auto-trigger Siren",
+            icon="mdi:alarm-light-outline",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
             id=DPCode.PTZ_STOP,
             name="PTZ Stop",
             icon="mdi:stop-circle",
@@ -709,6 +878,16 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         LocalTuyaEntity(
             id=DPCode.SWITCH_4,
             name="Switch 4",
+            device_class=SwitchDeviceClass.OUTLET,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_5,
+            name="Switch 5",
+            device_class=SwitchDeviceClass.OUTLET,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_6,
+            name="Switch 6",
             device_class=SwitchDeviceClass.OUTLET,
         ),
         LocalTuyaEntity(
@@ -1015,10 +1194,69 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            id=DPCode.FROST,
+            name="Frost Protection",
+            icon="mdi:snowflake-alert",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
             id=DPCode.ECO,
             name="ECO",
             icon="mdi:sprout",
             entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Ceiling fan light
+    # https://developer.tuya.com/en/docs/iot/fsd?id=Kaof8eiei4c2v
+    DeviceCategory.FSD: (
+        LocalTuyaEntity(
+            id=DPCode.FAN_BEEP,
+            name="Sound",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Irrigator
+    # https://developer.tuya.com/en/docs/iot/categoryggq?id=Kaiuz1qib7z0k
+    DeviceCategory.GGQ: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_1,
+            name="Switch 1",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_2,
+            name="Switch 2",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_3,
+            name="Switch 3",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_4,
+            name="Switch 4",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_5,
+            name="Switch 5",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_6,
+            name="Switch 6",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_7,
+            name="Switch 7",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_8,
+            name="Switch 8",
+        ),
+    ),
+    # Tower fan
+    DeviceCategory.KS: (
+        LocalTuyaEntity(
+            id=DPCode.ANION,
+            name="Ionizer",
+            icon="mdi:minus-circle-outline",
         ),
     ),
 }
@@ -1027,19 +1265,11 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
 # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
 SWITCHES[DeviceCategory.CJKG] = SWITCHES[DeviceCategory.KG]
 
-# Wireless Switch  # also can come as knob switch.
-# https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5
+# Wireless Switch
 SWITCHES[DeviceCategory.WXKG] = SWITCHES[DeviceCategory.KG]
 
 # Socket (duplicate of `pc`)
-# https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
 SWITCHES[DeviceCategory.CZ] = SWITCHES[DeviceCategory.PC]
-
-# Climates / heaters
-SWITCHES[DeviceCategory.WKF] = SWITCHES[DeviceCategory.WK]
-SWITCHES[DeviceCategory.RS] = SWITCHES[DeviceCategory.WK]
-SWITCHES[DeviceCategory.QN] = SWITCHES[DeviceCategory.WK]
-SWITCHES[DeviceCategory.KT] = SWITCHES[DeviceCategory.WK]
 
 # Dehumidifier
 # https://developer.tuya.com/en/docs/iot/categorycs?id=Kaiuz1vcz4dha

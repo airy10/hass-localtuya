@@ -232,6 +232,12 @@ BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:information",
             custom_configs=ON_FEEDING,
         ),
+        LocalTuyaEntity(
+            id=DPCode.CHARGE_STATE,
+            device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            custom_configs=STATE_TRUE,
+        ),
         *FAULT_SENSOR,
     ),
     # Human Presence Sensor
@@ -311,6 +317,11 @@ BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     DeviceCategory.MCS: (
         LocalTuyaEntity(
             id=DPCode.DOORCONTACT_STATE,
+            device_class=BinarySensorDeviceClass.DOOR,
+            custom_configs=STATE_TRUE,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,  # Used by non-standard contact sensor implementations
             device_class=BinarySensorDeviceClass.DOOR,
             custom_configs=STATE_TRUE,
         ),
@@ -483,11 +494,46 @@ BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # EV Charcher
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     DeviceCategory.QCCDZ: (*FAULT_SENSOR,),
+    # Weather Station
+    DeviceCategory.QXJ: (TAMPER_BINARY_SENSOR,),
+    # Siren Alarm
+    # https://developer.tuya.com/en/docs/iot/categorysgbj?id=Kaiuz37tlpbnu
+    DeviceCategory.SGBJ: (
+        LocalTuyaEntity(
+            id=DPCode.CHARGE_STATE,
+            device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+            custom_configs=STATE_TRUE,
+        ),
+        TAMPER_BINARY_SENSOR,
+    ),
+    # Gateway control
+    # https://developer.tuya.com/en/docs/iot/wg?id=Kbcdadk79ejok
+    DeviceCategory.WG2: (
+        LocalTuyaEntity(
+            id=DPCode.MASTER_STATE,
+            device_class=BinarySensorDeviceClass.PROBLEM,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            custom_configs=ALARM_ON,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CHARGE_STATE,
+            device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            custom_configs=STATE_TRUE,
+        ),
+    ),
 }
 
 BINARY_SENSORS[DeviceCategory.GCJ] = FAULT_SENSOR
 BINARY_SENSORS[DeviceCategory.CL] = FAULT_SENSOR
-BINARY_SENSORS[DeviceCategory.WK] = FAULT_SENSOR
+BINARY_SENSORS[DeviceCategory.WK] = (
+    LocalTuyaEntity(
+        id=DPCode.VALVE_STATE,
+        name="Valve",
+        custom_configs=ON_OPEN,
+    ),
+    *FAULT_SENSOR,
+)
 BINARY_SENSORS[DeviceCategory.KG] = FAULT_SENSOR
 BINARY_SENSORS[DeviceCategory.PC] = FAULT_SENSOR
 BINARY_SENSORS[DeviceCategory.CZ] = FAULT_SENSOR

@@ -37,6 +37,16 @@ def localtuya_light(
 
 
 LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
+    # White noise machine
+    DeviceCategory.BZYD: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_LED,
+            name=None,
+            color_mode=DPCode.WORK_MODE,
+            color=DPCode.COLOUR_DATA,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
     # Curtain Switch
     # https://developer.tuya.com/en/docs/iot/category-clkg?id=Kaiuz0gitil39
     DeviceCategory.CLKG: (
@@ -81,6 +91,16 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             scene=(DPCode.SCENE_DATA_V2, DPCode.SCENE_DATA),
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
             # default_color_type=DEFAULT_COLOR_TYPE_DATA_V2,
+        ),
+    ),
+    # Filament Light
+    DeviceCategory.DSD: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_LED,
+            name=None,
+            color_mode=DPCode.WORK_MODE,
+            brightness=DPCode.BRIGHT_VALUE,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
     ),
     # Light
@@ -326,6 +346,18 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
     ),
+    # Lighting controller
+    DeviceCategory.HCDD: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_LED,
+            name=None,
+            color_mode=DPCode.WORK_MODE,
+            brightness=DPCode.BRIGHT_VALUE,
+            color_temp=DPCode.TEMP_VALUE,
+            color=DPCode.COLOUR_DATA,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
     # Wake Up Light II
     # Not documented
     DeviceCategory.HXD: (
@@ -338,9 +370,48 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
     ),
+    # Tower Fan
+    DeviceCategory.KS: (
+        LocalTuyaEntity(
+            id=DPCode.LIGHT,
+            name="Backlight",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
+    # Cat litter box
+    DeviceCategory.MSP: (
+        LocalTuyaEntity(
+            id=DPCode.LIGHT,
+            name="Light",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
+    # Smart indoor garden
+    DeviceCategory.SZ: (
+        LocalTuyaEntity(
+            id=DPCode.LIGHT,
+            brightness=DPCode.BRIGHT_VALUE,
+            name="Light",
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
     # Solar Light
     # https://developer.tuya.com/en/docs/iot/tynd?id=Kaof8j02e1t98
     DeviceCategory.TYNDJ: (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH_LED,
+            name=None,
+            color_mode=DPCode.WORK_MODE,
+            brightness=DPCode.BRIGHT_VALUE,
+            color_temp=DPCode.TEMP_VALUE,
+            color=DPCode.COLOUR_DATA,
+            custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
+        ),
+    ),
+    # Outdoor flood light
+    DeviceCategory.TYD: (
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
@@ -407,7 +478,10 @@ LIGHTS[DeviceCategory.HDMIPMTBQ] = (
 )
 
 # Dimmer
-LIGHTS[DeviceCategory.TDQ] = LIGHTS[DeviceCategory.TGKG]
+LIGHTS[DeviceCategory.TDQ] = LIGHTS[DeviceCategory.TGQ]
+
+# Smart Camera - Low power consumption camera (duplicate of `sp`)
+LIGHTS[DeviceCategory.DGHSXJ] = LIGHTS[DeviceCategory.SP]
 
 # Scene Switch
 # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
