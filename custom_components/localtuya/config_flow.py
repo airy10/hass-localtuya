@@ -434,6 +434,48 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
+def auto_config_preview_items(category: str, dps_data: dict) -> list[str]:
+    """Resolve which entities auto-configuration would create for a device.
+
+    Mirrors the runtime's description resolution (entity's
+    ``_described_entity_specs``): descriptions keep their DPCode ids /
+    translation_key inside ``localtuya_conf``, the first variant whose
+    ``contains_any`` gate matches the DP's cloud value range wins, and
+    duplicate primary DPs are collapsed per platform.
+    """
+    from .core.ha_entities import DATA_PLATFORMS
+
+    dpcode_to_id: dict[str, str] = {}
+    for dp_id, info in dps_data.items():
+        if code := info.get("code"):
+            dpcode_to_id[code] = str(dp_id)
+
+    preview_items: list[str] = []
+    for platform, table in DATA_PLATFORMS.items():
+        seen_dps: set[str] = set()
+        for desc in table.get(category, ()):
+            conf = getattr(desc, "localtuya_conf", {}) or {}
+            primary_id = conf.get(CONF_ID)
+            if primary_id is None:
+                continue
+            codes = primary_id if isinstance(primary_id, tuple) else (primary_id,)
+            for code in codes:
+                dp = dpcode_to_id.get(str(code))
+                if dp is None or dp in seen_dps:
+                    continue
+                contains_any = getattr(desc, "contains_any", None)
+                if contains_any:
+                    raw_values = str((dps_data.get(dp) or {}).get("values", "")).lower()
+                    if not raw_values or not any(c in raw_values for c in contains_any):
+                        break
+                seen_dps.add(dp)
+                tk = conf.get("translation_key")
+                name = getattr(desc, "name", None) or tk or str(codes[0])
+                preview_items.append(f"  • {platform.value}: {name}")
+                break
+    return preview_items
+
+
 class LocalTuyaOptionsFlowHandler(OptionsFlow):
     """Handle options flow for LocalTuya integration."""
 
@@ -1066,41 +1108,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         category, matches dpcodes against the cloud spec, and shows which
         entities will be created before committing.
         """
-        from .core.ha_entities import DATA_PLATFORMS
-
         category = self._auto_config_category
         device_data = self.device_data.get(DEVICE_CLOUD_DATA, {})
         dps_data = device_data.get("dps_data", {})
 
-        # Build dpcode -> dp_id map from cloud spec
-        dpcode_to_id: dict[str, str] = {}
-        for dp_id, info in dps_data.items():
-            if code := info.get("code"):
-                dpcode_to_id[code] = str(dp_id)
-
-        # Collect all descriptions that would be created, mirroring the
-        # runtime's resolution (entity._described_entity_specs): descriptions
-        # keep their DPCode ids / translation_key inside ``localtuya_conf``
-        # and duplicate primary DPs are collapsed per platform.
-        preview_items: list[str] = []
-        for platform, table in DATA_PLATFORMS.items():
-            seen_dps: set[str] = set()
-            descriptions = table.get(category, ())
-            for desc in descriptions:
-                conf = getattr(desc, "localtuya_conf", {}) or {}
-                primary_id = conf.get(CONF_ID)
-                if primary_id is None:
-                    continue
-                codes = primary_id if isinstance(primary_id, tuple) else (primary_id,)
-                for code in codes:
-                    dp = dpcode_to_id.get(str(code))
-                    if dp is None or dp in seen_dps:
-                        continue
-                    seen_dps.add(dp)
-                    tk = conf.get("translation_key")
-                    name = getattr(desc, "name", None) or tk or str(codes[0])
-                    preview_items.append(f"  • {platform.value}: {name}")
-                    break
+        preview_items = auto_config_preview_items(category, dps_data)
 
         if not preview_items:
             # No resolvable entities — fall through to manual, but say why.
@@ -1108,7 +1120,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 "Auto-config preview for category %s matched no entities "
                 "(%d cloud DP codes available)",
                 category,
-                len(dpcode_to_id),
+                len(dps_data),
             )
             return await self.async_step_pick_entity_type(
                 {NO_ADDITIONAL_ENTITIES: True}

@@ -127,12 +127,6 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
-            translation_key="scene_18",
-            id=DPCode.SCENE_18,
-            name="Scene 18",
-            icon="mdi:palette",
-        ),
-        LocalTuyaEntity(
             translation_key="scene_19",
             id=DPCode.SCENE_19,
             name="Scene 19",

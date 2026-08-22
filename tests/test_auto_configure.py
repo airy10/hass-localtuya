@@ -105,3 +105,51 @@ def test_devices_schema_displays_ble_devices_without_host():
     )
     options = schema.schema["selected_device"].config["options"]
     assert "dev_ble (AA:BB:CC:DD:EE:FF)" in [opt["label"] for opt in options]
+
+
+def _enum_values(*options):
+    return '{"type":"Enum","range":[%s]}' % ",".join(f'"{o}"' for o in options)
+
+
+def test_preview_items_variant_gating_picks_one_select():
+    """Only the power_on_behavior variant matching the DP value range shows."""
+    from custom_components.localtuya.config_flow import auto_config_preview_items
+
+    dps = {
+        "1": {"code": "switch_1", "values": '{"type":"Boolean"}'},
+        "2": {"code": "countdown_1", "values": '{"type":"Integer","max":86400}'},
+        "3": {"code": "relay_status", "values": _enum_values("on", "off", "memory")},
+        "7": {"code": "child_lock", "values": '{"type":"Boolean"}'},
+    }
+    items = auto_config_preview_items("cz", dps)
+    selects = [i for i in items if i.strip().split(" ", 1)[1].startswith("select:")]
+    assert selects == ["  • select: Power-on behavior"]
+
+    names = [i.split(": ", 1)[1] for i in items]
+    assert len(names) == len(set(names))
+
+
+def test_preview_items_fallback_variant_always_applies():
+    """The ungated relay_status variant covers unknown/missing value ranges."""
+    from custom_components.localtuya.config_flow import auto_config_preview_items
+
+    for values in (_enum_values("gibberish"), ""):
+        dps = {"3": {"code": "relay_status", "values": values}}
+        items = auto_config_preview_items("cz", dps)
+        assert any("select" in i and "Power-on behavior" in i for i in items)
+
+
+def test_preview_items_skips_unknown_dps_and_empty_category():
+    """DPs absent from the cloud spec produce no items; unknown categories neither."""
+    from custom_components.localtuya.config_flow import auto_config_preview_items
+
+    dps = {
+        "3": {"code": "relay_status", "values": _enum_values("power_on")},
+        "9": {"code": "cur_current", "values": ""},
+    }
+    items = auto_config_preview_items("cz", dps)
+    # cur_current is present but has an empty values string; sensors gated on
+    # it are still listed (no contains_any gate on those rows).
+    assert any(i.startswith("  • sensor") for i in items)
+
+    assert auto_config_preview_items("no_such_category", dps) == []

@@ -1002,12 +1002,6 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.DIAGNOSTIC,
         ),
         LocalTuyaEntity(
-            translation_key="max_set_ampere",
-            id=DPCode.DEVICEMAXSETA,
-            name="Max Set Ampere",
-            entity_category=EntityCategory.DIAGNOSTIC,
-        ),
-        LocalTuyaEntity(
             translation_key="device_temperature",
             id=DPCode.DEVICETEMP,
             name="Device Temperature",
