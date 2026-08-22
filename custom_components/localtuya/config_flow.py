@@ -1089,9 +1089,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                     if code in dpcode_to_id:
                         tk = getattr(desc, "translation_key", None)
                         name = getattr(desc, "name", None) or tk or str(codes[0])
-                        preview_items.append(
-                            f"  • {platform.value}: {name}"
-                        )
+                        preview_items.append(f"  • {platform.value}: {name}")
                         break
 
         if not preview_items:
@@ -1114,9 +1112,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         }
         return self.async_show_form(
             step_id="auto_configure_preview",
-            data_schema=vol.Schema(
-                {vol.Optional("confirm", default=True): bool}
-            ),
+            data_schema=vol.Schema({vol.Optional("confirm", default=True): bool}),
             description_placeholders=placeholders,
         )
 
