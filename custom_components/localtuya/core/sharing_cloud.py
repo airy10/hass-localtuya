@@ -107,6 +107,9 @@ class SharingCloud:
         self, hass: HomeAssistant, auth_blob: dict[str, Any] | None = None
     ) -> None:
         self._hass = hass
+        # Single Store holding ALL persisted sessions as {user_code: auth_blob},
+        # so multiple LocalTuya instances (different Smart Life accounts) can
+        # coexist without clobbering each other's tokens.
         self._store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         self._auth: dict[str, Any] | None = auth_blob
         self._qr_code: str | None = None
@@ -149,15 +152,38 @@ class SharingCloud:
             )
         return self._manager
 
+    async def _async_load_sessions(self) -> dict[str, dict[str, Any]]:
+        """Load all persisted sessions as {user_code: auth_blob}.
+
+        Migrates the pre-multi-instance format (a single flat auth blob)
+        transparently.
+        """
+        data = await self._store.async_load()
+        if not data:
+            return {}
+        if CONF_USER_CODE in data and CONF_TOKEN_INFO in data:
+            user_code = data[CONF_USER_CODE]
+            return {user_code: data}
+        return data
+
+    async def _async_save_sessions(self, sessions: dict[str, dict[str, Any]]) -> None:
+        await self._store.async_save(sessions)
+
     async def async_restore(self) -> bool:
         """Restore a persisted sharing session."""
         if self._auth is not None:
             return bool(self._auth.get(CONF_TOKEN_INFO))
-        data = await self._store.async_load()
-        if not data or not data.get(CONF_TOKEN_INFO):
+        sessions = await self._async_load_sessions()
+        if not sessions:
             return False
-        self._auth = data
-        self.user_code = data.get(CONF_USER_CODE)
+        if len(sessions) > 1:
+            _LOGGER.info(
+                "Multiple Smart Life sessions stored (%s); pick one via QR login",
+                ", ".join(sessions),
+            )
+            return False
+        self._auth = next(iter(sessions.values()))
+        self.user_code = self._auth.get(CONF_USER_CODE)
         return True
 
     async def async_get_qr_code(self, user_code: str) -> str | None:
@@ -200,17 +226,21 @@ class SharingCloud:
                 CONF_REFRESH_TOKEN: info[CONF_REFRESH_TOKEN],
             },
         }
-        await self._store.async_save(self._auth)
+        sessions = await self._async_load_sessions()
+        sessions[self.user_code] = self._auth
+        await self._async_save_sessions(sessions)
         return True
 
     def schedule_token_update(self, token_info: dict[str, Any]) -> None:
         """Queue persistence of refreshed tokens back to the Store."""
-        if not self._auth:
+        if not self._auth or not self.user_code:
             return
         self._auth[CONF_TOKEN_INFO] = token_info
 
         async def _save() -> None:
-            await self._store.async_save(self._auth)
+            sessions = await self._async_load_sessions()
+            sessions[self.user_code] = self._auth
+            await self._async_save_sessions(sessions)
             await self._update_entry_tokens(token_info)
 
         self._hass.add_job(_save)
@@ -229,6 +259,15 @@ class SharingCloud:
                 CONF_SHARING_DATA: {**sharing, CONF_TOKEN_INFO: token_info},
             }
             self._hass.config_entries.async_update_entry(entry, data=new_data)
+
+    async def async_forget_session(self, user_code: str) -> None:
+        """Drop a persisted session from the Store (entry removal cleanup)."""
+        sessions = await self._async_load_sessions()
+        if user_code not in sessions:
+            return
+        sessions.pop(user_code)
+        await self._async_save_sessions(sessions)
+        _LOGGER.info("Removed stored Smart Life session for %s", user_code)
 
     async def async_connect(self):
         """Restore the session and load the device list."""

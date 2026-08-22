@@ -41,6 +41,7 @@ from .const import (
     CONF_NO_CLOUD,
     CONF_PRODUCT_KEY,
     CONF_SHARING_DATA,
+    CONF_USER_CODE,
     CONF_USER_ID,
     DATA_DISCOVERY,
     DEVICE_CLOUD_DATA,
@@ -553,6 +554,22 @@ async def async_remove_config_entry_device(
     _LOGGER.info("Device %s removed.", dev_id)
 
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop the persisted Smart Life session when its last consumer is removed."""
+    user_code = (entry.data.get(CONF_SHARING_DATA) or {}).get(CONF_USER_CODE)
+    if not user_code:
+        return
+
+    still_used = any(
+        (e.data.get(CONF_SHARING_DATA) or {}).get(CONF_USER_CODE) == user_code
+        for e in hass.config_entries.async_entries(DOMAIN)
+    )
+    if still_used:
+        return
+
+    await SharingCloud(hass).async_forget_session(user_code)
 
 
 def _run_async_listen(hass: HomeAssistant, entry: ConfigEntry):

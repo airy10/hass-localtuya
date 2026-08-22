@@ -259,10 +259,12 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle the initial step: choose cloud authentication method."""
         # Reuse a previously authorized sharing session instead of asking
-        # for credentials again.
-        self._sharing = SharingCloud(self.hass)
-        if await self._sharing.async_restore():
-            return await self._create_sharing_entry()
+        # for credentials again — but only for the very first LocalTuya
+        # instance, so additional instances can log into other accounts.
+        if not self._async_current_entries():
+            self._sharing = SharingCloud(self.hass)
+            if await self._sharing.async_restore():
+                return await self._create_sharing_entry()
 
         return self.async_show_menu(
             step_id="user",
