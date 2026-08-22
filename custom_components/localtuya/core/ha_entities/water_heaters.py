@@ -68,6 +68,7 @@ WATER_HEATERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryrs?id=Kaiuz0nfferyx
     DeviceCategory.RS: (
         LocalTuyaEntity(
+            translation_key="switch",
             id=DPCode.SWITCH,
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
             current_temperature_dp=(DPCode.TEMP_CURRENT, DPCode.TEMP_CURRENT_F),

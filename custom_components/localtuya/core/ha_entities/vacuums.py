@@ -65,6 +65,7 @@ VACUUMS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
     DeviceCategory.SD: (
         LocalTuyaEntity(
+            translation_key="status",
             id=DPCode.STATUS,
             icon="mdi:robot-vacuum",
             powergo_dp=(DPCode.POWER_GO, DPCode.POWER, DPCode.SWITCH),

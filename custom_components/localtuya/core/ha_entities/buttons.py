@@ -19,106 +19,127 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
     DeviceCategory.CJKG: (
         LocalTuyaEntity(
+            translation_key="scene_1",
             id=DPCode.SCENE_1,
             name="Scene 1",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_2",
             id=DPCode.SCENE_2,
             name="Scene 2",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_3",
             id=DPCode.SCENE_3,
             name="Scene 3",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_4",
             id=DPCode.SCENE_4,
             name="Scene 4",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_5",
             id=DPCode.SCENE_5,
             name="Scene 5",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_6",
             id=DPCode.SCENE_6,
             name="Scene 6",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_7",
             id=DPCode.SCENE_7,
             name="Scene 7",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_8",
             id=DPCode.SCENE_8,
             name="Scene 8",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_9",
             id=DPCode.SCENE_9,
             name="Scene 9",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_10",
             id=DPCode.SCENE_10,
             name="Scene 10",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_11",
             id=DPCode.SCENE_11,
             name="Scene 11",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_12",
             id=DPCode.SCENE_12,
             name="Scene 12",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_13",
             id=DPCode.SCENE_13,
             name="Scene 13",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_14",
             id=DPCode.SCENE_14,
             name="Scene 14",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_15",
             id=DPCode.SCENE_15,
             name="Scene 15",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_16",
             id=DPCode.SCENE_16,
             name="Scene 16",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_17",
             id=DPCode.SCENE_17,
             name="Scene 17",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_18",
             id=DPCode.SCENE_18,
             name="Scene 18",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_18",
             id=DPCode.SCENE_18,
             name="Scene 18",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_19",
             id=DPCode.SCENE_19,
             name="Scene 19",
             icon="mdi:palette",
         ),
         LocalTuyaEntity(
+            translation_key="scene_20",
             id=DPCode.SCENE_20,
             name="Scene 20",
             icon="mdi:palette",
@@ -129,6 +150,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycl?id=Kaiuz1hnpo7df
     DeviceCategory.CL: (
         LocalTuyaEntity(
+            translation_key="pair_remote",
             id=DPCode.REMOTE_REGISTER,
             name="Pair Remote",
             icon="mdi:remote",
@@ -139,6 +161,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
     DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
+            translation_key="factory_reset",
             id=DPCode.FACTORY_RESET,
             name="Factory Reset",
             icon="mdi:cog-counterclockwise",
@@ -149,18 +172,21 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
     DeviceCategory.MSP: (
         LocalTuyaEntity(
+            translation_key="factory_reset",
             id=DPCode.FACTORY_RESET,
             name="Factory Reset",
             icon="mdi:restore",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reboot",
             id=DPCode.REBOOT,
             name="Reboot",
             icon="mdi:restart",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="manual_clean",
             id=DPCode.MANUAL_CLEAN,
             name="Manual Clean",
             icon="mdi:broom",
@@ -171,30 +197,35 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
     DeviceCategory.SD: (
         LocalTuyaEntity(
+            translation_key="reset_duster_cloth",
             id=DPCode.RESET_DUSTER_CLOTH,
             name="Reset Duster Cloth",
             icon="mdi:restart",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reset_edge_brush",
             id=DPCode.RESET_EDGE_BRUSH,
             name="Reset Edge Brush",
             icon="mdi:restart",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reset_filter",
             id=DPCode.RESET_FILTER,
             name="Reset Filter",
             icon="mdi:air-filter",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reset_map",
             id=DPCode.RESET_MAP,
             name="Reset Map",
             icon="mdi:map-marker-remove",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reset_roll_brush",
             id=DPCode.RESET_ROLL_BRUSH,
             name="Reset Roll Brush",
             icon="mdi:restart",
@@ -205,6 +236,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.HXD: (
         LocalTuyaEntity(
+            translation_key="snooze",
             id=DPCode.SWITCH_USB6,
             name="Snooze",
             icon="mdi:sleep",
@@ -212,6 +244,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     ),
     DeviceCategory.CZ: (
         LocalTuyaEntity(
+            translation_key="clear_energy",
             id=DPCode.CLEAR_ENERGY,
             name="Clear Energy",
             icon="mdi:lightning-bolt-circle",
@@ -222,6 +255,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     DeviceCategory.QCCDZ: (
         LocalTuyaEntity(
+            translation_key="clear_energy",
             id=DPCode.CLEAR_ENERGY,
             name="Clear Energy",
             icon="mdi:lightning-bolt-circle",
@@ -233,6 +267,7 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
     DeviceCategory.SP: (
         LocalTuyaEntity(
+            translation_key="restart",
             id=DPCode.DEVICE_RESTART,
             name="Restart",
             icon="mdi:restart",
@@ -242,16 +277,19 @@ BUTTONS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Lawn mower
     DeviceCategory.GCJ: (
         LocalTuyaEntity(
+            translation_key="clear_schedule",
             id=DPCode.CLEARAPPOINTMENT,
             name="Clear schedule",
             icon="mdi:calendar-remove-outline",
         ),
         LocalTuyaEntity(
+            translation_key="query_schedule",
             id=DPCode.QUERYAPPOINTMENT,
             name="Query schedule",
             icon="mdi:calendar-search-outline",
         ),
         LocalTuyaEntity(
+            translation_key="query_zones",
             id=DPCode.QUERYPARTITION,
             name="Query zones",
             icon="mdi:map-search-outline",

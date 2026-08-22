@@ -34,6 +34,7 @@ ALARMS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorymal?id=Kaiuz33clqxaf
     DeviceCategory.MAL: (
         LocalTuyaEntity(
+            translation_key="master_mode",
             id=DPCode.MASTER_MODE,
             custom_configs=localtuya_alarm(
                 {

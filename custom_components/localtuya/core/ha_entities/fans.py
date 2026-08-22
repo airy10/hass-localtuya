@@ -56,6 +56,7 @@ FANS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Fan
     DeviceCategory.FS: (
         LocalTuyaEntity(
+            translation_key="fan",
             id=(DPCode.SWITCH_FAN, DPCode.FAN_SWITCH, DPCode.SWITCH),
             name="Fan",
             icon="mdi:fan",
@@ -71,6 +72,7 @@ FANS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Normal switch with fan controller.
     DeviceCategory.TDQ: (
         LocalTuyaEntity(
+            translation_key="fan",
             id=(DPCode.SWITCH_FAN, DPCode.FAN_SWITCH),
             name="Fan",
             icon="mdi:fan",

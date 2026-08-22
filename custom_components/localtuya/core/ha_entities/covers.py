@@ -40,6 +40,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycl?id=Kaiuz1hnpo7df
     DeviceCategory.CL: (
         LocalTuyaEntity(
+            translation_key="curtain",
             id=DPCode.CONTROL,
             name="Curtain",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -48,6 +49,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             set_position_dp=DPCode.PERCENT_CONTROL,
         ),
         LocalTuyaEntity(
+            translation_key="curtain_2",
             id=DPCode.CONTROL_2,
             name="Curtain 2",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -56,6 +58,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.CURTAIN,
         ),
         LocalTuyaEntity(
+            translation_key="curtain_3",
             id=DPCode.CONTROL_3,
             name="Curtain 3",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -64,6 +67,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.CURTAIN,
         ),
         LocalTuyaEntity(
+            translation_key="curtain_4",
             id=DPCode.CONTROL_4,
             name="Curtain 4",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -72,6 +76,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.CURTAIN,
         ),
         LocalTuyaEntity(
+            translation_key="curtain",
             id=DPCode.MACH_OPERATE,
             name="Curtain",
             custom_configs=localtuya_cover("fz_zz_stop", "position"),
@@ -82,6 +87,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         # switch_1 is an undocumented code that behaves identically to control
         # It is used by the Kogan Smart Blinds Driver
         LocalTuyaEntity(
+            translation_key="blind",
             id=DPCode.SWITCH_1,
             name="Blind",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -94,6 +100,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryckmkzq?id=Kaiuz0ipcboee
     DeviceCategory.CKMKZQ: (
         LocalTuyaEntity(
+            translation_key="door",
             id=DPCode.SWITCH_1,
             name="Door",
             custom_configs=localtuya_cover("open_close_stop", "none", True),
@@ -101,6 +108,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.GARAGE,
         ),
         LocalTuyaEntity(
+            translation_key="door_2",
             id=DPCode.SWITCH_2,
             name="Door 2",
             custom_configs=localtuya_cover("open_close_stop", "none", True),
@@ -108,6 +116,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.GARAGE,
         ),
         LocalTuyaEntity(
+            translation_key="door_3",
             id=DPCode.SWITCH_3,
             name="Door 3",
             custom_configs=localtuya_cover("open_close_stop", "none", True),
@@ -119,6 +128,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/category-clkg?id=Kaiuz0gitil39
     DeviceCategory.CLKG: (
         LocalTuyaEntity(
+            translation_key="curtain",
             id=DPCode.CONTROL,
             name="Curtain",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -127,6 +137,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             device_class=CoverDeviceClass.CURTAIN,
         ),
         LocalTuyaEntity(
+            translation_key="curtain_2",
             id=DPCode.CONTROL_2,
             name="Curtain 2",
             custom_configs=localtuya_cover("open_close_stop", "position"),
@@ -139,6 +150,7 @@ COVERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Note: Not documented
     DeviceCategory.JDCLJQR: (
         LocalTuyaEntity(
+            translation_key="curtain",
             id=DPCode.CONTROL,
             name="Curtain",
             custom_configs=localtuya_cover("open_close_stop", "position"),

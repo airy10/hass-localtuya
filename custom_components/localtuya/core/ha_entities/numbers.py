@@ -40,6 +40,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # White noise machine
     DeviceCategory.BZYD: (
         LocalTuyaEntity(
+            translation_key="volume",
             id=DPCode.VOLUME_SET,
             name="Volume",
             entity_category=EntityCategory.CONFIG,
@@ -50,6 +51,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.DGNZK: (
         LocalTuyaEntity(
+            translation_key="volume",
             id=DPCode.VOICE_VOL,
             name="Volume",
             entity_category=EntityCategory.CONFIG,
@@ -57,6 +59,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:volume-equal",
         ),
         LocalTuyaEntity(
+            translation_key="play_time",
             id=DPCode.PLAY_TIME,
             name="Play time",
             entity_category=EntityCategory.CONFIG,
@@ -64,6 +67,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:motion-play-outline",
         ),
         LocalTuyaEntity(
+            translation_key="bass",
             id=DPCode.BASS_CONTROL,
             name="Bass",
             entity_category=EntityCategory.CONFIG,
@@ -71,6 +75,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:speaker",
         ),
         LocalTuyaEntity(
+            translation_key="treble",
             id=DPCode.TREBLE_CONTROL,
             name="Treble",
             entity_category=EntityCategory.CONFIG,
@@ -82,6 +87,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorydgnbj?id=Kaiuz3yorvzg3
     DeviceCategory.DGNBJ: (
         LocalTuyaEntity(
+            translation_key="time",
             id=DPCode.ALARM_TIME,
             name="Time",
             entity_category=EntityCategory.CONFIG,
@@ -92,6 +98,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/fbh?id=K9gf484m21yq7
     DeviceCategory.BH: (
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -100,6 +107,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100),
         ),
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET_F,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -108,6 +116,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(32, 212),
         ),
         LocalTuyaEntity(
+            translation_key="temperature_after_boiling",
             id=DPCode.TEMP_BOILING_C,
             name="Temperature After Boiling",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -116,6 +125,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100),
         ),
         LocalTuyaEntity(
+            translation_key="temperature_after_boiling",
             id=DPCode.TEMP_BOILING_F,
             name="Temperature After Boiling",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -124,6 +134,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(32, 212),
         ),
         LocalTuyaEntity(
+            translation_key="heat_preservation_time",
             id=DPCode.WARM_TIME,
             name="Heat preservation time",
             icon="mdi:timer",
@@ -135,12 +146,14 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
     DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
+            translation_key="feed",
             id=DPCode.MANUAL_FEED,
             name="Feed",
             icon="mdi:bowl",
             custom_configs=localtuya_numbers(1, 12),
         ),
         LocalTuyaEntity(
+            translation_key="voice_prompt",
             id=DPCode.VOICE_TIMES,
             name="Voice prompt",
             icon="mdi:microphone",
@@ -151,6 +164,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46aewxem5
     DeviceCategory.CWYSJ: (
         LocalTuyaEntity(
+            translation_key="cleaning_time",
             id=DPCode.PUMP_TIME,
             name="Cleaning Time",
             custom_configs=localtuya_numbers(0, 31, unit="d"),
@@ -160,6 +174,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorydj?id=Kaiuyzy3eheyy
     DeviceCategory.DJ: (
         LocalTuyaEntity(
+            translation_key="light_1_timer",
             id=DPCode.COUNTDOWN_1,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -167,6 +182,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="light_2_timer",
             id=DPCode.COUNTDOWN_2,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -174,6 +190,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="light_3_timer",
             id=DPCode.COUNTDOWN_3,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -181,6 +198,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="light_4_timer",
             id=DPCode.COUNTDOWN_4,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -188,6 +206,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="timer",
             id=DPCode.COUNTDOWN,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -198,6 +217,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # CO2 Detector
     DeviceCategory.CO2BJ: (
         LocalTuyaEntity(
+            translation_key="alarm_duration",
             id=DPCode.ALARM_TIME,
             name="Alarm Duration",
             entity_category=EntityCategory.CONFIG,
@@ -208,12 +228,14 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryhps?id=Kaiuz42yhn1hs
     DeviceCategory.HPS: (
         LocalTuyaEntity(
+            translation_key="sensitivity",
             id=DPCode.SENSITIVITY,
             name="sensitivity",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 9),
         ),
         LocalTuyaEntity(
+            translation_key="near_detection_cm",
             id=DPCode.NEAR_DETECTION,
             name="Near Detection CM",
             icon="mdi:signal-distance-variant",
@@ -221,6 +243,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="far_detection_cm",
             id=DPCode.FAR_DETECTION,
             name="Far Detection CM",
             icon="mdi:signal-distance-variant",
@@ -228,6 +251,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="target_distance_closest",
             id=DPCode.TARGET_DIS_CLOSEST,
             name="Target Distance Closest",
             icon="mdi:signal-distance-variant",
@@ -238,6 +262,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorykfj?id=Kaiuz2p12pc7f
     DeviceCategory.KFJ: (
         LocalTuyaEntity(
+            translation_key="water_level",
             id=DPCode.WATER_SET,
             name="Water Level",
             icon="mdi:cup-water",
@@ -245,6 +270,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 500),
         ),
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -253,6 +279,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100),
         ),
         LocalTuyaEntity(
+            translation_key="heat_preservation_time",
             id=DPCode.WARM_TIME,
             name="Heat preservation time",
             icon="mdi:timer",
@@ -260,6 +287,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 1440),
         ),
         LocalTuyaEntity(
+            translation_key="powder",
             id=DPCode.POWDER_SET,
             name="Powder",
             entity_category=EntityCategory.CONFIG,
@@ -270,6 +298,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
     DeviceCategory.KG: (
         LocalTuyaEntity(
+            translation_key="switch_1_timer",
             id=DPCode.COUNTDOWN_1,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -277,6 +306,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_2_timer",
             id=DPCode.COUNTDOWN_2,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -284,6 +314,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_3_timer",
             id=DPCode.COUNTDOWN_3,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -291,6 +322,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_4_timer",
             id=DPCode.COUNTDOWN_4,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -298,6 +330,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_5_timer",
             id=DPCode.COUNTDOWN_5,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -305,6 +338,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_6_timer",
             id=DPCode.COUNTDOWN_6,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -312,6 +346,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb1_timer",
             id=DPCode.COUNTDOWN_USB1,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -319,6 +354,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb2_timer",
             id=DPCode.COUNTDOWN_USB2,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -326,6 +362,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb3_timer",
             id=DPCode.COUNTDOWN_USB3,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -333,6 +370,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb4_timer",
             id=DPCode.COUNTDOWN_USB4,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -340,6 +378,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb5_timer",
             id=DPCode.COUNTDOWN_USB5,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -347,6 +386,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="usb6_timer",
             id=DPCode.COUNTDOWN_USB6,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -354,6 +394,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_timer",
             id=DPCode.COUNTDOWN,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -361,6 +402,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="switch_timer",
             id=DPCode.COUNTDOWN_USB,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -369,6 +411,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
         # CZ - Energy monitor?
         LocalTuyaEntity(
+            translation_key="power_wanring_limit",
             id=DPCode.WARN_POWER,
             icon="mdi:alert-outline",
             entity_category=EntityCategory.CONFIG,
@@ -376,6 +419,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 50000, 1, 1, UnitOfPower.WATT),
         ),
         LocalTuyaEntity(
+            translation_key="power_1_wanring_limit",
             id=DPCode.WARN_POWER1,
             icon="mdi:alert-outline",
             entity_category=EntityCategory.CONFIG,
@@ -383,6 +427,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 50000, 1, 1, UnitOfPower.WATT),
         ),
         LocalTuyaEntity(
+            translation_key="power_2_wanring_limit",
             id=DPCode.WARN_POWER2,
             icon="mdi:alert-outline",
             entity_category=EntityCategory.CONFIG,
@@ -390,6 +435,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 50000, 1, 1, UnitOfPower.WATT),
         ),
         LocalTuyaEntity(
+            translation_key="power_adjustment",
             id=DPCode.POWER_ADJUSTMENT,
             icon="mdi:generator-mobile",
             entity_category=EntityCategory.CONFIG,
@@ -398,6 +444,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
         # Fan "tdq"
         LocalTuyaEntity(
+            translation_key="fan_timer",
             id=DPCode.FAN_COUNTDOWN,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -405,6 +452,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="fan_2_timer",
             id=DPCode.FAN_COUNTDOWN_2,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -412,6 +460,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="fan_3_timer",
             id=DPCode.FAN_COUNTDOWN_3,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -419,6 +468,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="fan_4_timer",
             id=DPCode.FAN_COUNTDOWN_4,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -430,6 +480,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/s?id=Kb0o2xhlkxbet
     DeviceCategory.MC: (
         LocalTuyaEntity(
+            translation_key="temporary_unlock",
             id=(
                 DPCode.UNLOCK_APP,
                 DPCode.UNLOCK_FINGERPRINT,
@@ -446,6 +497,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
     DeviceCategory.MSP: (
         LocalTuyaEntity(
+            translation_key="delay_clean_time",
             id=DPCode.DELAY_CLEAN_TIME,
             name="Delay Clean Time",
             icon="mdi:timer",
@@ -453,6 +505,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 60, 1, 1, UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="quiet_time_start",
             id=DPCode.QUIET_TIME_START,
             name="Quiet Time Start",
             icon="mdi:timer-play-outline",
@@ -460,6 +513,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 1439, 1, 1, UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="quiet_time_end",
             id=DPCode.QUIET_TIME_END,
             name="Quiet Time End",
             icon="mdi:timer-pause-outline",
@@ -467,12 +521,14 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 1439, 1, 1, UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="dis_current",
             id=DPCode.DIS_CURRENT,
             name="DIS CURRENT",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 50, 1, 1),
         ),
         LocalTuyaEntity(
+            translation_key="flow",
             id=DPCode.FLOW_SET,
             name="Flow",
             entity_category=EntityCategory.CONFIG,
@@ -483,6 +539,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorymzj?id=Kaiuz2vy130ux
     DeviceCategory.MZJ: (
         LocalTuyaEntity(
+            translation_key="cooking_temperature",
             id=DPCode.COOK_TEMPERATURE,
             name="Cooking temperature",
             icon="mdi:thermometer",
@@ -490,6 +547,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 500),
         ),
         LocalTuyaEntity(
+            translation_key="cooking_time",
             id=DPCode.COOK_TIME,
             name="Cooking time",
             icon="mdi:timer",
@@ -497,12 +555,14 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 360, 1, 1, UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="cloud_recipes",
             id=DPCode.CLOUD_RECIPE_NUMBER,
             name="Cloud Recipes",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 999999),
         ),
         LocalTuyaEntity(
+            translation_key="appointment_time",
             id=DPCode.APPOINTMENT_TIME,
             name="Appointment time",
             entity_category=EntityCategory.CONFIG,
@@ -513,6 +573,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorypir?id=Kaiuz3ss11b80
     DeviceCategory.PIR: (
         LocalTuyaEntity(
+            translation_key="sensitivity",
             id=DPCode.SENS,
             icon="mdi:signal-distance-variant",
             entity_category=EntityCategory.CONFIG,
@@ -520,6 +581,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 4),
         ),
         LocalTuyaEntity(
+            translation_key="timer_duration",
             id=DPCode.TIM,
             icon="mdi:timer-10",
             entity_category=EntityCategory.CONFIG,
@@ -527,6 +589,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 900, 1, 1, UnitOfTime.SECONDS),
         ),
         LocalTuyaEntity(
+            translation_key="light_level",
             id=DPCode.LUX,
             icon="mdi:brightness-6",
             entity_category=EntityCategory.CONFIG,
@@ -534,6 +597,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 981, 1, 1, "lx"),
         ),
         LocalTuyaEntity(
+            translation_key="interval",
             id=DPCode.INTERVAL_TIME,
             icon="mdi:timer-sand-complete",
             entity_category=EntityCategory.CONFIG,
@@ -545,6 +609,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/fsd?id=K9gf487ck1tlo
     DeviceCategory.SD: (
         LocalTuyaEntity(
+            translation_key="volume",
             id=DPCode.VOLUME_SET,
             name="volume",
             icon="mdi:volume-high",
@@ -556,6 +621,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorysgbj?id=Kaiuz37tlpbnu
     DeviceCategory.SGBJ: (
         LocalTuyaEntity(
+            translation_key="alarm_duration",
             id=(DPCode.ALARM_TIME, DPCode.ALARMPERIOD),
             name="Alarm duration",
             entity_category=EntityCategory.CONFIG,
@@ -566,6 +632,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
     DeviceCategory.SP: (
         LocalTuyaEntity(
+            translation_key="volume",
             id=DPCode.BASIC_DEVICE_VOLUME,
             name="volume",
             icon="mdi:volume-high",
@@ -573,6 +640,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 10),
         ),
         LocalTuyaEntity(
+            translation_key="floodlight_brightness",
             id=DPCode.FLOODLIGHT_LIGHTNESS,
             name="Floodlight brightness",
             icon="mdi:brightness-6",
@@ -580,6 +648,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 100),
         ),
         LocalTuyaEntity(
+            translation_key="video_brightness",
             id=DPCode.IPC_BRIGHT,
             name="Video Brightness",
             icon="mdi:brightness-6",
@@ -587,6 +656,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100),
         ),
         LocalTuyaEntity(
+            translation_key="video_contrast",
             id=DPCode.IPC_CONTRAST,
             name="Video Contrast",
             icon="mdi:contrast-circle",
@@ -594,6 +664,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100),
         ),
         LocalTuyaEntity(
+            translation_key="video_sharpness",
             id=DPCode.IPC_SHARP,
             name="Video Sharpness",
             icon="mdi:image-filter-center-focus",
@@ -605,6 +676,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
     DeviceCategory.TGKG: (
         LocalTuyaEntity(
+            translation_key="minimum_brightness",
             id=DPCode.BRIGHTNESS_MIN_1,
             name="minimum_brightness",
             icon="mdi:lightbulb-outline",
@@ -612,6 +684,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="maximum_brightness",
             id=DPCode.BRIGHTNESS_MAX_1,
             name="maximum_brightness",
             icon="mdi:lightbulb-on-outline",
@@ -619,6 +692,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="minimum_brightness_2",
             id=DPCode.BRIGHTNESS_MIN_2,
             name="minimum_brightness_2",
             icon="mdi:lightbulb-outline",
@@ -626,6 +700,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="maximum_brightness_2",
             id=DPCode.BRIGHTNESS_MAX_2,
             name="maximum_brightness_2",
             icon="mdi:lightbulb-on-outline",
@@ -633,6 +708,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="minimum_brightness_3",
             id=DPCode.BRIGHTNESS_MIN_3,
             name="minimum_brightness_3",
             icon="mdi:lightbulb-outline",
@@ -640,6 +716,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="maximum_brightness_3",
             id=DPCode.BRIGHTNESS_MAX_3,
             name="maximum_brightness_3",
             icon="mdi:lightbulb-on-outline",
@@ -651,6 +728,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
     DeviceCategory.TGQ: (
         LocalTuyaEntity(
+            translation_key="minimum_brightness",
             id=DPCode.BRIGHTNESS_MIN_1,
             name="minimum_brightness",
             icon="mdi:lightbulb-outline",
@@ -658,6 +736,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="maximum_brightness",
             id=DPCode.BRIGHTNESS_MAX_1,
             name="maximum_brightness",
             icon="mdi:lightbulb-on-outline",
@@ -665,6 +744,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="minimum_brightness_2",
             id=DPCode.BRIGHTNESS_MIN_2,
             name="minimum_brightness_2",
             icon="mdi:lightbulb-outline",
@@ -672,6 +752,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(10, 1000),
         ),
         LocalTuyaEntity(
+            translation_key="maximum_brightness_2",
             id=DPCode.BRIGHTNESS_MAX_2,
             name="maximum_brightness_2",
             icon="mdi:lightbulb-on-outline",
@@ -683,6 +764,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryzd?id=Kaiuz3a5vrzno
     DeviceCategory.ZD: (
         LocalTuyaEntity(
+            translation_key="sensitivity",
             id=DPCode.SENSITIVITY,
             name="Sensitivity",
             entity_category=EntityCategory.CONFIG,
@@ -695,6 +777,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # click_sustain_time: "values": "{\"unit\":\"s\",\"min\":2,\"max\":10,\"scale\":0,\"step\":1}"
     DeviceCategory.SZJQR: (
         LocalTuyaEntity(
+            translation_key="move_down",
             id=DPCode.ARM_DOWN_PERCENT,
             name="Move Down",
             icon="mdi:arrow-down-bold",
@@ -702,6 +785,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(50, 100, 1, 1, PERCENTAGE),
         ),
         LocalTuyaEntity(
+            translation_key="move_up",
             id=DPCode.ARM_UP_PERCENT,
             name="Move UP",
             icon="mdi:arrow-up-bold",
@@ -709,6 +793,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 50, 1, 1, PERCENTAGE),
         ),
         LocalTuyaEntity(
+            translation_key="down_delay",
             id=DPCode.CLICK_SUSTAIN_TIME,
             name="Down Delay",
             icon="mdi:timer",
@@ -720,6 +805,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryfs?id=Kaiuz1xweel1c
     DeviceCategory.FS: (
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -727,6 +813,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 10, unit=UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
+            translation_key="temperature",
             id=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
             name="Temperature",
             entity_category=EntityCategory.CONFIG,
@@ -734,6 +821,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(40, 70, unit=UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
+            translation_key="timer",
             id=DPCode.COUNTDOWN,
             icon="mdi:timer",
             entity_category=EntityCategory.CONFIG,
@@ -745,6 +833,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
     DeviceCategory.JSQ: (
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -752,6 +841,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 50),
         ),
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET_F,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -762,12 +852,14 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Cooking thermometer
     DeviceCategory.SWTZ: (
         LocalTuyaEntity(
+            translation_key="cook_temperature",
             id=DPCode.COOK_TEMPERATURE,
             name="Cook Temperature",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 300),
         ),
         LocalTuyaEntity(
+            translation_key="cook_temperature_2",
             id=DPCode.COOK_TEMPERATURE_2,
             name="Cook Temperature 2",
             entity_category=EntityCategory.CONFIG,
@@ -777,16 +869,19 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Thermostat
     DeviceCategory.WK: (
         LocalTuyaEntity(
+            translation_key="calibration_offset",
             id=DPCode.TEMPCOMP,
             name="Calibration offset",
             custom_configs=localtuya_numbers(-9, 9),
         ),
         LocalTuyaEntity(
+            translation_key="calibration_swing",
             id=DPCode.TEMPACTIVATE,
             name="Calibration swing",
             custom_configs=localtuya_numbers(1, 9),
         ),
         LocalTuyaEntity(
+            translation_key="temperature_correction",
             id=DPCode.TEMP_CORRECTION,
             name="Temperature Correction",
             icon="mdi:thermometer-check",
@@ -797,18 +892,21 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Gateway control
     DeviceCategory.WG2: (
         LocalTuyaEntity(
+            translation_key="arm_delay",
             id=DPCode.DELAY_SET,
             name="Arm Delay",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 65535),
         ),
         LocalTuyaEntity(
+            translation_key="alarm_delay",
             id=DPCode.ALARM_DELAY_TIME,
             name="Alarm Delay",
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(0, 65535),
         ),
         LocalTuyaEntity(
+            translation_key="siren_duration",
             id=DPCode.ALARM_TIME,
             name="Siren Duration",
             entity_category=EntityCategory.CONFIG,
@@ -818,6 +916,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Micro Storage Inverter
     DeviceCategory.XNYJCN: (
         LocalTuyaEntity(
+            translation_key="battery_backup_reserve",
             id=DPCode.BACKUP_RESERVE,
             name="Battery Backup Reserve",
             icon="mdi:battery-charging-80",
@@ -825,6 +924,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
         ),
         LocalTuyaEntity(
+            translation_key="inverter_output_power_limit",
             id=DPCode.OUTPUT_POWER_LIMIT,
             name="Inverter Output Power Limit",
             icon="mdi:transmission-tower",
@@ -835,6 +935,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Pool HeatPump
     DeviceCategory.ZNRB: (
         LocalTuyaEntity(
+            translation_key="temperature",
             id=DPCode.TEMP_SET,
             name="Temperature",
             device_class=NumberDeviceClass.TEMPERATURE,
@@ -845,6 +946,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorywsdcg?id=Kaiuz3hinij34
     DeviceCategory.WSDCG: (
         LocalTuyaEntity(
+            translation_key="max_temperature",
             id=(DPCode.MAXTEMP_SET, DPCode.UPPER_TEMP, DPCode.UPPER_TEMP_F),
             name="Max Temperature",
             icon="mdi:thermometer-high",
@@ -852,6 +954,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(-200, 600, unit=UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
+            translation_key="min_temperature",
             id=(DPCode.MINITEMP_SET, DPCode.LOWER_TEMP, DPCode.LOWER_TEMP_F),
             name="Min Temperature",
             icon="mdi:thermometer-low",
@@ -859,6 +962,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(-200, 600, unit=UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
+            translation_key="max_humidity",
             id=(DPCode.MAXHUM_SET, DPCode.MAX_HUMI),
             name="Max Humidity",
             icon="mdi:water-percent",
@@ -866,6 +970,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
         ),
         LocalTuyaEntity(
+            translation_key="min_humidity",
             id=(DPCode.MINIHUM_SET, DPCode.MIN_HUMI),
             name="Min Humidity",
             icon="mdi:water-percent",
@@ -873,6 +978,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
         ),
         LocalTuyaEntity(
+            translation_key="report_temperature_period",
             id=DPCode.TEMP_PERIODIC_REPORT,
             name="Report Temperature Period",
             icon="mdi:timer-sand",
@@ -880,6 +986,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 120, unit=UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="report_humidity_period",
             id=DPCode.HUM_PERIODIC_REPORT,
             name="Report Humidity Period",
             icon="mdi:timer-sand",
@@ -887,6 +994,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(1, 120, unit=UnitOfTime.MINUTES),
         ),
         LocalTuyaEntity(
+            translation_key="temperature_sensitivity",
             id=DPCode.TEMP_SENSITIVITY,
             name="Temperature Sensitivity",
             icon="mdi:thermometer-lines",
@@ -894,6 +1002,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_numbers(3, 20, unit=UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
+            translation_key="humidity_sensitivity",
             id=DPCode.HUM_SENSITIVITY,
             name="Humidity Sensitivity",
             icon="mdi:water-opacity",
@@ -905,6 +1014,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorymal?id=Kaiuz33clqxaf
     DeviceCategory.MAL: (
         LocalTuyaEntity(
+            translation_key="delay_setting",
             id=DPCode.DELAY_SET,
             name="Delay Setting",
             custom_configs=localtuya_numbers(0, 65535),
@@ -912,6 +1022,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="duration",
             id=DPCode.ALARM_TIME,
             name="Duration",
             custom_configs=localtuya_numbers(0, 65535),
@@ -919,6 +1030,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="delay_alarm",
             id=DPCode.ALARM_DELAY_TIME,
             name="Delay Alarm",
             custom_configs=localtuya_numbers(0, 65535),
@@ -930,6 +1042,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n
     DeviceCategory.KT: (
         LocalTuyaEntity(
+            translation_key="timer",
             id=DPCode.TIMER,
             name="Timer",
             custom_configs=localtuya_numbers(0, 24, unit=UnitOfTime.HOURS),
@@ -941,48 +1054,56 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     DeviceCategory.QCCDZ: (
         LocalTuyaEntity(
+            translation_key="set_delay_time",
             id=DPCode.SETDELAYTIME,
             name="Set Delay time",
             custom_configs=localtuya_numbers(0, 15, unit=UnitOfTime.HOURS),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_define_time",
             id=DPCode.SETDEFINETIME,
             name="Set Define time",
             custom_configs=localtuya_numbers(0, 15, unit=UnitOfTime.HOURS),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_16a",
             id=DPCode.SET16A,
             name="Set 16A",
             custom_configs=localtuya_numbers(8, 16, unit=UnitOfElectricCurrent.AMPERE),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_32a",
             id=DPCode.SET32A,
             name="Set 32A",
             custom_configs=localtuya_numbers(8, 32, unit=UnitOfElectricCurrent.AMPERE),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_400a",
             id=DPCode.SET40A,
             name="Set 400A",
             custom_configs=localtuya_numbers(12, 40, unit=UnitOfElectricCurrent.AMPERE),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_50a",
             id=DPCode.SET50A,
             name="Set 50A",
             custom_configs=localtuya_numbers(12, 50, unit=UnitOfElectricCurrent.AMPERE),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_60a",
             id=DPCode.SET60A,
             name="Set 60A",
             custom_configs=localtuya_numbers(6, 80, unit=UnitOfElectricCurrent.AMPERE),
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="set_80a",
             id=DPCode.SET80A,
             name="Set 80A",
             custom_configs=localtuya_numbers(24, 80, unit=UnitOfElectricCurrent.AMPERE),
@@ -993,6 +1114,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://support.tuya.com/en/help/_detail/K9g77zfmlnwal
     DeviceCategory.QT: (
         LocalTuyaEntity(
+            translation_key="rated_current",
             id=DPCode.RATED_CURRENT,
             name="Rated Current",
             custom_configs=localtuya_numbers(
@@ -1002,6 +1124,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="load_balancing_current",
             id=DPCode.LOAD_BALANCING_CURRENT,
             name="Load Balancing Current",
             custom_configs=localtuya_numbers(
@@ -1015,6 +1138,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/smart-meter?id=Kaiuz4gv6ack7
     DeviceCategory.ZNDB: (
         LocalTuyaEntity(
+            translation_key="energy_a_calibrations",
             id=DPCode.ENERGY_A_CALIBRATION_FWD,
             name="Energy A Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1022,6 +1146,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="energy_b_calibrations",
             id=DPCode.ENERGY_B_CALIBRATION_FWD,
             name="Energy B Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1029,6 +1154,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="energy_c_calibrations",
             id=DPCode.ENERGY_C_CALIBRATION_FWD,
             name="Energy C Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1036,6 +1162,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reverse_energy_a_calibrations",
             id=DPCode.ENERGY_A_CALIBRATION_REV,
             name="Reverse Energy A Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1043,6 +1170,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reverse_energy_b_calibrations",
             id=DPCode.ENERGY_B_CALIBRATION_REV,
             name="Reverse Energy B Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1050,6 +1178,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="reverse_energy_c_calibrations",
             id=DPCode.ENERGY_C_CALIBRATION_REV,
             name="Reverse Energy C Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1057,6 +1186,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="current_a_calibrations",
             id=DPCode.CURRENT_A_CALIBRATION,
             name="Current A Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1064,6 +1194,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="current_b_calibrations",
             id=DPCode.CURRENT_B_CALIBRATION,
             name="Current B Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1071,6 +1202,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="current_c_calibrations",
             id=DPCode.CURRENT_C_CALIBRATION,
             name="Current C Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1078,6 +1210,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="power_a_calibrations",
             id=DPCode.POWER_A_CALIBRATION,
             name="Power A Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1085,6 +1218,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="power_b_calibrations",
             id=DPCode.POWER_B_CALIBRATION,
             name="Power B Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1092,6 +1226,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="power_c_calibrations",
             id=DPCode.POWER_C_CALIBRATION,
             name="Power C Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1099,6 +1234,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="frequency_calibrations",
             id=DPCode.FREQ_CALIBRATION,
             name="Frequency Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1106,6 +1242,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="voltage_calibrations",
             id=DPCode.VOLTAGE_COEF,
             name="Voltage Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
@@ -1113,6 +1250,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="report_period",
             id=DPCode.REPORT_RATE_CONTROL,
             name="Report Period",
             custom_configs=localtuya_numbers(3, 60, unit=UnitOfTime.SECONDS),
@@ -1123,6 +1261,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Ultrasonic level sensor
     DeviceCategory.YWCGQ: (
         LocalTuyaEntity(
+            translation_key="maximum",
             id=DPCode.MAX_SET,
             name="Maximum",
             custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
@@ -1130,6 +1269,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="minimum",
             id=DPCode.MINI_SET,
             name="Minimum",
             custom_configs=localtuya_numbers(0, 100, unit=PERCENTAGE),
@@ -1137,6 +1277,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="depth_maximum",
             id=DPCode.LIQUID_DEPTH_MAX,
             name="Depth Maximum",
             custom_configs=localtuya_numbers(100, 2400, unit=UnitOfLength.METERS),
@@ -1144,6 +1285,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
+            translation_key="installation_height",
             id=DPCode.INSTALLATION_HEIGHT,
             name="Installation Height",
             custom_configs=localtuya_numbers(
@@ -1156,6 +1298,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Lawn mower
     DeviceCategory.GCJ: (
         LocalTuyaEntity(
+            translation_key="running_time",
             id=DPCode.MACHINEWORKTIME,
             name="Running time",
             custom_configs=localtuya_numbers(1, 99, unit=UnitOfTime.MINUTES),
@@ -1169,6 +1312,7 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
 # https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5
 NUMBERS[DeviceCategory.WXKG] = (
     LocalTuyaEntity(
+        translation_key="temperature",
         id=DPCode.TEMP_VALUE,
         name="Temperature",
         icon="mdi:thermometer",
@@ -1181,6 +1325,7 @@ NUMBERS[DeviceCategory.WXKG] = (
 NUMBERS[DeviceCategory.SFKZQ] = (
     *NUMBERS[DeviceCategory.KG],
     LocalTuyaEntity(
+        translation_key="irrigation_7_timer",
         id=DPCode.COUNTDOWN_7,
         icon="mdi:timer",
         entity_category=EntityCategory.CONFIG,
@@ -1188,6 +1333,7 @@ NUMBERS[DeviceCategory.SFKZQ] = (
         custom_configs=localtuya_numbers(0, 86400, 1, 1, UnitOfTime.SECONDS),
     ),
     LocalTuyaEntity(
+        translation_key="irrigation_8_timer",
         id=DPCode.COUNTDOWN_8,
         icon="mdi:timer",
         entity_category=EntityCategory.CONFIG,

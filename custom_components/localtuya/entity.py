@@ -366,6 +366,9 @@ def entity_config_from_description(
     config[CONF_PLATFORM] = platform
     config[CONF_ENTITY_ENABLED_DEFAULT] = True
 
+    if tk := getattr(description, "translation_key", None):
+        config["translation_key"] = tk
+
     for key, value in (getattr(description, "entity_configs", {}) or {}).items():
         if hasattr(value, "default_value"):
             value = value.default_value
@@ -466,9 +469,13 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         self._dp_id = dp_id
         # Keep subclass-set keys (e.g. BLE dpcode keys); derive platform_dp_id otherwise.
         if getattr(self, "_attr_translation_key", None) is None:
-            self._attr_translation_key = (
-                f"{self._config.get(CONF_PLATFORM)}_{self._dp_id}"
-            )
+            # Prefer explicit translation_key from the description table.
+            if tk := self._config.get("translation_key"):
+                self._attr_translation_key = tk
+            else:
+                self._attr_translation_key = (
+                    f"{self._config.get(CONF_PLATFORM)}_{self._dp_id}"
+                )
         self._status = {}
         self._state = None
         self._last_state = None

@@ -20,6 +20,7 @@ SIRENS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryco2bj?id=Kaiuz3wes7yuy
     DeviceCategory.CO2BJ: (
         LocalTuyaEntity(
+            translation_key="siren",
             id=DPCode.ALARM_SWITCH,
             entity_category=EntityCategory.CONFIG,
             name="Siren",
@@ -43,6 +44,7 @@ SIRENS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
     DeviceCategory.SP: (
         LocalTuyaEntity(
+            translation_key="siren_switch",
             id=DPCode.SIREN_SWITCH,
         ),
     ),

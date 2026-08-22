@@ -50,6 +50,7 @@ HUMIDIFIERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycs?id=Kaiuz1vcz4dha
     DeviceCategory.CS: (
         LocalTuyaEntity(
+            translation_key="switch",
             id=DPCode.SWITCH,
             humidifier_current_humidity_dp=DPCode.HUMIDITY_INDOOR,
             humidifier_set_humidity_dp=DPCode.DEHUMIDITY_SET_VALUE,
@@ -68,6 +69,7 @@ HUMIDIFIERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
     DeviceCategory.JSQ: (
         LocalTuyaEntity(
+            translation_key="switch",
             id=DPCode.SWITCH,
             humidifier_current_humidity_dp=DPCode.HUMIDITY_CURRENT,
             humidifier_set_humidity_dp=DPCode.HUMIDITY_SET,

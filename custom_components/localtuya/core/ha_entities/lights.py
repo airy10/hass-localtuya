@@ -40,6 +40,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # White noise machine
     DeviceCategory.BZYD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -51,6 +52,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/category-clkg?id=Kaiuz0gitil39
     DeviceCategory.CLKG: (
         LocalTuyaEntity(
+            translation_key="state_light",
             id=DPCode.SWITCH_BACKLIGHT,
             name="State light",
             entity_category=EntityCategory.CONFIG,
@@ -61,6 +63,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorycwwsq?id=Kaiuz2b6vydld
     DeviceCategory.CWWSQ: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             name="Light",
         ),
@@ -69,6 +72,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/dc?id=Kaof7taxmvadu
     DeviceCategory.DC: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -82,6 +86,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/dd?id=Kaof804aibg2l
     DeviceCategory.DD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -96,6 +101,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Filament Light
     DeviceCategory.DSD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -107,6 +113,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorydj?id=Kaiuyzy3eheyy
     DeviceCategory.DJ: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -119,6 +126,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         # Not documented
         # Based on multiple reports: manufacturer customized Dimmer 2 switches
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.SWITCH_1,
             name="light",
             brightness=DPCode.BRIGHT_VALUE_1,
@@ -128,6 +136,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/fsd?id=Kaof8eiei4c2v
     DeviceCategory.FSD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -139,6 +148,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
         # Some ceiling fan lights use LIGHT for DPCode instead of SWITCH_LED
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             name=None,
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
@@ -147,6 +157,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Fan Switch
     DeviceCategory.FSKG: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.SWITCH_LED,
             name="Light",
             color_mode=DPCode.WORK_MODE,
@@ -158,6 +169,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
         ),
         # Some ceiling fan lights use LIGHT for DPCode instead of SWITCH_LED
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             name=None,
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
@@ -167,6 +179,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/ambient-light?id=Kaiuz06amhe6g
     DeviceCategory.FWD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -181,6 +194,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/gyd?id=Kaof8a8hycfmy
     DeviceCategory.GYD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -194,6 +208,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryjsq?id=Kaiuz1smr440b
     DeviceCategory.JSQ: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -206,6 +221,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
     DeviceCategory.KG: (
         LocalTuyaEntity(
+            translation_key="state_light",
             id=DPCode.SWITCH_BACKLIGHT,
             name="State light",
             entity_category=EntityCategory.CONFIG,
@@ -216,6 +232,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf46h2s6dzm
     DeviceCategory.KJ: (
         LocalTuyaEntity(
+            translation_key="state_light",
             id=DPCode.LIGHT,
             name="State light",
             entity_category=EntityCategory.CONFIG,
@@ -226,6 +243,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorykt?id=Kaiuz0z71ov2n
     DeviceCategory.KT: (
         LocalTuyaEntity(
+            translation_key="state_light",
             id=DPCode.LIGHT,
             name="State light",
             entity_category=EntityCategory.CONFIG,
@@ -237,6 +255,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.MBD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -250,6 +269,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.QJDCZ: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -262,6 +282,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     DeviceCategory.QN: (
         LocalTuyaEntity(
+            translation_key="state_light",
             id=DPCode.LIGHT,
             name="State light",
             entity_category=EntityCategory.CONFIG,
@@ -272,12 +293,14 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorysp?id=Kaiuz35leyo12
     DeviceCategory.SP: (
         LocalTuyaEntity(
+            translation_key="floodlight",
             id=DPCode.FLOODLIGHT_SWITCH,
             brightness=DPCode.FLOODLIGHT_LIGHTNESS,
             name="Floodlight",
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="indicator_light",
             id=DPCode.BASIC_INDICATOR,
             name="Indicator light",
             entity_category=EntityCategory.CONFIG,
@@ -288,6 +311,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorytgkg?id=Kaiuz0ktx7m0o
     DeviceCategory.TGKG: (
         LocalTuyaEntity(
+            translation_key="switch_led_1",
             id=DPCode.SWITCH_LED_1,
             brightness=DPCode.BRIGHT_VALUE_1,
             brightness_upper=DPCode.BRIGHTNESS_MAX_1,
@@ -295,6 +319,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_2",
             id=DPCode.SWITCH_LED_2,
             name="Light 2",
             brightness=DPCode.BRIGHT_VALUE_2,
@@ -303,6 +328,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_3",
             id=DPCode.SWITCH_LED_3,
             name="Light 3",
             brightness=DPCode.BRIGHT_VALUE_3,
@@ -315,6 +341,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/tgq?id=Kaof8ke9il4k4
     DeviceCategory.TGQ: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             brightness=(DPCode.BRIGHT_VALUE_V2, DPCode.BRIGHT_VALUE),
             brightness_upper=DPCode.BRIGHTNESS_MAX_1,
@@ -322,24 +349,28 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_1",
             id=DPCode.SWITCH_LED_1,
             name="Light 1",
             brightness=DPCode.BRIGHT_VALUE_1,
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_2",
             id=DPCode.SWITCH_LED_2,
             name="Light 2",
             brightness=DPCode.BRIGHT_VALUE_2,
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_3",
             id=DPCode.SWITCH_LED_3,
             name="Light 3",
             brightness=DPCode.BRIGHT_VALUE_3,
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_4",
             id=DPCode.SWITCH_LED_4,
             name="Light 4",
             brightness=DPCode.BRIGHT_VALUE_4,
@@ -349,6 +380,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Lighting controller
     DeviceCategory.HCDD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -362,6 +394,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.HXD: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.SWITCH_LED,
             name="light",
             brightness=(DPCode.BRIGHT_VALUE_V2, DPCode.BRIGHT_VALUE),
@@ -373,6 +406,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Tower Fan
     DeviceCategory.KS: (
         LocalTuyaEntity(
+            translation_key="backlight",
             id=DPCode.LIGHT,
             name="Backlight",
             entity_category=EntityCategory.CONFIG,
@@ -382,6 +416,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Cat litter box
     DeviceCategory.MSP: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             name="Light",
             entity_category=EntityCategory.CONFIG,
@@ -391,6 +426,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Smart indoor garden
     DeviceCategory.SZ: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             brightness=DPCode.BRIGHT_VALUE,
             name="Light",
@@ -401,6 +437,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/tynd?id=Kaof8j02e1t98
     DeviceCategory.TYNDJ: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -413,6 +450,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Outdoor flood light
     DeviceCategory.TYD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -426,6 +464,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/ceiling-light?id=Kaiuz03xxfc4r
     DeviceCategory.XDD: (
         LocalTuyaEntity(
+            translation_key="switch_led",
             id=DPCode.SWITCH_LED,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -435,6 +474,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="night_light",
             id=DPCode.SWITCH_NIGHT_LIGHT,
             name="night_light",
         ),
@@ -443,6 +483,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/ykq?id=Kaof8ljn81aov
     DeviceCategory.YKQ: (
         LocalTuyaEntity(
+            translation_key="switch_controller",
             id=DPCode.SWITCH_CONTROLLER,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -455,6 +496,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryfs?id=Kaiuz1xweel1c
     DeviceCategory.FS: (
         LocalTuyaEntity(
+            translation_key="light",
             id=DPCode.LIGHT,
             name=None,
             color_mode=DPCode.WORK_MODE,
@@ -463,6 +505,7 @@ LIGHTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
         LocalTuyaEntity(
+            translation_key="light_2",
             id=DPCode.SWITCH_LED,
             name="light_2",
             brightness=DPCode.BRIGHT_VALUE_1,

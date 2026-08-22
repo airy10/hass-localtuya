@@ -33,12 +33,14 @@ EVENTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Doorbell
     DeviceCategory.SP: (
         LocalTuyaEntity(
+            translation_key="doorbell_message",
             id=DPCode.ALARM_MESSAGE,
             name="Doorbell message",
             device_class=EventDeviceClass.DOORBELL,
             wrapper_class=Base64Utf8StringEventWrapper,
         ),
         LocalTuyaEntity(
+            translation_key="doorbell_picture",
             id=DPCode.DOORBELL_PIC,
             name="Doorbell picture",
             device_class=EventDeviceClass.DOORBELL,
