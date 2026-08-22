@@ -214,6 +214,7 @@ CLIMATES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
     DeviceCategory.WK: (
         LocalTuyaEntity(
+            translation_key="switch",
             id=(DPCode.SWITCH, DPCode.MODE),
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
             current_temperature_dp=(
@@ -242,6 +243,7 @@ CLIMATES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Not documented
     DeviceCategory.WKF: (
         LocalTuyaEntity(
+            translation_key="switch",
             id=(DPCode.SWITCH, DPCode.MODE),
             target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
             current_temperature_dp=(

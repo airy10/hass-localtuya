@@ -400,6 +400,7 @@ BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categorypir?id=Kaiuz3ss11b80
     DeviceCategory.PIR: (
         LocalTuyaEntity(
+            translation_key="pir",
             id=(DPCode.PIR, DPCode.PIR_STATE),
             device_class=BinarySensorDeviceClass.MOTION,
             custom_configs={CONF_STATE_ON: "pir"},
@@ -524,12 +525,14 @@ BINARY_SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # https://developer.tuya.com/en/docs/iot/categoryzd?id=Kaiuz3a5vrzno
     DeviceCategory.ZD: (
         LocalTuyaEntity(
+            translation_key="vibration",
             id=(DPCode.SHOCK_STATE, f"{DPCode.SHOCK_STATE}_vibration"),
             device_class=BinarySensorDeviceClass.VIBRATION,
             custom_configs={CONF_STATE_ON: "vibration"},
             condition_contains_any=["tilt", "true"],
         ),
         LocalTuyaEntity(
+            translation_key="drop",
             id=(DPCode.SHOCK_STATE, f"{DPCode.SHOCK_STATE}_drop"),
             icon="mdi:icon=package-down",
             custom_configs={CONF_STATE_ON: "drop"},

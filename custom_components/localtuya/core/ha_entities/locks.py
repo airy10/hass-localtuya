@@ -22,6 +22,7 @@ LOCKS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # Locks
     DeviceCategory.MS: (
         LocalTuyaEntity(
+            translation_key="lock",
             id=(DPCode.REMOTE_UNLOCK_SWITCH, DPCode.SWITCH),
             jammed_dp=DPCode.HIJACK,
             lock_state_dp=(DPCode.CLOSED_OPENED, DPCode.OPEN_CLOSE),

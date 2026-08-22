@@ -1,1874 +1,100 @@
 {
   "entity": {
-    "switch": {
-      "alarm_2": {
-        "name": "Alarm 2"
-      },
-      "alarm_3": {
-        "name": "Alarm 3"
-      },
-      "alarm_4": {
-        "name": "Alarm 4"
-      },
-      "alarm_5": {
-        "name": "Alarm 5"
-      },
-      "alarm_6": {
-        "name": "Alarm 6"
-      },
-      "anion": {
-        "name": "Anion"
-      },
-      "auto_clean": {
-        "name": "Auto Clean"
-      },
-      "auto_trigger_siren": {
-        "name": "Auto-trigger Siren"
-      },
-      "battery_lock": {
-        "name": "Battery Lock"
-      },
-      "beep": {
-        "name": "Beep"
-      },
-      "bt_voice": {
-        "name": "BT Voice"
-      },
-      "call": {
-        "name": "Call"
-      },
-      "charge": {
-        "name": "Charge"
-      },
-      "child_lock": {
-        "name": "Child Lock"
-      },
-      "cleaning": {
-        "name": "Cleaning"
-      },
-      "cry_detection": {
-        "name": "Cry Detection"
-      },
-      "disinfection": {
-        "name": "Disinfection"
-      },
-      "do_not_disturb": {
-        "name": "Do Not Disturb"
-      },
-      "eco": {
-        "name": "ECO"
-      },
-      "enable_quiet_timing": {
-        "name": "Enable Quiet Timing"
-      },
-      "energy_saving": {
-        "name": "Energy Saving"
-      },
-      "flip": {
-        "name": "Flip"
-      },
-      "frost_protection": {
-        "name": "Frost Protection"
-      },
-      "humidification": {
-        "name": "Humidification"
-      },
-      "inner_dry": {
-        "name": "Inner Dry"
-      },
-      "ionizer": {
-        "name": "Ionizer"
-      },
-      "key_tone_sound": {
-        "name": "Key Tone Sound"
-      },
-      "keypad_light": {
-        "name": "Keypad Light"
-      },
-      "lcd": {
-        "name": "LCD"
-      },
-      "led_switch": {
-        "name": "LED Switch"
-      },
-      "light": {
-        "name": "Light"
-      },
-      "light_indicator": {
-        "name": "Light Indicator"
-      },
-      "manual_cleaning": {
-        "name": "Manual Cleaning"
-      },
-      "map_resetting": {
-        "name": "Map Resetting"
-      },
-      "microphone": {
-        "name": "Microphone"
-      },
-      "mop_y": {
-        "name": "Mop Y"
-      },
-      "motion_alarm": {
-        "name": "Motion Alarm"
-      },
-      "motion_recording": {
-        "name": "Motion Recording"
-      },
-      "motion_tracking": {
-        "name": "Motion Tracking"
-      },
-      "music": {
-        "name": "Music"
-      },
-      "mute": {
-        "name": "Mute"
-      },
-      "mute_voice": {
-        "name": "Mute Voice"
-      },
-      "natural_wind": {
-        "name": "Natural Wind"
-      },
-      "open_window_detection": {
-        "name": "Open Window Detection"
-      },
-      "output_power_limit": {
-        "name": "Output Power Limit"
-      },
-      "overcharge": {
-        "name": "Overcharge"
-      },
-      "oxygen_bar": {
-        "name": "Oxygen Bar"
-      },
-      "plug": {
-        "name": "Plug"
-      },
-      "power": {
-        "name": "Power"
-      },
-      "preheat": {
-        "name": "Preheat"
-      },
-      "privacy_mode": {
-        "name": "Privacy Mode"
-      },
-      "ptz_stop": {
-        "name": "PTZ Stop"
-      },
-      "pump": {
-        "name": "Pump"
-      },
-      "push_notification": {
-        "name": "Push Notification"
-      },
-      "radio": {
-        "name": "Radio"
-      },
-      "rain_mode": {
-        "name": "Rain Mode"
-      },
-      "reset_filter": {
-        "name": "Reset Filter"
-      },
-      "reset_filter_cartridge": {
-        "name": "Reset Filter Cartridge_"
-      },
-      "reset_water": {
-        "name": "Reset Water"
-      },
-      "reset_water_pump": {
-        "name": "Reset Water Pump"
-      },
-      "resumable_cleaning": {
-        "name": "Resumable Cleaning"
-      },
-      "reverse": {
-        "name": "Reverse"
-      },
-      "set_down_limit": {
-        "name": "Set Down Limit"
-      },
-      "set_middle_limit": {
-        "name": "Set Middle Limit"
-      },
-      "set_upper_limit": {
-        "name": "Set Upper Limit"
-      },
-      "shake": {
-        "name": "Shake"
-      },
-      "side_a_power": {
-        "name": "Side A Power"
-      },
-      "side_a_preheat": {
-        "name": "Side A Preheat"
-      },
-      "side_b_power": {
-        "name": "Side B Power"
-      },
-      "side_b_preheat": {
-        "name": "Side B Preheat"
-      },
-      "sleep": {
-        "name": "Sleep"
-      },
-      "slow_feed": {
-        "name": "Slow Feed"
-      },
-      "smart_weather": {
-        "name": "Smart Weather"
-      },
-      "sms": {
-        "name": "SMS"
-      },
-      "snooze": {
-        "name": "Snooze"
-      },
-      "socket": {
-        "name": "Socket"
-      },
-      "sound": {
-        "name": "Sound"
-      },
-      "sound_detection": {
-        "name": "Sound Detection"
-      },
-      "spray": {
-        "name": "Spray"
-      },
-      "start": {
-        "name": "Start"
-      },
-      "sterilization": {
-        "name": "Sterilization"
-      },
-      "switch": {
-        "name": "Switch"
-      },
-      "switch_1": {
-        "name": "Switch 1"
-      },
-      "switch_2": {
-        "name": "Switch 2"
-      },
-      "switch_3": {
-        "name": "Switch 3"
-      },
-      "switch_4": {
-        "name": "Switch 4"
-      },
-      "switch_5": {
-        "name": "Switch 5"
-      },
-      "switch_6": {
-        "name": "Switch 6"
-      },
-      "switch_7": {
-        "name": "Switch 7"
-      },
-      "switch_8": {
-        "name": "Switch 8"
-      },
-      "time_watermark": {
-        "name": "Time Watermark"
-      },
-      "timer": {
-        "name": "Timer"
-      },
-      "usb": {
-        "name": "USB"
-      },
-      "usb_1": {
-        "name": "USB 1"
-      },
-      "usb_2": {
-        "name": "USB 2"
-      },
-      "usb_3": {
-        "name": "USB 3"
-      },
-      "usb_4": {
-        "name": "USB 4"
-      },
-      "usb_5": {
-        "name": "USB 5"
-      },
-      "usb_6": {
-        "name": "USB 6"
-      },
-      "use_motion_detection_zone": {
-        "name": "Use Motion Detection Zone"
-      },
-      "uv_sterilization": {
-        "name": "UV Sterilization"
-      },
-      "valve": {
-        "name": "Valve"
-      },
-      "video_recording": {
-        "name": "Video Recording"
-      },
-      "voice": {
-        "name": "Voice"
-      },
-      "warm": {
-        "name": "Warm"
-      },
-      "water": {
-        "name": "Water"
-      },
-      "welcome": {
-        "name": "Welcome"
-      },
-      "wide_dynamic_range": {
-        "name": "Wide Dynamic Range"
-      }
-    },
-    "light": {
-      "backlight": {
-        "name": "Backlight"
-      },
-      "floodlight": {
-        "name": "Floodlight"
-      },
-      "indicator_light": {
-        "name": "Indicator light"
-      },
-      "light": {
-        "name": "Light"
-      },
-      "light_1": {
-        "name": "Light 1"
-      },
-      "light_2": {
-        "name": "light_2"
-      },
-      "light_3": {
-        "name": "Light 3"
-      },
-      "light_4": {
-        "name": "Light 4"
-      },
-      "night_light": {
-        "name": "night_light"
-      },
-      "state_light": {
-        "name": "State light"
-      },
-      "switch_controller": {
-        "name": "Switch Controller"
-      },
-      "switch_led": {
-        "name": "Switch Led"
-      },
-      "switch_led_1": {
-        "name": "Switch Led 1"
-      }
-    },
-    "sensor": {
-      "ac_current": {
-        "name": "AC Current"
-      },
-      "ac_voltage": {
-        "name": "AC Voltage"
-      },
-      "air_pressure": {
-        "name": "Air Pressure"
-      },
-      "air_quality": {
-        "name": "air_quality"
-      },
-      "air_quality_index": {
-        "name": "Air Quality Index"
-      },
-      "air_return": {
-        "name": "AIR Return"
-      },
-      "battery": {
-        "name": "Battery"
-      },
-      "battery_level": {
-        "name": "Battery Level"
-      },
-      "battery_power": {
-        "name": "Battery Power"
-      },
-      "battery_soc": {
-        "name": "Battery SOC"
-      },
-      "carbon_dioxide": {
-        "name": "carbon_dioxide"
-      },
-      "carbon_monoxide": {
-        "name": "carbon_monoxide"
-      },
-      "card_balance": {
-        "name": "Card Balance"
-      },
-      "cat_litter_box_status": {
-        "name": "Cat Litter Box Status"
-      },
-      "cat_weight": {
-        "name": "Cat Weight"
-      },
-      "charge_electric_quantity": {
-        "name": "Charge Electric Quantity"
-      },
-      "charge_money": {
-        "name": "Charge Money"
-      },
-      "charge_state": {
-        "name": "Charge state"
-      },
-      "cleaning_area": {
-        "name": "cleaning_area"
-      },
-      "cleaning_time": {
-        "name": "cleaning_time"
-      },
-      "coil_out": {
-        "name": "Coil Out"
-      },
-      "coil_temperature": {
-        "name": "Coil Temperature"
-      },
-      "cold_temp_current": {
-        "name": "Cold Temp Current"
-      },
-      "compressor": {
-        "name": "Compressor"
-      },
-      "compressor_strength": {
-        "name": "Compressor Strength"
-      },
-      "concentration_carbon_dioxide": {
-        "name": "concentration_carbon_dioxide"
-      },
-      "connection_state": {
-        "name": "Connection state"
-      },
-      "cover": {
-        "name": "Cover"
-      },
-      "current": {
-        "name": "Current"
-      },
-      "current_1": {
-        "name": "Current 1"
-      },
-      "current_2": {
-        "name": "Current 2"
-      },
-      "current_a": {
-        "name": "Current A"
-      },
-      "current_b": {
-        "name": "Current B"
-      },
-      "current_c": {
-        "name": "Current C"
-      },
-      "current_humidity": {
-        "name": "Current Humidity"
-      },
-      "current_temperature": {
-        "name": "Current Temperature"
-      },
-      "daily_consumption": {
-        "name": "Daily Consumption"
-      },
-      "data_identification": {
-        "name": "Data Identification"
-      },
-      "defrosting": {
-        "name": "Defrosting"
-      },
-      "depth": {
-        "name": "Depth"
-      },
-      "device_1_state": {
-        "name": "Device 1 State"
-      },
-      "device_2_state": {
-        "name": "Device 2 State"
-      },
-      "device_kw": {
-        "name": "Device kW"
-      },
-      "device_kwh": {
-        "name": "Device kWh"
-      },
-      "device_state": {
-        "name": "Device state"
-      },
-      "device_temperature": {
-        "name": "Device Temperature"
-      },
-      "dew_point": {
-        "name": "Dew Point"
-      },
-      "direction_a": {
-        "name": "Direction A"
-      },
-      "direction_b": {
-        "name": "Direction B"
-      },
-      "direction_c": {
-        "name": "Direction C"
-      },
-      "duster_cloth_life": {
-        "name": "duster_cloth_life"
-      },
-      "ec_current": {
-        "name": "Ec Current"
-      },
-      "electricity": {
-        "name": "Electricity"
-      },
-      "electricity_1": {
-        "name": "Electricity 1"
-      },
-      "electricity_2": {
-        "name": "Electricity 2"
-      },
-      "electricity_phase_a": {
-        "name": "Electricity Phase A"
-      },
-      "electricity_phase_b": {
-        "name": "Electricity Phase B"
-      },
-      "electricity_phase_c": {
-        "name": "Electricity Phase C"
-      },
-      "electricity_total": {
-        "name": "Electricity Total"
-      },
-      "emission": {
-        "name": "Emission"
-      },
-      "energy": {
-        "name": "Energy"
-      },
-      "energy_a": {
-        "name": "Energy A"
-      },
-      "energy_b": {
-        "name": "Energy B"
-      },
-      "energy_balance": {
-        "name": "Energy Balance"
-      },
-      "energy_c": {
-        "name": "Energy C"
-      },
-      "energy_charge": {
-        "name": "Energy charge"
-      },
-      "excretion_duration": {
-        "name": "Excretion duration"
-      },
-      "excretion_times": {
-        "name": "Excretion times"
-      },
-      "external_temperature": {
-        "name": "External Temperature"
-      },
-      "fan_speed": {
-        "name": "Fan Speed"
-      },
-      "feed_state": {
-        "name": "Feed State"
-      },
-      "feels_like": {
-        "name": "Feels Like"
-      },
-      "filter_duration": {
-        "name": "Filter Duration"
-      },
-      "filter_life": {
-        "name": "filter_life"
-      },
-      "filter_utilization": {
-        "name": "filter_utilization"
-      },
-      "flow_temperature": {
-        "name": "Flow Temperature"
-      },
-      "formaldehyde": {
-        "name": "formaldehyde"
-      },
-      "fout_way_valve": {
-        "name": "Fout Way Valve"
-      },
-      "gas": {
-        "name": "gas"
-      },
-      "gas_sensor_value": {
-        "name": "Gas Sensor Value"
-      },
-      "heat_exchanger_temperature": {
-        "name": "Heat Exchanger Temperature"
-      },
-      "heat_index": {
-        "name": "Heat Index"
-      },
-      "heating_temperature": {
-        "name": "Heating Temperature"
-      },
-      "humidity": {
-        "name": "Humidity"
-      },
-      "humidity_outdoor": {
-        "name": "Humidity Outdoor"
-      },
-      "humidity_outdoor_1": {
-        "name": "Humidity Outdoor 1"
-      },
-      "humidity_outdoor_2": {
-        "name": "Humidity Outdoor 2"
-      },
-      "humidity_outdoor_3": {
-        "name": "Humidity Outdoor 3"
-      },
-      "humidity_status": {
-        "name": "Humidity Status"
-      },
-      "illuminance": {
-        "name": "Illuminance"
-      },
-      "inverter_output_power": {
-        "name": "Inverter Output Power"
-      },
-      "is_login": {
-        "name": "Is login"
-      },
-      "knob_mode": {
-        "name": "Knob Mode"
-      },
-      "last_amount": {
-        "name": "last_amount"
-      },
-      "last_operation_duration": {
-        "name": "last_operation_duration"
-      },
-      "level": {
-        "name": "Level"
-      },
-      "lifetime_battery_charge": {
-        "name": "Lifetime Battery Charge"
-      },
-      "lifetime_battery_discharge": {
-        "name": "Lifetime Battery Discharge"
-      },
-      "lifetime_inverter_output": {
-        "name": "Lifetime Inverter Output"
-      },
-      "lifetime_offgrid_port": {
-        "name": "Lifetime Offgrid Port"
-      },
-      "lifetime_pv_energy": {
-        "name": "Lifetime PV Energy"
-      },
-      "load_balancing_state": {
-        "name": "Load Balancing State"
-      },
-      "luminosity": {
-        "name": "luminosity"
-      },
-      "max_set_ampere": {
-        "name": "Max Set Ampere"
-      },
-      "methane": {
-        "name": "methane"
-      },
-      "motor_state": {
-        "name": "Motor State"
-      },
-      "odor_elimination_status": {
-        "name": "Odor Elimination Status"
-      },
-      "odu_fan_speed": {
-        "name": "ODU Fan Speed"
-      },
-      "orp": {
-        "name": "ORP"
-      },
-      "other_event": {
-        "name": "Other Event"
-      },
-      "out_power": {
-        "name": "Out Power"
-      },
-      "outside_temperature": {
-        "name": "Outside Temperature"
-      },
-      "password": {
-        "name": "Password"
-      },
-      "ph_current": {
-        "name": "Ph Current"
-      },
-      "phase_a": {
-        "name": "Phase A"
-      },
-      "phase_b": {
-        "name": "Phase B"
-      },
-      "phase_c": {
-        "name": "Phase C"
-      },
-      "phase_flag": {
-        "name": "Phase Flag"
-      },
-      "plant": {
-        "name": "Plant"
-      },
-      "playing": {
-        "name": "Playing"
-      },
-      "pm1": {
-        "name": "pm1"
-      },
-      "pm10": {
-        "name": "pm10"
-      },
-      "pm25": {
-        "name": "pm25"
-      },
-      "pm2_5": {
-        "name": "PM2.5"
-      },
-      "power": {
-        "name": "Power"
-      },
-      "power_1": {
-        "name": "Power 1"
-      },
-      "power_2": {
-        "name": "Power 2"
-      },
-      "power_a": {
-        "name": "Power A"
-      },
-      "power_b": {
-        "name": "Power B"
-      },
-      "power_c": {
-        "name": "Power C"
-      },
-      "power_event": {
-        "name": "Power Event"
-      },
-      "power_factor_a": {
-        "name": "Power Factor A"
-      },
-      "power_factor_b": {
-        "name": "Power Factor B"
-      },
-      "power_factor_c": {
-        "name": "Power Factor C"
-      },
-      "precipitation_intensity": {
-        "name": "Precipitation Intensity"
-      },
-      "precipitation_today": {
-        "name": "Precipitation Today"
-      },
-      "pressure_value": {
-        "name": "Pressure Value"
-      },
-      "pump_time": {
-        "name": "Pump Time"
-      },
-      "pv_channel_1_power": {
-        "name": "PV Channel 1 Power"
-      },
-      "pv_channel_2_power": {
-        "name": "PV Channel 2 Power"
-      },
-      "pv_current": {
-        "name": "PV Current"
-      },
-      "pv_power": {
-        "name": "PV Power"
-      },
-      "pv_voltage": {
-        "name": "PV Voltage"
-      },
-      "reverse_energy_a": {
-        "name": "Reverse Energy A"
-      },
-      "reverse_energy_b": {
-        "name": "Reverse Energy B"
-      },
-      "reverse_energy_c": {
-        "name": "Reverse Energy C"
-      },
-      "rolling_brush_life": {
-        "name": "rolling_brush_life"
-      },
-      "side_brush_life": {
-        "name": "side_brush_life"
-      },
-      "single_usage_time": {
-        "name": "Single Usage Time"
-      },
-      "smoke_amount": {
-        "name": "smoke_amount"
-      },
-      "sous_vide_status": {
-        "name": "sous_vide_status"
-      },
-      "state": {
-        "name": "State"
-      },
-      "status": {
-        "name": "status"
-      },
-      "sub_device_state": {
-        "name": "Sub-Device State"
-      },
-      "supply_frequency": {
-        "name": "Supply Frequency"
-      },
-      "switch_1_mode": {
-        "name": "Switch 1 Mode"
-      },
-      "switch_2_mode": {
-        "name": "Switch 2 Mode"
-      },
-      "sync_request": {
-        "name": "Sync Request"
-      },
-      "temperature": {
-        "name": "Temperature"
-      },
-      "temperature_2": {
-        "name": "Temperature 2"
-      },
-      "temperature_external": {
-        "name": "Temperature External"
-      },
-      "temperature_external_1": {
-        "name": "Temperature External 1"
-      },
-      "temperature_external_2": {
-        "name": "Temperature External 2"
-      },
-      "temperature_external_3": {
-        "name": "Temperature External 3"
-      },
-      "temperature_status": {
-        "name": "Temperature Status"
-      },
-      "timer_left": {
-        "name": "Timer left"
-      },
-      "timer_remaining": {
-        "name": "Timer Remaining"
-      },
-      "timer_state": {
-        "name": "Timer State"
-      },
-      "today_energy": {
-        "name": "Today Energy"
-      },
-      "today_energy_1": {
-        "name": "Today Energy 1"
-      },
-      "today_energy_1_increase": {
-        "name": "Today Energy 1 Increase"
-      },
-      "today_energy_2": {
-        "name": "Today Energy 2"
-      },
-      "today_energy_2_increase": {
-        "name": "Today Energy 2 Increase"
-      },
-      "today_energy_increase": {
-        "name": "Today Energy Increase"
-      },
-      "total_absorption_particles": {
-        "name": "total_absorption_particles"
-      },
-      "total_cleaning_area": {
-        "name": "total_cleaning_area"
-      },
-      "total_cleaning_time": {
-        "name": "total_cleaning_time"
-      },
-      "total_cleaning_times": {
-        "name": "total_cleaning_times"
-      },
-      "total_dissolved_solids": {
-        "name": "Total Dissolved Solids"
-      },
-      "total_energy": {
-        "name": "Total Energy"
-      },
-      "total_energy_1": {
-        "name": "Total Energy 1"
-      },
-      "total_energy_2": {
-        "name": "Total Energy 2"
-      },
-      "total_operating_time": {
-        "name": "total_operating_time"
-      },
-      "total_power": {
-        "name": "Total Power"
-      },
-      "total_production": {
-        "name": "Total Production"
-      },
-      "total_pv_power": {
-        "name": "Total PV Power"
-      },
-      "total_reverse_energy": {
-        "name": "Total Reverse Energy"
-      },
-      "total_volatile_organic_compound": {
-        "name": "total_volatile_organic_compound"
-      },
-      "total_water_consumption": {
-        "name": "Total Water Consumption"
-      },
-      "usage_time": {
-        "name": "Usage Time"
-      },
-      "uv_index": {
-        "name": "UV Index"
-      },
-      "uv_runtime": {
-        "name": "UV Runtime"
-      },
-      "version": {
-        "name": "Version"
-      },
-      "voc": {
-        "name": "voc"
-      },
-      "voltage": {
-        "name": "Voltage"
-      },
-      "voltage_1": {
-        "name": "Voltage 1"
-      },
-      "voltage_2": {
-        "name": "Voltage 2"
-      },
-      "voltage_a": {
-        "name": "Voltage A"
-      },
-      "voltage_b": {
-        "name": "Voltage B"
-      },
-      "voltage_c": {
-        "name": "Voltage C"
-      },
-      "voltage_phase_a": {
-        "name": "Voltage Phase A"
-      },
-      "voltage_phase_b": {
-        "name": "Voltage Phase B"
-      },
-      "voltage_phase_c": {
-        "name": "Voltage Phase C"
-      },
-      "water_level": {
-        "name": "Water Level"
-      },
-      "water_level_state": {
-        "name": "Water Level State"
-      },
-      "water_time": {
-        "name": "Water Time"
-      },
-      "watersensor_state": {
-        "name": "Watersensor State"
-      },
-      "wind_chill": {
-        "name": "Wind Chill"
-      },
-      "wind_direction": {
-        "name": "Wind Direction"
-      },
-      "wind_speed": {
-        "name": "Wind Speed"
-      },
-      "work_state": {
-        "name": "Work state"
-      },
-      "zone_number": {
-        "name": "Zone Number"
-      }
-    },
-    "number": {
-      "alarm_delay": {
-        "name": "Alarm Delay"
-      },
-      "alarm_duration": {
-        "name": "Alarm Duration"
-      },
-      "appointment_time": {
-        "name": "Appointment time"
-      },
-      "arm_delay": {
-        "name": "Arm Delay"
-      },
-      "bass": {
-        "name": "Bass"
-      },
-      "battery_backup_reserve": {
-        "name": "Battery Backup Reserve"
-      },
-      "calibration_offset": {
-        "name": "Calibration offset"
-      },
-      "calibration_swing": {
-        "name": "Calibration swing"
-      },
-      "cleaning_time": {
-        "name": "Cleaning Time"
-      },
-      "cloud_recipes": {
-        "name": "Cloud Recipes"
-      },
-      "cook_temperature": {
-        "name": "Cook Temperature"
-      },
-      "cook_temperature_2": {
-        "name": "Cook Temperature 2"
-      },
-      "cooking_temperature": {
-        "name": "Cooking temperature"
-      },
-      "cooking_time": {
-        "name": "Cooking time"
-      },
-      "current_a_calibrations": {
-        "name": "Current A Calibrations"
-      },
-      "current_b_calibrations": {
-        "name": "Current B Calibrations"
-      },
-      "current_c_calibrations": {
-        "name": "Current C Calibrations"
-      },
-      "delay_alarm": {
-        "name": "Delay Alarm"
-      },
-      "delay_clean_time": {
-        "name": "Delay Clean Time"
-      },
-      "delay_setting": {
-        "name": "Delay Setting"
-      },
-      "depth_maximum": {
-        "name": "Depth Maximum"
-      },
-      "dis_current": {
-        "name": "DIS CURRENT"
-      },
-      "down_delay": {
-        "name": "Down Delay"
-      },
-      "duration": {
-        "name": "Duration"
-      },
-      "energy_a_calibrations": {
-        "name": "Energy A Calibrations"
-      },
-      "energy_b_calibrations": {
-        "name": "Energy B Calibrations"
-      },
-      "energy_c_calibrations": {
-        "name": "Energy C Calibrations"
-      },
-      "fan_2_timer": {
-        "name": "Fan 2 Timer"
-      },
-      "fan_3_timer": {
-        "name": "Fan 3 Timer"
-      },
-      "fan_4_timer": {
-        "name": "Fan 4 Timer"
-      },
-      "fan_timer": {
-        "name": "Fan Timer"
-      },
-      "far_detection_cm": {
-        "name": "Far Detection CM"
-      },
-      "feed": {
-        "name": "Feed"
-      },
-      "floodlight_brightness": {
-        "name": "Floodlight brightness"
-      },
-      "flow": {
-        "name": "Flow"
-      },
-      "frequency_calibrations": {
-        "name": "Frequency Calibrations"
-      },
-      "heat_preservation_time": {
-        "name": "Heat preservation time"
-      },
-      "humidity_sensitivity": {
-        "name": "Humidity Sensitivity"
-      },
-      "installation_height": {
-        "name": "Installation Height"
-      },
-      "interval": {
-        "name": "Interval"
-      },
-      "inverter_output_power_limit": {
-        "name": "Inverter Output Power Limit"
-      },
-      "irrigation_7_timer": {
-        "name": "Irrigation 7 Timer"
-      },
-      "irrigation_8_timer": {
-        "name": "Irrigation 8 Timer"
-      },
-      "light_1_timer": {
-        "name": "Light 1 Timer"
-      },
-      "light_2_timer": {
-        "name": "Light 2 Timer"
-      },
-      "light_3_timer": {
-        "name": "Light 3 Timer"
-      },
-      "light_4_timer": {
-        "name": "Light 4 Timer"
-      },
-      "light_level": {
-        "name": "Light level"
-      },
-      "load_balancing_current": {
-        "name": "Load Balancing Current"
-      },
-      "max_humidity": {
-        "name": "Max Humidity"
-      },
-      "max_temperature": {
-        "name": "Max Temperature"
-      },
-      "maximum": {
-        "name": "Maximum"
-      },
-      "maximum_brightness": {
-        "name": "maximum_brightness"
-      },
-      "maximum_brightness_2": {
-        "name": "maximum_brightness_2"
-      },
-      "maximum_brightness_3": {
-        "name": "maximum_brightness_3"
-      },
-      "min_humidity": {
-        "name": "Min Humidity"
-      },
-      "min_temperature": {
-        "name": "Min Temperature"
-      },
-      "minimum": {
-        "name": "Minimum"
-      },
-      "minimum_brightness": {
-        "name": "minimum_brightness"
-      },
-      "minimum_brightness_2": {
-        "name": "minimum_brightness_2"
-      },
-      "minimum_brightness_3": {
-        "name": "minimum_brightness_3"
-      },
-      "move_down": {
-        "name": "Move Down"
-      },
-      "move_up": {
-        "name": "Move UP"
-      },
-      "near_detection_cm": {
-        "name": "Near Detection CM"
-      },
-      "play_time": {
-        "name": "Play time"
-      },
-      "powder": {
-        "name": "Powder"
-      },
-      "power_1_wanring_limit": {
-        "name": "Power 1 Wanring Limit"
-      },
-      "power_2_wanring_limit": {
-        "name": "Power 2 Wanring Limit"
-      },
-      "power_a_calibrations": {
-        "name": "Power A Calibrations"
-      },
-      "power_adjustment": {
-        "name": "Power Adjustment"
-      },
-      "power_b_calibrations": {
-        "name": "Power B Calibrations"
-      },
-      "power_c_calibrations": {
-        "name": "Power C Calibrations"
-      },
-      "power_wanring_limit": {
-        "name": "Power Wanring Limit"
-      },
-      "quiet_time_end": {
-        "name": "Quiet Time End"
-      },
-      "quiet_time_start": {
-        "name": "Quiet Time Start"
-      },
-      "rated_current": {
-        "name": "Rated Current"
-      },
-      "report_humidity_period": {
-        "name": "Report Humidity Period"
-      },
-      "report_period": {
-        "name": "Report Period"
-      },
-      "report_temperature_period": {
-        "name": "Report Temperature Period"
-      },
-      "reverse_energy_a_calibrations": {
-        "name": "Reverse Energy A Calibrations"
-      },
-      "reverse_energy_b_calibrations": {
-        "name": "Reverse Energy B Calibrations"
-      },
-      "reverse_energy_c_calibrations": {
-        "name": "Reverse Energy C Calibrations"
-      },
-      "running_time": {
-        "name": "Running time"
-      },
-      "sensitivity": {
-        "name": "Sensitivity"
-      },
-      "set_16a": {
-        "name": "Set 16A"
-      },
-      "set_32a": {
-        "name": "Set 32A"
-      },
-      "set_400a": {
-        "name": "Set 400A"
-      },
-      "set_50a": {
-        "name": "Set 50A"
-      },
-      "set_60a": {
-        "name": "Set 60A"
-      },
-      "set_80a": {
-        "name": "Set 80A"
-      },
-      "set_define_time": {
-        "name": "Set Define time"
-      },
-      "set_delay_time": {
-        "name": "Set Delay time"
-      },
-      "siren_duration": {
-        "name": "Siren Duration"
-      },
-      "switch_1_timer": {
-        "name": "Switch 1 Timer"
-      },
-      "switch_2_timer": {
-        "name": "Switch 2 Timer"
-      },
-      "switch_3_timer": {
-        "name": "Switch 3 Timer"
-      },
-      "switch_4_timer": {
-        "name": "Switch 4 Timer"
-      },
-      "switch_5_timer": {
-        "name": "Switch 5 Timer"
-      },
-      "switch_6_timer": {
-        "name": "Switch 6 Timer"
-      },
-      "switch_timer": {
-        "name": "Switch Timer"
-      },
-      "target_distance_closest": {
-        "name": "Target Distance Closest"
-      },
-      "temperature": {
-        "name": "Temperature"
-      },
-      "temperature_after_boiling": {
-        "name": "Temperature After Boiling"
-      },
-      "temperature_correction": {
-        "name": "Temperature Correction"
-      },
-      "temperature_sensitivity": {
-        "name": "Temperature Sensitivity"
-      },
-      "temporary_unlock": {
-        "name": "Temporary Unlock"
-      },
-      "time": {
-        "name": "Time"
-      },
-      "timer": {
-        "name": "Timer"
-      },
-      "timer_duration": {
-        "name": "Timer Duration"
-      },
-      "treble": {
-        "name": "Treble"
-      },
-      "usb1_timer": {
-        "name": "USB1 Timer"
-      },
-      "usb2_timer": {
-        "name": "USB2 Timer"
-      },
-      "usb3_timer": {
-        "name": "USB3 Timer"
-      },
-      "usb4_timer": {
-        "name": "USB4 Timer"
-      },
-      "usb5_timer": {
-        "name": "USB5 Timer"
-      },
-      "usb6_timer": {
-        "name": "USB6 Timer"
-      },
-      "video_brightness": {
-        "name": "Video Brightness"
-      },
-      "video_contrast": {
-        "name": "Video Contrast"
-      },
-      "video_sharpness": {
-        "name": "Video Sharpness"
-      },
-      "voice_prompt": {
-        "name": "Voice prompt"
-      },
-      "voltage_calibrations": {
-        "name": "Voltage Calibrations"
-      },
-      "volume": {
-        "name": "volume"
-      },
-      "water_level": {
-        "name": "Water Level"
-      }
-    },
-    "select": {
-      "alarm_setting": {
-        "name": "Alarm Setting"
-      },
-      "anti_flicker": {
-        "name": "Anti-Flicker"
-      },
-      "blanket_level": {
-        "name": "Blanket Level"
-      },
-      "brightness": {
-        "name": "Brightness"
-      },
-      "brightness_mode": {
-        "name": "Brightness mode"
-      },
-      "charge_pattern": {
-        "name": "Charge Pattern"
-      },
-      "charge_state": {
-        "name": "Charge State"
-      },
-      "concentration": {
-        "name": "Concentration"
-      },
-      "control": {
-        "name": "Control"
-      },
-      "cooking_mode": {
-        "name": "Cooking Mode"
-      },
-      "countdown": {
-        "name": "Countdown"
-      },
-      "cover_mode": {
-        "name": "Cover Mode"
-      },
-      "cruise_mode": {
-        "name": "Cruise mode"
-      },
-      "cups": {
-        "name": "Cups"
-      },
-      "decibel_sensitivity": {
-        "name": "Decibel Sensitivity"
-      },
-      "desk_level": {
-        "name": "Desk Level"
-      },
-      "desk_up_down": {
-        "name": "Desk Up/Down"
-      },
-      "direction": {
-        "name": "Direction"
-      },
-      "display_mode": {
-        "name": "Display mode"
-      },
-      "dm": {
-        "name": "DM"
-      },
-      "doorbell_song": {
-        "name": "Doorbell song"
-      },
-      "dust_collection_mode": {
-        "name": "Dust Collection Mode"
-      },
-      "earth_test": {
-        "name": "Earth Test"
-      },
-      "fan_speed": {
-        "name": "Fan Speed"
-      },
-      "fingerbot_mode": {
-        "name": "Fingerbot Mode"
-      },
-      "horizontal_swing": {
-        "name": "Horizontal swing"
-      },
-      "host_status": {
-        "name": "Host Status"
-      },
-      "intensity": {
-        "name": "Intensity"
-      },
-      "inverter_work_mode": {
-        "name": "Inverter Work Mode"
-      },
-      "ir_night_vision": {
-        "name": "IR Night Vision"
-      },
-      "kettle_work_mode": {
-        "name": "Kettle Work Mode"
-      },
-      "led_type_1": {
-        "name": "Led Type 1"
-      },
-      "led_type_2": {
-        "name": "Led Type 2"
-      },
-      "led_type_3": {
-        "name": "Led Type 3"
-      },
-      "light": {
-        "name": "Light"
-      },
-      "light_mode": {
-        "name": "Light mode"
-      },
-      "material": {
-        "name": "Material"
-      },
-      "material_type": {
-        "name": "Material Type"
-      },
-      "measurement_model": {
-        "name": "Measurement Model"
-      },
-      "mode": {
-        "name": "Mode"
-      },
-      "mood_light": {
-        "name": "Mood light"
-      },
-      "motion_sensitivity": {
-        "name": "Motion Sensitivity"
-      },
-      "motor_direction": {
-        "name": "Motor Direction"
-      },
-      "motor_mode": {
-        "name": "Motor Mode"
-      },
-      "network": {
-        "name": "Network"
-      },
-      "odor_elimination_mode": {
-        "name": "Odor Elimination Mode"
-      },
-      "online_state": {
-        "name": "Online state"
-      },
-      "password": {
-        "name": "Password"
-      },
-      "pen_protect": {
-        "name": "Pen Protect"
-      },
-      "pir_sensitivity": {
-        "name": "PIR Sensitivity"
-      },
-      "power_on_behavior": {
-        "name": "Power-on behavior"
-      },
-      "power_on_behavior_1": {
-        "name": "Power-on behavior 1"
-      },
-      "power_on_behavior_2": {
-        "name": "Power-on behavior 2"
-      },
-      "power_on_behavior_3": {
-        "name": "Power-on behavior 3"
-      },
-      "power_on_behavior_4": {
-        "name": "Power-on behavior 4"
-      },
-      "power_on_behavior_5": {
-        "name": "Power-on behavior 5"
-      },
-      "power_on_behavior_6": {
-        "name": "Power-on behavior 6"
-      },
-      "pressure_unit": {
-        "name": "Pressure unit"
-      },
-      "ptz_control": {
-        "name": "PTZ control"
-      },
-      "quick_heat_temperature": {
-        "name": "Quick Heat Temperature"
-      },
-      "record_mode": {
-        "name": "Record Mode"
-      },
-      "report_period": {
-        "name": "Report Period"
-      },
-      "reset_time": {
-        "name": "Reset Time"
-      },
-      "ringtone": {
-        "name": "Ringtone"
-      },
-      "set_countdown": {
-        "name": "Set Countdown"
-      },
-      "side_a_level": {
-        "name": "Side A Level"
-      },
-      "side_b_level": {
-        "name": "Side B Level"
-      },
-      "smart_weather_mode": {
-        "name": "Smart Weather Mode"
-      },
-      "sound_effects": {
-        "name": "Sound Effects"
-      },
-      "source": {
-        "name": "Source"
-      },
-      "spraying_level": {
-        "name": "Spraying level"
-      },
-      "spraying_mode": {
-        "name": "Spraying mode"
-      },
-      "start_position": {
-        "name": "Start Position"
-      },
-      "state": {
-        "name": "State"
-      },
-      "strip_direction": {
-        "name": "Strip Direction"
-      },
-      "sub_device_category": {
-        "name": "Sub-device category"
-      },
-      "sub_device_type": {
-        "name": "Sub-device type"
-      },
-      "switch_1": {
-        "name": "Switch 1"
-      },
-      "switch_2": {
-        "name": "Switch 2"
-      },
-      "switch_3": {
-        "name": "Switch 3"
-      },
-      "switch_4": {
-        "name": "Switch 4"
-      },
-      "switch_5": {
-        "name": "Switch 5"
-      },
-      "target_humidity": {
-        "name": "Target Humidity"
-      },
-      "temperature_level": {
-        "name": "Temperature Level"
-      },
-      "temperature_sensor": {
-        "name": "Temperature sensor"
-      },
-      "temperature_unit": {
-        "name": "Temperature Unit"
-      },
-      "time_format": {
-        "name": "Time Format"
-      },
-      "tv_size": {
-        "name": "TV Size"
-      },
-      "vertical_swing": {
-        "name": "Vertical swing"
-      },
-      "video_mode": {
-        "name": "Video Mode"
-      },
-      "video_type": {
-        "name": "Video Type"
-      },
-      "volume": {
-        "name": "Volume"
-      },
-      "water_tank_adjustment": {
-        "name": "Water Tank Adjustment"
-      },
-      "weather_delay": {
-        "name": "Weather Delay"
-      },
-      "windspeed_unit": {
-        "name": "Windspeed unit"
-      },
-      "working_mode": {
-        "name": "Working mode"
-      },
-      "zone_attribute": {
-        "name": "Zone Attribute"
-      }
-    },
-    "binary_sensor": {
-      "ch2o_state": {
-        "name": "Ch2O State"
-      },
-      "ch4_sensor_state": {
-        "name": "Ch4 Sensor State"
-      },
-      "charge_state": {
-        "name": "Charge State"
-      },
-      "cleaning": {
-        "name": "Cleaning"
-      },
-      "closed_opened_kit": {
-        "name": "Closed Opened Kit"
-      },
-      "co2_detection": {
-        "name": "CO2 detection"
-      },
-      "co2_state": {
-        "name": "Co2 State"
-      },
-      "co_detection": {
-        "name": "CO detection"
-      },
-      "co_state": {
-        "name": "Co State"
-      },
-      "co_status": {
-        "name": "Co Status"
-      },
-      "door": {
-        "name": "Door"
-      },
-      "door_unclosed": {
-        "name": "Door Unclosed"
-      },
-      "doorcontact_state": {
-        "name": "Doorcontact State"
-      },
-      "error": {
-        "name": "Error"
+    "binary_sensors": {
+      "tamper": {
+        "name": "Tamper"
       },
       "fault": {
         "name": "Fault"
       },
-      "feed_state": {
-        "name": "Feed State"
-      },
-      "formaldehyde_detection": {
-        "name": "Formaldehyde detection"
-      },
-      "gas_detection": {
-        "name": "Gas detection"
-      },
-      "gas_sensor_state": {
-        "name": "Gas Sensor State"
-      },
-      "gas_sensor_status": {
-        "name": "Gas Sensor Status"
-      },
       "idu_error": {
         "name": "IDU Error"
       },
-      "master_state": {
-        "name": "Master State"
-      },
-      "methane_detection": {
-        "name": "Methane detection"
-      },
-      "notification": {
-        "name": "Notification"
-      },
-      "pm10_detection": {
-        "name": "PM10 detection"
-      },
-      "pm1_0_detection": {
-        "name": "PM1.0 detection"
-      },
-      "pm25_state": {
-        "name": "Pm25 State"
-      },
-      "pm2_5_detection": {
-        "name": "PM2.5 detection"
-      },
-      "power": {
-        "name": "Power"
-      },
-      "power_1_state": {
-        "name": "Power 1 State"
-      },
-      "power_2_state": {
-        "name": "Power 2 State"
-      },
-      "power_state": {
-        "name": "Power State"
-      },
-      "presence_state": {
-        "name": "Presence State"
-      },
-      "pressure": {
-        "name": "Pressure"
-      },
-      "pressure_state": {
-        "name": "Pressure State"
-      },
-      "smoke_detection": {
-        "name": "Smoke detection"
-      },
-      "smoke_sensor_state": {
-        "name": "Smoke Sensor State"
-      },
-      "smoke_sensor_status": {
-        "name": "Smoke Sensor Status"
-      },
-      "sos_state": {
-        "name": "Sos State"
-      },
-      "sta": {
-        "name": "Sta"
-      },
-      "status": {
-        "name": "Status"
-      },
-      "switch": {
-        "name": "Switch"
-      },
-      "temper_alarm": {
-        "name": "Temper Alarm"
-      },
-      "tilt": {
-        "name": "Tilt"
-      },
-      "trash": {
-        "name": "Trash"
+      "error": {
+        "name": "Error"
       },
       "usb": {
         "name": "USB"
       },
-      "valve": {
-        "name": "Valve"
+      "gas_detection": {
+        "name": "Gas detection"
+      },
+      "methane_detection": {
+        "name": "Methane detection"
       },
       "voc_detection": {
         "name": "VOC detection"
       },
-      "voc_state": {
-        "name": "Voc State"
+      "pm1_0_detection": {
+        "name": "PM1.0 detection"
       },
-      "watersensor_state": {
-        "name": "Watersensor State"
+      "pm2_5_detection": {
+        "name": "PM2.5 detection"
       },
-      "window_state": {
-        "name": "Window State"
+      "pm10_detection": {
+        "name": "PM10 detection"
+      },
+      "co_detection": {
+        "name": "CO detection"
+      },
+      "co2_detection": {
+        "name": "CO2 detection"
+      },
+      "formaldehyde_detection": {
+        "name": "Formaldehyde detection"
+      },
+      "door": {
+        "name": "Door"
+      },
+      "pressure": {
+        "name": "Pressure"
+      },
+      "smoke_detection": {
+        "name": "Smoke detection"
+      },
+      "cleaning": {
+        "name": "Cleaning"
+      },
+      "notification": {
+        "name": "Notification"
+      },
+      "trash": {
+        "name": "Trash"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "valve": {
+        "name": "Valve"
       }
     },
-    "button": {
-      "clear_energy": {
-        "name": "Clear Energy"
-      },
-      "clear_schedule": {
-        "name": "Clear schedule"
-      },
-      "factory_reset": {
-        "name": "Factory Reset"
-      },
-      "manual_clean": {
-        "name": "Manual Clean"
-      },
-      "pair_remote": {
-        "name": "Pair Remote"
-      },
-      "query_schedule": {
-        "name": "Query schedule"
-      },
-      "query_zones": {
-        "name": "Query zones"
-      },
-      "reboot": {
-        "name": "Reboot"
-      },
-      "reset_duster_cloth": {
-        "name": "Reset Duster Cloth"
-      },
-      "reset_edge_brush": {
-        "name": "Reset Edge Brush"
-      },
-      "reset_filter": {
-        "name": "Reset Filter"
-      },
-      "reset_map": {
-        "name": "Reset Map"
-      },
-      "reset_roll_brush": {
-        "name": "Reset Roll Brush"
-      },
-      "restart": {
-        "name": "Restart"
-      },
+    "buttons": {
       "scene_1": {
         "name": "Scene 1"
+      },
+      "scene_2": {
+        "name": "Scene 2"
+      },
+      "scene_3": {
+        "name": "Scene 3"
+      },
+      "scene_4": {
+        "name": "Scene 4"
+      },
+      "scene_5": {
+        "name": "Scene 5"
+      },
+      "scene_6": {
+        "name": "Scene 6"
+      },
+      "scene_7": {
+        "name": "Scene 7"
+      },
+      "scene_8": {
+        "name": "Scene 8"
+      },
+      "scene_9": {
+        "name": "Scene 9"
       },
       "scene_10": {
         "name": "Scene 10"
@@ -1900,38 +126,56 @@
       "scene_19": {
         "name": "Scene 19"
       },
-      "scene_2": {
-        "name": "Scene 2"
-      },
       "scene_20": {
         "name": "Scene 20"
       },
-      "scene_3": {
-        "name": "Scene 3"
+      "pair_remote": {
+        "name": "Pair Remote"
       },
-      "scene_4": {
-        "name": "Scene 4"
+      "factory_reset": {
+        "name": "Factory Reset"
       },
-      "scene_5": {
-        "name": "Scene 5"
+      "reboot": {
+        "name": "Reboot"
       },
-      "scene_6": {
-        "name": "Scene 6"
+      "manual_clean": {
+        "name": "Manual Clean"
       },
-      "scene_7": {
-        "name": "Scene 7"
+      "reset_duster_cloth": {
+        "name": "Reset Duster Cloth"
       },
-      "scene_8": {
-        "name": "Scene 8"
+      "reset_edge_brush": {
+        "name": "Reset Edge Brush"
       },
-      "scene_9": {
-        "name": "Scene 9"
+      "reset_filter": {
+        "name": "Reset Filter"
+      },
+      "reset_map": {
+        "name": "Reset Map"
+      },
+      "reset_roll_brush": {
+        "name": "Reset Roll Brush"
       },
       "snooze": {
         "name": "Snooze"
+      },
+      "clear_energy": {
+        "name": "Clear Energy"
+      },
+      "restart": {
+        "name": "Restart"
+      },
+      "clear_schedule": {
+        "name": "Clear schedule"
+      },
+      "query_schedule": {
+        "name": "Query schedule"
+      },
+      "query_zones": {
+        "name": "Query zones"
       }
     },
-    "event": {
+    "events": {
       "doorbell_message": {
         "name": "Doorbell message"
       },
@@ -1939,61 +183,647 @@
         "name": "Doorbell picture"
       }
     },
-    "siren": {
+    "lights": {
+      "light": {
+        "name": "light"
+      },
+      "night_light": {
+        "name": "night_light"
+      }
+    },
+    "selects": {
+      "password": {
+        "name": "Password"
+      }
+    },
+    "sensors": {
+      "switch_1_mode": {
+        "name": "Switch 1 Mode"
+      },
+      "switch_2_mode": {
+        "name": "Switch 2 Mode"
+      },
+      "knob_mode": {
+        "name": "Knob Mode"
+      },
+      "playing": {
+        "name": "Playing"
+      },
+      "gas": {
+        "name": "gas"
+      },
+      "voc": {
+        "name": "voc"
+      },
+      "pm25": {
+        "name": "pm25"
+      },
+      "carbon_monoxide": {
+        "name": "carbon_monoxide"
+      },
+      "carbon_dioxide": {
+        "name": "carbon_dioxide"
+      },
+      "formaldehyde": {
+        "name": "formaldehyde"
+      },
+      "luminosity": {
+        "name": "luminosity"
+      },
+      "illuminance": {
+        "name": "Illuminance"
+      },
+      "temperature": {
+        "name": "temperature"
+      },
+      "humidity": {
+        "name": "humidity"
+      },
+      "smoke_amount": {
+        "name": "smoke_amount"
+      },
+      "orp": {
+        "name": "ORP"
+      },
+      "current_temperature": {
+        "name": "current_temperature"
+      },
+      "status": {
+        "name": "status"
+      },
+      "pm10": {
+        "name": "pm10"
+      },
+      "pm2_5": {
+        "name": "PM2.5"
+      },
+      "charge_state": {
+        "name": "Charge state"
+      },
+      "last_amount": {
+        "name": "last_amount"
+      },
+      "air_quality_index": {
+        "name": "Air Quality Index"
+      },
+      "methane": {
+        "name": "methane"
+      },
+      "sync_request": {
+        "name": "Sync Request"
+      },
+      "device_1_state": {
+        "name": "Device 1 State"
+      },
+      "device_2_state": {
+        "name": "Device 2 State"
+      },
+      "connection_state": {
+        "name": "Connection state"
+      },
+      "sous_vide_status": {
+        "name": "sous_vide_status"
+      },
+      "pm1": {
+        "name": "pm1"
+      },
+      "work_state": {
+        "name": "Work state"
+      },
+      "device_state": {
+        "name": "Device state"
+      },
+      "phase_flag": {
+        "name": "Phase Flag"
+      },
+      "max_set_ampere": {
+        "name": "Max Set Ampere"
+      },
+      "is_login": {
+        "name": "Is login"
+      },
+      "charge_money": {
+        "name": "Charge Money"
+      },
+      "card_balance": {
+        "name": "Card Balance"
+      },
+      "load_balancing_state": {
+        "name": "Load Balancing State"
+      },
+      "version": {
+        "name": "Version"
+      },
+      "humidity_outdoor_1": {
+        "name": "Humidity Outdoor 1"
+      },
+      "humidity_outdoor_2": {
+        "name": "Humidity Outdoor 2"
+      },
+      "humidity_outdoor_3": {
+        "name": "Humidity Outdoor 3"
+      },
+      "air_pressure": {
+        "name": "Air Pressure"
+      },
+      "precipitation_today": {
+        "name": "Precipitation Today"
+      },
+      "precipitation_intensity": {
+        "name": "Precipitation Intensity"
+      },
+      "uv_index": {
+        "name": "UV Index"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_direction": {
+        "name": "Wind Direction"
+      },
+      "temperature_status": {
+        "name": "Temperature Status"
+      },
+      "humidity_status": {
+        "name": "Humidity Status"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "state": {
+        "name": "State"
+      },
+      "phase_a": {
+        "name": "Phase A"
+      },
+      "phase_b": {
+        "name": "Phase B"
+      },
+      "phase_c": {
+        "name": "Phase C"
+      },
+      "power_factor_b": {
+        "name": "Power Factor B"
+      },
+      "power_factor_c": {
+        "name": "Power Factor C"
+      },
+      "direction_a": {
+        "name": "Direction A"
+      },
+      "direction_b": {
+        "name": "Direction B"
+      },
+      "direction_c": {
+        "name": "Direction C"
+      },
+      "supply_frequency": {
+        "name": "Supply Frequency"
+      },
+      "cleaning_area": {
+        "name": "cleaning_area"
+      },
+      "cleaning_time": {
+        "name": "cleaning_time"
+      },
+      "total_cleaning_area": {
+        "name": "total_cleaning_area"
+      },
+      "total_cleaning_time": {
+        "name": "total_cleaning_time"
+      },
+      "total_cleaning_times": {
+        "name": "total_cleaning_times"
+      },
+      "duster_cloth_life": {
+        "name": "duster_cloth_life"
+      },
+      "side_brush_life": {
+        "name": "side_brush_life"
+      },
+      "filter_life": {
+        "name": "filter_life"
+      },
+      "rolling_brush_life": {
+        "name": "rolling_brush_life"
+      },
+      "last_operation_duration": {
+        "name": "last_operation_duration"
+      },
+      "filter_duration": {
+        "name": "Filter Duration"
+      },
+      "pump_time": {
+        "name": "Pump Time"
+      },
+      "uv_runtime": {
+        "name": "UV Runtime"
+      },
+      "water_level_state": {
+        "name": "Water Level State"
+      },
+      "water_time": {
+        "name": "Water Time"
+      },
+      "water_level": {
+        "name": "Water Level"
+      },
+      "filter_utilization": {
+        "name": "filter_utilization"
+      },
+      "total_volatile_organic_compound": {
+        "name": "total_volatile_organic_compound"
+      },
+      "concentration_carbon_dioxide": {
+        "name": "concentration_carbon_dioxide"
+      },
+      "total_operating_time": {
+        "name": "total_operating_time"
+      },
+      "total_absorption_particles": {
+        "name": "total_absorption_particles"
+      },
+      "air_quality": {
+        "name": "air_quality"
+      },
+      "sub_device_state": {
+        "name": "Sub-Device State"
+      },
+      "power_event": {
+        "name": "Power Event"
+      },
+      "zone_number": {
+        "name": "Zone Number"
+      },
+      "other_event": {
+        "name": "Other Event"
+      },
+      "motor_state": {
+        "name": "Motor State"
+      },
+      "excretion_duration": {
+        "name": "Excretion duration"
+      },
+      "cat_litter_box_status": {
+        "name": "Cat Litter Box Status"
+      },
+      "defrosting": {
+        "name": "Defrosting"
+      },
+      "compressor": {
+        "name": "Compressor"
+      },
+      "fout_way_valve": {
+        "name": "Fout Way Valve"
+      },
+      "odu_fan_speed": {
+        "name": "ODU Fan Speed"
+      },
+      "password": {
+        "name": "Password"
+      },
+      "cover": {
+        "name": "Cover"
+      },
+      "odor_elimination_status": {
+        "name": "Odor Elimination Status"
+      },
+      "total_dissolved_solids": {
+        "name": "Total Dissolved Solids"
+      },
+      "compressor_strength": {
+        "name": "Compressor Strength"
+      }
+    },
+    "sirens": {
       "siren": {
         "name": "Siren"
-      },
-      "siren_switch": {
-        "name": "Siren Switch"
       }
     },
-    "fan": {
-      "fan": {
-        "name": "Fan"
-      }
-    },
-    "cover": {
-      "blind": {
-        "name": "Blind"
+    "switches": {
+      "child_lock": {
+        "name": "Child Lock"
       },
-      "curtain": {
-        "name": "Curtain"
+      "music": {
+        "name": "Music"
       },
-      "curtain_2": {
-        "name": "Curtain 2"
+      "snooze": {
+        "name": "Snooze"
       },
-      "curtain_3": {
-        "name": "Curtain 3"
+      "start": {
+        "name": "Start"
       },
-      "curtain_4": {
-        "name": "Curtain 4"
+      "warm": {
+        "name": "Warm"
       },
-      "door": {
-        "name": "Door"
+      "disinfection": {
+        "name": "Disinfection"
       },
-      "door_2": {
-        "name": "Door 2"
+      "water": {
+        "name": "Water"
       },
-      "door_3": {
-        "name": "Door 3"
-      }
-    },
-    "climate": {
       "switch": {
         "name": "Switch"
+      },
+      "slow_feed": {
+        "name": "Slow Feed"
+      },
+      "reset_filter": {
+        "name": "Reset Filter"
+      },
+      "reset_water_pump": {
+        "name": "Reset Water Pump"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "reset_water": {
+        "name": "Reset Water"
+      },
+      "uv_sterilization": {
+        "name": "UV Sterilization"
+      },
+      "plug": {
+        "name": "Plug"
+      },
+      "side_a_power": {
+        "name": "Side A Power"
+      },
+      "side_b_power": {
+        "name": "Side B Power"
+      },
+      "preheat": {
+        "name": "Preheat"
+      },
+      "side_a_preheat": {
+        "name": "Side A Preheat"
+      },
+      "side_b_preheat": {
+        "name": "Side B Preheat"
+      },
+      "radio": {
+        "name": "Radio"
+      },
+      "alarm_2": {
+        "name": "Alarm 2"
+      },
+      "alarm_3": {
+        "name": "Alarm 3"
+      },
+      "alarm_4": {
+        "name": "Alarm 4"
+      },
+      "alarm_5": {
+        "name": "Alarm 5"
+      },
+      "alarm_6": {
+        "name": "Alarm 6"
+      },
+      "switch_1": {
+        "name": "Switch 1"
+      },
+      "switch_2": {
+        "name": "Switch 2"
+      },
+      "switch_3": {
+        "name": "Switch 3"
+      },
+      "switch_4": {
+        "name": "Switch 4"
+      },
+      "switch_5": {
+        "name": "Switch 5"
+      },
+      "switch_6": {
+        "name": "Switch 6"
+      },
+      "switch_7": {
+        "name": "Switch 7"
+      },
+      "switch_8": {
+        "name": "Switch 8"
+      },
+      "usb": {
+        "name": "USB"
+      },
+      "usb_2": {
+        "name": "USB 2"
+      },
+      "usb_3": {
+        "name": "USB 3"
+      },
+      "usb_4": {
+        "name": "USB 4"
+      },
+      "usb_5": {
+        "name": "USB 5"
+      },
+      "usb_6": {
+        "name": "USB 6"
+      },
+      "ionizer": {
+        "name": "Ionizer"
+      },
+      "reset_filter_cartridge": {
+        "name": "Reset Filter Cartridge_"
+      },
+      "humidification": {
+        "name": "Humidification"
+      },
+      "sleep": {
+        "name": "Sleep"
+      },
+      "shake": {
+        "name": "Shake"
+      },
+      "inner_dry": {
+        "name": "Inner Dry"
+      },
+      "auto_clean": {
+        "name": "Auto Clean"
+      },
+      "manual_cleaning": {
+        "name": "Manual Cleaning"
+      },
+      "cleaning": {
+        "name": "Cleaning"
+      },
+      "beep": {
+        "name": "Beep"
+      },
+      "light_indicator": {
+        "name": "Light Indicator"
+      },
+      "enable_quiet_timing": {
+        "name": "Enable Quiet Timing"
+      },
+      "overcharge": {
+        "name": "Overcharge"
+      },
+      "usb_1": {
+        "name": "USB 1"
+      },
+      "socket": {
+        "name": "Socket"
+      },
+      "voice": {
+        "name": "Voice"
+      },
+      "bt_voice": {
+        "name": "BT Voice"
+      },
+      "mute": {
+        "name": "Mute"
+      },
+      "microphone": {
+        "name": "Microphone"
+      },
+      "welcome": {
+        "name": "Welcome"
+      },
+      "rain_mode": {
+        "name": "Rain Mode"
+      },
+      "pump": {
+        "name": "Pump"
+      },
+      "output_power_limit": {
+        "name": "Output Power Limit"
+      },
+      "charge": {
+        "name": "Charge"
+      },
+      "do_not_disturb": {
+        "name": "Do Not Disturb"
+      },
+      "mute_voice": {
+        "name": "Mute Voice"
+      },
+      "map_resetting": {
+        "name": "Map Resetting"
+      },
+      "resumable_cleaning": {
+        "name": "Resumable Cleaning"
+      },
+      "mop_y": {
+        "name": "Mop Y"
+      },
+      "smart_weather": {
+        "name": "Smart Weather"
+      },
+      "battery_lock": {
+        "name": "Battery Lock"
+      },
+      "cry_detection": {
+        "name": "Cry Detection"
+      },
+      "sound_detection": {
+        "name": "Sound Detection"
+      },
+      "video_recording": {
+        "name": "Video Recording"
+      },
+      "motion_recording": {
+        "name": "Motion Recording"
+      },
+      "privacy_mode": {
+        "name": "Privacy Mode"
+      },
+      "flip": {
+        "name": "Flip"
+      },
+      "time_watermark": {
+        "name": "Time Watermark"
+      },
+      "wide_dynamic_range": {
+        "name": "Wide Dynamic Range"
+      },
+      "motion_tracking": {
+        "name": "Motion Tracking"
+      },
+      "motion_alarm": {
+        "name": "Motion Alarm"
+      },
+      "use_motion_detection_zone": {
+        "name": "Use Motion Detection Zone"
+      },
+      "auto_trigger_siren": {
+        "name": "Auto-trigger Siren"
+      },
+      "ptz_stop": {
+        "name": "PTZ Stop"
+      },
+      "energy_saving": {
+        "name": "Energy Saving"
+      },
+      "timer": {
+        "name": "Timer"
+      },
+      "spray": {
+        "name": "Spray"
+      },
+      "anion": {
+        "name": "Anion"
+      },
+      "oxygen_bar": {
+        "name": "Oxygen Bar"
+      },
+      "natural_wind": {
+        "name": "Natural Wind"
+      },
+      "sound": {
+        "name": "Sound"
+      },
+      "lcd": {
+        "name": "LCD"
+      },
+      "led_switch": {
+        "name": "LED Switch"
+      },
+      "reverse": {
+        "name": "Reverse"
+      },
+      "set_upper_limit": {
+        "name": "Set Upper Limit"
+      },
+      "set_middle_limit": {
+        "name": "Set Middle Limit"
+      },
+      "set_down_limit": {
+        "name": "Set Down Limit"
+      },
+      "sterilization": {
+        "name": "Sterilization"
+      },
+      "light": {
+        "name": "Light"
+      },
+      "key_tone_sound": {
+        "name": "Key Tone Sound"
+      },
+      "keypad_light": {
+        "name": "Keypad Light"
+      },
+      "call": {
+        "name": "Call"
+      },
+      "sms": {
+        "name": "SMS"
+      },
+      "push_notification": {
+        "name": "Push Notification"
+      },
+      "valve": {
+        "name": "Valve"
+      },
+      "frost_protection": {
+        "name": "Frost Protection"
+      },
+      "eco": {
+        "name": "ECO"
       }
     },
-    "humidifier": {
-      "switch": {
-        "name": "Switch"
-      }
-    },
-    "vacuum": {
-      "status": {
-        "name": "Status"
-      }
-    },
-    "valve": {
+    "valves": {
       "valve": {
         "name": "Valve"
       },
@@ -2020,16 +850,6 @@
       },
       "valve_8": {
         "name": "Valve 8"
-      }
-    },
-    "water_heater": {
-      "switch": {
-        "name": "Switch"
-      }
-    },
-    "alarm_control_panel": {
-      "master_mode": {
-        "name": "Master Mode"
       }
     }
   }

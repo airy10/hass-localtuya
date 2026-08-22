@@ -23,6 +23,7 @@ REMOTES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # not documented
     DeviceCategory.WNYKQ: (
         LocalTuyaEntity(
+            translation_key="ir_remote",
             id=(DPCode.IR_SEND, DPCode.CONTROL),
             receive_dp=(DPCode.IR_STUDY_CODE, DPCode.STUDY_CODE),
             key_study_dp=DPCode.KEY_STUDY,
