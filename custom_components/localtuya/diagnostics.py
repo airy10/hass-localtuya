@@ -65,6 +65,17 @@ async def async_get_config_entry_diagnostics(
                 data[CLOUD_DEVICES][dev_id][obf] = obfuscate(ob, obf_len, obf_len)
     if discovery := hass.data[DOMAIN].get(DATA_DISCOVERY):
         data["Discovered_Devices"] = discovery.devices
+    # Per-device cloud specs for bulk diagnostics
+    cloud_specs: dict[str, dict[str, Any]] = {}
+    for dev_id, dev in data[CLOUD_DEVICES].items():
+        cloud_specs[dev_id] = {
+            "category": dev.get("category", ""),
+            "product_id": dev.get("product_id", ""),
+            "product_name": dev.get("product_name", dev.get("name", "")),
+        }
+        if "dps_data" in dev:
+            cloud_specs[dev_id]["dps"] = copy.deepcopy(dev["dps_data"])
+    data["cloud_specs"] = cloud_specs
     return data
 
 
@@ -95,6 +106,19 @@ async def async_get_device_diagnostics(
     # data["log"] = hass.data[DOMAIN][CONF_DEVICES][dev_id].logger.retrieve_log()
     if discovery := hass.data[DOMAIN].get(DATA_DISCOVERY):
         data["Discovered_Devices"] = discovery.devices.get(dev_id)
+
+    # Build a cloud_spec summary mirroring core tuya diagnostics:
+    # category, product info, dpcode→type/values.  Makes "add support for
+    # my device" bug reports a single paste away.
+    cloud_info = data.get(DEVICE_CLOUD_INFO, {})
+    cloud_spec: dict[str, Any] = {
+        "category": cloud_info.get("category", ""),
+        "product_id": cloud_info.get("product_id", ""),
+        "product_name": cloud_info.get("product_name", cloud_info.get("name", "")),
+    }
+    if "dps_data" in cloud_info:
+        cloud_spec["dps"] = copy.deepcopy(cloud_info["dps_data"])
+    data["cloud_spec"] = cloud_spec
 
     # Surface the parsed BLE spec (function/status_range) and live status,
     # mirroring core tuya's customer_device_as_dict (diagnostics include
@@ -129,6 +153,10 @@ async def async_get_device_diagnostics(
                     for dp in ble.datapoints.values()
                 }
             )
+            # Merge BLE function/status_range into cloud_spec.dps for
+            # a unified view regardless of transport.
+            cloud_spec["dps"] = copy.deepcopy(data.get("function", {}))
+            cloud_spec["dps"].update(copy.deepcopy(data.get("status_range", {})))
         break
     return data
 
