@@ -64,6 +64,13 @@
     },
     "options": {
         "step": {
+            "auto_configure_preview": {
+                "title": "Auto-Configuration Preview",
+                "description": "{entity_count} entities will be created for device category `{device_category}`:\n{entity_list}",
+                "data": {
+                    "confirm": "Proceed with auto-configuration"
+                }
+            },
             "init": {
                 "title": "LocalTuya Configuration",
                 "description": "Please select the desired action.",

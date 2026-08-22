@@ -49,44 +49,44 @@
     },
     "step": {
       "yaml_import": {
-          "title": "غير معتمد",
-          "description": "الأجهزة المكونة باستخدام `YAML` لا يمكن تكوينها في واجهة المستخدم. احذف جهازك من `YAML` وأعِد إنشاؤه في واجهة المستخدم أو قم بتعديل تكوين `YAML` الخاص بك."
+        "title": "غير معتمد",
+        "description": "الأجهزة المكونة باستخدام `YAML` لا يمكن تكوينها في واجهة المستخدم. احذف جهازك من `YAML` وأعِد إنشاؤه في واجهة المستخدم أو قم بتعديل تكوين `YAML` الخاص بك."
       },
       "init": {
-          "title": "التكوين",
-          "description": "حدد خيارًا للمتابعة.",
-          "menu_options": {
-              "add_device": "إضافة جهاز جديد",
-              "edit_device": "إعادة تكوين الجهاز موجود",
-              "configure_cloud": "إدارة حساب Cloud API"
-            }
+        "title": "التكوين",
+        "description": "حدد خيارًا للمتابعة.",
+        "menu_options": {
+          "add_device": "إضافة جهاز جديد",
+          "edit_device": "إعادة تكوين الجهاز موجود",
+          "configure_cloud": "إدارة حساب Cloud API"
+        }
       },
       "add_device": {
-          "title": "اختيار الجهاز للتكوين",
-          "description": "يتم اكتشاف الأجهزة المتوافقة مع Tuya على شبكتك المحلية تلقائيًا بمجرد إعدادها في تطبيق Tuya. إذا لم تر الجهاز الذي تتوقعه، اختر `إضافة الجهاز يدويًا` من القائمة المنسدلة.",
-          "data": {
-            "selected_device": "الأجهزة المكتشفة",
-            "mass_configure": "ضبط جميع الأجهزة المتعرف عليها تلقائيًا"
-          }
+        "title": "اختيار الجهاز للتكوين",
+        "description": "يتم اكتشاف الأجهزة المتوافقة مع Tuya على شبكتك المحلية تلقائيًا بمجرد إعدادها في تطبيق Tuya. إذا لم تر الجهاز الذي تتوقعه، اختر `إضافة الجهاز يدويًا` من القائمة المنسدلة.",
+        "data": {
+          "selected_device": "الأجهزة المكتشفة",
+          "mass_configure": "ضبط جميع الأجهزة المتعرف عليها تلقائيًا"
+        }
       },
       "edit_device": {
-          "title": "إعادة تكوين الجهاز الموجود",
-          "description": "حدد الجهاز الذي ترغب في إعادة تكوينه.",
-          "data": {
-              "selected_device": "الأجهزة المكونة"
-          }
+        "title": "إعادة تكوين الجهاز الموجود",
+        "description": "حدد الجهاز الذي ترغب في إعادة تكوينه.",
+        "data": {
+          "selected_device": "الأجهزة المكونة"
+        }
       },
       "configure_cloud": {
         "title": "إدارة حساب Cloud API",
         "description": "قم بتكوين بيانات الاعتماد المستخدمة للاتصال بـ Tuya Cloud API.",
         "data": {
-            "region": "منطقة مركز البيانات",
-            "client_id": "معرف العميل (Client ID)",
-            "client_secret": "المعرف السري العميل (Client Secret)",
-            "user_id": "معرف المستخدم (UID)",
-            "username": "اسم للحساب",
-            "no_cloud": "هل تريد تعطيل Cloud API؟"
-          }
+          "region": "منطقة مركز البيانات",
+          "client_id": "معرف العميل (Client ID)",
+          "client_secret": "المعرف السري العميل (Client Secret)",
+          "user_id": "معرف المستخدم (UID)",
+          "username": "اسم للحساب",
+          "no_cloud": "هل تريد تعطيل Cloud API؟"
+        }
       },
       "configure_device": {
         "title": "تكوين اتصال الجهاز",
@@ -139,8 +139,15 @@
         "data": {
           "templates": "اختيار القالب"
         }
+      },
+      "auto_configure_preview": {
+        "title": "Auto-Configuration Preview",
+        "description": "{entity_count} entities will be created for device category `{device_category}`:\n{entity_list}",
+        "data": {
+          "confirm": "Proceed with auto-configuration"
+        }
       }
-}
-},
-"title": "LocalTuya"
+    }
+  },
+  "title": "LocalTuya"
 }

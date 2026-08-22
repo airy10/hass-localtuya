@@ -1037,9 +1037,8 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         # entities; the runtime resolves descriptions by dpcode at setup.
         if category and category_has_descriptions(category):
             self.entities = []
-            return await self.async_step_pick_entity_type(
-                {NO_ADDITIONAL_ENTITIES: True}
-            )
+            self._auto_config_category = category
+            return await self.async_step_auto_configure_preview()
 
         if not is_cloud:
             err_msg = f"This feature requires cloud API setup for now"
@@ -1055,6 +1054,69 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         return self.async_show_menu(
             step_id="auto_configure_device",
             menu_options=["device_setup_method"],
+            description_placeholders=placeholders,
+        )
+
+    async def async_step_auto_configure_preview(self, user_input=None):
+        """Preview entities that auto-configuration will create.
+
+        Resolves every description across all platform tables for the device's
+        category, matches dpcodes against the cloud spec, and shows which
+        entities will be created before committing.
+        """
+        from .core.ha_entities import DATA_PLATFORMS
+
+        category = self._auto_config_category
+        device_data = self.device_data.get(DEVICE_CLOUD_DATA, {})
+        dps_data = device_data.get("dps_data", {})
+
+        # Build dpcode -> dp_id map from cloud spec
+        dpcode_to_id: dict[str, str] = {}
+        for dp_id, info in dps_data.items():
+            if code := info.get("code"):
+                dpcode_to_id[code] = str(dp_id)
+
+        # Collect all descriptions that would be created
+        preview_items: list[str] = []
+        for platform, table in DATA_PLATFORMS.items():
+            descriptions = table.get(category, ())
+            for desc in descriptions:
+                primary_id = getattr(desc, "id", None)
+                if primary_id is None:
+                    continue
+                codes = primary_id if isinstance(primary_id, tuple) else (primary_id,)
+                for code in codes:
+                    if code in dpcode_to_id:
+                        tk = getattr(desc, "translation_key", None)
+                        name = getattr(desc, "name", None) or tk or str(codes[0])
+                        preview_items.append(
+                            f"  • {platform.value}: {name}"
+                        )
+                        break
+
+        if not preview_items:
+            # No resolvable entities — fall through to manual
+            return await self.async_step_pick_entity_type(
+                {NO_ADDITIONAL_ENTITIES: True}
+            )
+
+        if user_input is not None:
+            # User confirmed — save and proceed
+            self.entities = []
+            return await self.async_step_pick_entity_type(
+                {NO_ADDITIONAL_ENTITIES: True}
+            )
+
+        placeholders = {
+            "device_category": category,
+            "entity_list": "\n".join(preview_items),
+            "entity_count": str(len(preview_items)),
+        }
+        return self.async_show_form(
+            step_id="auto_configure_preview",
+            data_schema=vol.Schema(
+                {vol.Optional("confirm", default=True): bool}
+            ),
             description_placeholders=placeholders,
         )
 

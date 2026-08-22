@@ -260,6 +260,13 @@
           "device_class": "[Cihaz Sınıfları]({device_classes_url}) hakkında daha fazla bilgi edinin",
           "state_class": "[Durum Sınıfları]({state_classes_url}) hakkında daha fazla bilgi edinin"
         }
+      },
+      "auto_configure_preview": {
+        "title": "Auto-Configuration Preview",
+        "description": "{entity_count} entities will be created for device category `{device_category}`:\n{entity_list}",
+        "data": {
+          "confirm": "Proceed with auto-configuration"
+        }
       }
     }
   },
