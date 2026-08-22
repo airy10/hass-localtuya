@@ -1078,24 +1078,38 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             if code := info.get("code"):
                 dpcode_to_id[code] = str(dp_id)
 
-        # Collect all descriptions that would be created
+        # Collect all descriptions that would be created, mirroring the
+        # runtime's resolution (entity._described_entity_specs): descriptions
+        # keep their DPCode ids / translation_key inside ``localtuya_conf``
+        # and duplicate primary DPs are collapsed per platform.
         preview_items: list[str] = []
         for platform, table in DATA_PLATFORMS.items():
+            seen_dps: set[str] = set()
             descriptions = table.get(category, ())
             for desc in descriptions:
-                primary_id = getattr(desc, "id", None)
+                conf = getattr(desc, "localtuya_conf", {}) or {}
+                primary_id = conf.get(CONF_ID)
                 if primary_id is None:
                     continue
                 codes = primary_id if isinstance(primary_id, tuple) else (primary_id,)
                 for code in codes:
-                    if code in dpcode_to_id:
-                        tk = getattr(desc, "translation_key", None)
-                        name = getattr(desc, "name", None) or tk or str(codes[0])
-                        preview_items.append(f"  • {platform.value}: {name}")
-                        break
+                    dp = dpcode_to_id.get(str(code))
+                    if dp is None or dp in seen_dps:
+                        continue
+                    seen_dps.add(dp)
+                    tk = conf.get("translation_key")
+                    name = getattr(desc, "name", None) or tk or str(codes[0])
+                    preview_items.append(f"  • {platform.value}: {name}")
+                    break
 
         if not preview_items:
-            # No resolvable entities — fall through to manual
+            # No resolvable entities — fall through to manual, but say why.
+            _LOGGER.debug(
+                "Auto-config preview for category %s matched no entities "
+                "(%d cloud DP codes available)",
+                category,
+                len(dpcode_to_id),
+            )
             return await self.async_step_pick_entity_type(
                 {NO_ADDITIONAL_ENTITIES: True}
             )
