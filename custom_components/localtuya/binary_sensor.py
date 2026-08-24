@@ -136,6 +136,13 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
                 self.hass, self._reset_timer, async_reset_state
             )
 
+    @override
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel any pending reset timer so it does not fire after removal."""
+        if self._reset_timer_interval is not None:
+            self._reset_timer_interval()
+            self._reset_timer_interval = None
+
     # No need to restore state for a sensor
     async def restore_state_when_connected(self):
         """Do nothing for a sensor."""
