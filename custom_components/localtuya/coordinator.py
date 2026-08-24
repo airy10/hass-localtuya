@@ -769,7 +769,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         attempt. Only an explicit ``close()`` (``is_closing`` is set before
         this is called) destroys it.
         """
-        if self.is_subdevice:
+        if self.is_subdevice and self._device_config.transport != TRANSPORT_BLE:
+            # An Ethernet sub-device borrows the gateway's shared connection:
+            # drop the reference but never close the socket out from under
+            # the gateway. BLE sub-devices own their transport and fall
+            # through to the generic teardown below.
             self._interface = None
             self._task_connect = None
 
