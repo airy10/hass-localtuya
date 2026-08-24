@@ -290,6 +290,14 @@ class MessageDispatcher(ContextualLogger):
 
         self.debug("Command %d waiting for seq. number %d", cmd, seqno)
         future = asyncio.Future()
+        previous = self.listeners.get(seqno)
+        if isinstance(previous, asyncio.Future) and not previous.done():
+            # Fail (don't cancel) the superseded waiter: it wakes with a
+            # timeout it can handle, and its cleanup below won't pop our
+            # fresh listener because of the identity check in the finally.
+            previous.set_exception(
+                TimeoutError(f"Listener for sequence number {seqno} was superseded")
+            )
         self.listeners[seqno] = future
         try:
             response = await asyncio.wait_for(future, timeout=timeout)
@@ -299,13 +307,15 @@ class MessageDispatcher(ContextualLogger):
             # here would cascade CancelledError into unrelated in-flight
             # commands (status refresh, heartbeats), spurious reconnects and
             # a whole-device teardown from a single slow reply.
-            self.listeners.pop(seqno, True)
             future.cancel()
             raise TimeoutError(
                 f"Command {cmd} timed out waiting for sequence number {seqno}"
             )
         finally:
-            self.listeners.pop(seqno, True)
+            # Pop only if we still own the slot: a newer waiter may have
+            # replaced our future after a timeout/superseding event.
+            if self.listeners.get(seqno) is future:
+                self.listeners.pop(seqno)
 
     def _release_listener(self, seqno, msg):
         if seqno not in self.listeners:
