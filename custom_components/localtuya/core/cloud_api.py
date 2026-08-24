@@ -231,7 +231,26 @@ class TuyaCloudApi:
         if not resp["success"]:
             return f"Error {resp['code']}: {resp['msg']}"
 
-        self.device_list.update({dev["id"]: dev for dev in resp["result"]})
+        # Rebuild the list from the response so devices removed from the
+        # account are pruned (a plain .update() would keep them forever).
+        # Cloud-enriched keys merged later by async_get_device_functions are
+        # carried over for devices that survived the refresh.
+        fetched = {dev["id"]: dev for dev in resp["result"]}
+        for dev_id, previous in self.device_list.items():
+            if current := fetched.get(dev_id):
+                for key in ("dps_data", "localtuya_note"):
+                    if key in previous:
+                        current[key] = previous[key]
+
+        stale = set(self.cached_device_list) - set(fetched)
+        for dev_id in stale:
+            self.cached_device_list.pop(dev_id, None)
+
+        stale_specs = set(self._device_specifications_cache) - set(fetched)
+        for dev_id in stale_specs:
+            self._device_specifications_cache.pop(dev_id, None)
+
+        self.device_list = fetched
 
         self._last_devices_update = int(time.time())
         return "ok"
