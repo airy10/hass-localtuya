@@ -50,29 +50,34 @@ class AioHttpSession:
     """
     A class to manage a shared aiohttp.ClientSession.
     Ensures that only one session is created, based on active usage counts.
+    State is kept per-instance (not as class attributes) so multiple
+    TuyaCloudApi instances - one per config entry - never share or race on
+    the same session/refcount.
     """
 
-    _session: aiohttp.ClientSession = None
-    _lock = asyncio.Lock()
-    _active_requests = 0
+    def __init__(self) -> None:
+        self._session: aiohttp.ClientSession | None = None
+        self._lock = asyncio.Lock()
+        self._active_requests = 0
 
     async def __get_session(self):
         """
         Create ClientSession if it doesn't exist yet.
         Increases the active requests to keep track of current session uses.
-
-        Returns: aiohttp.ClientSession
+        The whole get-or-create is done under the lock so two concurrent
+        first-uses cannot create duplicate sessions (one of which would
+        leak, never closed).
         """
-        if self._session is None:
-            self._session = aiohttp.ClientSession()
-        self._active_requests += 1
-        return self._session
+        async with self._lock:
+            if self._session is None or self._session.closed:
+                self._session = aiohttp.ClientSession()
+            self._active_requests += 1
+            return self._session
 
     async def __close_session(self):
         """Close session only if this is the last used of session."""
-        self._active_requests -= 1
-
         async with self._lock:
+            self._active_requests -= 1
             if self._session and self._active_requests <= 0:
                 await self._session.close()
                 self._session = None
