@@ -33,6 +33,10 @@ from .core.pytuya import (
 from .core.pytuya.parser import DecodeError
 from .core.transport import Transport, create_transport
 from .core.tuya_ble_lib import TuyaBLEDevice
+from .core.tuya_ble_lib.lock_capabilities import (
+    TuyaBLELockCapabilities,
+    discover as discover_lock_capabilities,
+)
 
 from .const import (
     ATTR_UPDATED_AT,
@@ -97,6 +101,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._fake_gateway = fake_gateway
         self._node_id: str = self._device_config.node_id
         self._subdevice_off_count: int = 0
+        # Access-control datapoints a BLE lock reports (vendored from
+        # ha_tuya_ble); resolved once the BLE device is initialized.
+        self._lock_capabilities: TuyaBLELockCapabilities | None = None
 
         # last_update_time: Sleep timer, a device that reports the status every x seconds then goes into sleep.
         self._last_update_time = time.monotonic() - 5
@@ -162,6 +169,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         ):
             return self._interface.ble_device
         return None
+
+    @property
+    def lock_capabilities(self) -> TuyaBLELockCapabilities | None:
+        """Return the discovered access-control datapoints, BLE locks only."""
+        return self._lock_capabilities
 
     @property
     def _quirk(self):
@@ -692,6 +704,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     f"skipping connection"
                 )
                 return None
+            # Resolved from the cloud spec (function/status_range codes), so
+            # the event platform and lock entity can use it without each
+            # re-deriving the datapoint ids.
+            self._lock_capabilities = discover_lock_capabilities(device)
             # Persist the resolved credentials/specs so future reconnects
             # work without the cloud (BLE parity with Ethernet).
             if manager.data:
