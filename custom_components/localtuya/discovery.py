@@ -12,6 +12,7 @@ import json
 import logging
 from hashlib import md5
 from socket import inet_aton
+from time import monotonic
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -27,6 +28,10 @@ PREFIX_6699_BIN = b"\x00\x00\x66\x99"
 UDP_COMMAND = b"\x00\x00\x00\x00"
 
 DEFAULT_TIMEOUT = 6.0
+
+# Devices whose broadcasts stopped arriving for this long are dropped from
+# the cache, so decommissioned devices do not accumulate forever.
+STALE_DEVICE_AFTER = 30 * 60
 
 
 def decrypt(msg, key):
@@ -61,6 +66,7 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
     def __init__(self, callback=None):
         """Initialize a new BaseDiscovery."""
         self.devices = {}
+        self._last_seen = {}
         self._listeners = []
         self._callback = callback
 
@@ -104,6 +110,13 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
     def device_found(self, device):
         """Discover a new device."""
         gwid, ip = device.get("gwId"), device.get("ip")
+        now = monotonic()
+        for stale_id in [
+            k for k, seen in self._last_seen.items() if now - seen > STALE_DEVICE_AFTER
+        ]:
+            self._last_seen.pop(stale_id, None)
+            self.devices.pop(stale_id, None)
+        self._last_seen[gwid] = now
         # If device found but the ip changed.
         if gwid in self.devices and (self.devices[gwid].get("ip") != ip):
             self.devices.pop(gwid)
