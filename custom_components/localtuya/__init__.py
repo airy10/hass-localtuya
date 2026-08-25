@@ -3,6 +3,7 @@
 import asyncio
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 import time
 from datetime import timedelta
 from typing import Any, NamedTuple
@@ -51,6 +52,7 @@ from .const import (
 from .core.sharing_cloud import SharingCloud
 
 from .const import get_device_key
+from .core.quirks import QUIRKS_REGISTRY
 from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,6 +81,15 @@ SERVICE_UPDATE_DPS_SCHEMA = vol.Schema(
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""
     hass.data.setdefault(DOMAIN, {})
+
+    # User quirk files (<config>/localtuya_quirks/*.py), mirroring core's
+    # register_tuya_quirks(config/tuya_quirks). Runs before any entry sets up
+    # so quirks are in place when device specs are patched. Imported in an
+    # executor thread: user modules may do arbitrary work.
+    await hass.async_add_executor_job(
+        QUIRKS_REGISTRY.load_custom_quirks,
+        str(Path(hass.config.config_dir) / "localtuya_quirks"),
+    )
 
     current_entries = hass.config_entries.async_entries(DOMAIN)
     device_cache = {}

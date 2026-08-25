@@ -29,11 +29,18 @@ Our per-product entity mappings live in ``core/mappings.py`` (``MAPPINGS``);
 
 from __future__ import annotations
 
+import importlib.util
+import logging
+import pathlib
+import pkgutil
+import sys
 from dataclasses import dataclass
 from enum import IntFlag
 from typing import Any, Self
 
 from ..const import DPType
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class DPMode(IntFlag):
@@ -235,6 +242,9 @@ class QuirksRegistry:
     def __init__(self) -> None:
         """Initialize the registry."""
         self._quirks = {}
+        # Product ids registered by custom-quirk files, so a reload can drop
+        # quirks whose file was deleted or renamed.
+        self._custom_products: set[str] = set()
 
     def register(self, product_id: str, quirk: DeviceQuirk) -> None:
         """Register a quirk for a specific device type."""
@@ -246,6 +256,43 @@ class QuirksRegistry:
         if product_id is None:
             return None
         return self._quirks.get(product_id)
+
+    def load_custom_quirks(self, path: str) -> int:
+        """Load user quirk modules from a directory, mirroring core.
+
+        Mirrors ``register_tuya_quirks(custom_quirks_path)``: every module in
+        the directory is imported; at import time it registers quirks via
+        ``QUIRKS_REGISTRY.register(...)``. Quirks from a previous load are
+        dropped first, so deleted files stop applying and edits take effect
+        on reload. Returns the number of modules loaded.
+        """
+        for product_id in self._custom_products:
+            self._quirks.pop(product_id, None)
+        self._custom_products.clear()
+
+        directory = pathlib.Path(path)
+        if not directory.is_dir():
+            return 0
+
+        _LOGGER.debug("Loading custom quirks from %r", directory)
+        loaded = 0
+        for importer, modname, _ispkg in pkgutil.walk_packages(path=[str(directory)]):
+            before = set(self._quirks)
+            try:
+                spec = importer.find_spec(modname)
+                if spec is None or spec.loader is None:
+                    continue
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[modname] = module
+                spec.loader.exec_module(module)
+            except Exception:  # pylint: disable=broad-exception-caught
+                _LOGGER.exception(
+                    "Unexpected exception importing custom quirk %r", modname
+                )
+                continue
+            loaded += 1
+            self._custom_products |= set(self._quirks) - before
+        return loaded
 
 
 # Fingerbot product IDs and the datapoint their physical button press is

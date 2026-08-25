@@ -104,12 +104,8 @@ def test_remove_dpid_drops_from_both_surfaces():
         .applies_to(product_id="x")
         .remove_dpid(dpid=3, dpcode="percent_state")
     )
-    assert quirk.patch_status_range({"percent_state": {}, "other": {}}) == {
-        "other": {}
-    }
-    assert quirk.patch_function({"percent_state": {}, "other": {}}) == {
-        "other": {}
-    }
+    assert quirk.patch_status_range({"percent_state": {}, "other": {}}) == {"other": {}}
+    assert quirk.patch_function({"percent_state": {}, "other": {}}) == {"other": {}}
 
 
 def test_override_category():
@@ -140,3 +136,52 @@ def test_socket_quirk_scales_power():
     spec = quirk.patch_status_range({})["cur_power"]
     assert spec["values"]["scale"] == 1
     assert spec["values"]["unit"] == "W"
+
+
+QUIRK_FILE = (
+    "from custom_components.localtuya.core.quirks import DPMode, QUIRKS_REGISTRY, DeviceQuirk\n"
+    "DeviceQuirk().applies_to(product_id='customtestprod')"
+    ".add_dpid_boolean(\n"
+    "    dpid=1, dpcode='power', dpmode=DPMode.READ | DPMode.WRITE\n"
+    ").register(QUIRKS_REGISTRY)\n"
+)
+
+
+def _lookup_custom():
+    return QUIRKS_REGISTRY.get_quirk_for_device(
+        type("Dev", (), {"product_id": "customtestprod"})()
+    )
+
+
+def test_load_custom_quirks_registers_and_purges_on_reload(tmp_path):
+    quirk_dir = tmp_path / "localtuya_quirks"
+    quirk_dir.mkdir()
+    (quirk_dir / "my_quirk.py").write_text(QUIRK_FILE, encoding="utf-8")
+
+    try:
+        assert QUIRKS_REGISTRY.load_custom_quirks(str(quirk_dir)) == 1
+        assert _lookup_custom() is not None
+
+        # Deleting the file and reloading must drop the quirk.
+        (quirk_dir / "my_quirk.py").unlink()
+        assert QUIRKS_REGISTRY.load_custom_quirks(str(quirk_dir)) == 0
+        assert _lookup_custom() is None
+    finally:
+        # Never leak the custom quirk into the shared global registry.
+        QUIRKS_REGISTRY._custom_products.clear()
+        QUIRKS_REGISTRY._quirks.pop("customtestprod", None)
+
+
+def test_load_custom_quirks_missing_dir_is_noop(tmp_path):
+    before = dict(QUIRKS_REGISTRY._quirks)
+    assert QUIRKS_REGISTRY.load_custom_quirks(str(tmp_path / "nope")) == 0
+    assert QUIRKS_REGISTRY._quirks == before
+
+
+def test_load_custom_quirks_broken_module_does_not_raise(tmp_path):
+    quirk_dir = tmp_path / "localtuya_quirks"
+    quirk_dir.mkdir()
+    (quirk_dir / "broken.py").write_text(
+        "raise RuntimeError('boom')\n", encoding="utf-8"
+    )
+    assert QUIRKS_REGISTRY.load_custom_quirks(str(quirk_dir)) == 0
