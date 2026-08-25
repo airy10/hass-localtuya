@@ -625,3 +625,30 @@ The one remaining quirk-related gap is **custom-quirk loading**: core can load
 user quirk files from `config/tuya_quirks/`; ours is a fixed in-code registry.
 Porting that loader is optional and only matters for users who want to patch a
 product's spec without editing the component.
+### 7.12 BLE unlock attribution — ported from ha_tuya_ble (DONE)
+
+Port of ha_tuya_ble commit `bea2520` ("report who opened the lock"), adapted
+to our architecture in three commits:
+
+- `core/tuya_ble_lib/lock_capabilities.py` — access-control datapoint
+  discovery from the device's own cloud spec codes (`unlock_fingerprint`,
+  `synch_method`, ...), with a hand-written fallback for `0qxp5u7s`. Resolved
+  once at BLE init (`TuyaDevice.lock_capabilities`).
+- `LocalTuyaBLEUnlockEvent` (`event.py`) — event entity firing on **every**
+  unlock report (same credential twice = two events), auto-created for any
+  BLE device whose capabilities report unlocks — deliberately **outside** the
+  description-driven table path, because several lock products report
+  unlocks but expose nothing to control. The first report of each datapoint
+  per connection is dropped: locks answer a status query by replaying the
+  last value of every datapoint, and that replay can name credentials
+  deleted hours earlier. The seen-set clears on disconnect.
+- `LocalTuyaLock.changed_by` (`lock.py`) — same reports, same replay-drop
+  rule, rendered as `"fingerprint #3"`.
+
+**Intentional deltas vs both core and ha_tuya_ble:** the event entity is a
+standalone `EventEntity`, *not* a `LocalTuyaEntity` — it consumes raw BLE
+datapoint reports (per-report semantics), which the status-dispatcher /
+value-change pipeline structurally cannot express. This is the same
+sensor-vs-event gap core avoids only because MQTT pushes arrive through a
+different pipe than entity updates. If the Fingerbot press path is ever
+unified with it, it should reuse this exact pattern.

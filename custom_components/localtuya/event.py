@@ -12,9 +12,14 @@ SYNC CHECKLIST (when the core component is updated):
      - construction: ``__init__(device, config_entry, dp_id, description=None)``
        resolves the event wrapper by dpcode via ``get_event_definition``; the
        manual ``dps`` config (Fingerbot bus event) is the fallback.
-     - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
-     - BLE Fingerbot devices additionally wrap the
-       ``localtuya_fingerbot_button_pressed`` bus event (no DP exists for it).
+      - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
+      - BLE Fingerbot devices additionally wrap the
+        ``localtuya_fingerbot_button_pressed`` bus event (no DP exists for it).
+      - BLE unlock attribution (``LocalTuyaBLEUnlockEvent``) is a standalone
+        per-datapoint-report entity ported from ha_tuya_ble bea2520 — see
+        ARCHITECTURE_ALIGNMENT_CORE_TUYA.md §7.12. It is intentionally NOT a
+        LocalTuyaEntity and NOT table-driven; do not "migrate" it into the
+        description flow during core syncs.
 """
 
 import logging
