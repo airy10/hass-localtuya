@@ -613,6 +613,9 @@
       "doorbell_picture": {
         "name": "Doorbell picture"
       },
+      "fingerbot_button": {
+        "name": "Fingerbot button"
+      },
       "unlocked": {
         "name": "Unlocked by",
         "state_attributes": {

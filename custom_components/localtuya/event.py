@@ -14,12 +14,14 @@ SYNC CHECKLIST (when the core component is updated):
        manual ``dps`` config (Fingerbot bus event) is the fallback.
       - ``unique_id`` stays ``local_{device_id}_{dp_id}`` (avoids orphaning).
       - BLE Fingerbot devices additionally wrap the
-        ``localtuya_fingerbot_button_pressed`` bus event (no DP exists for it).
+        ``localtuya_fingerbot_button_pressed`` bus event (no DP exists for it);
+        the auto-created ``LocalTuyaFingerbotButtonEvent`` is its per-report
+        successor, sharing the datapoint-report base with the unlock events.
       - BLE unlock attribution (``LocalTuyaBLEUnlockEvent``) is a standalone
         per-datapoint-report entity ported from ha_tuya_ble bea2520 — see
-        ARCHITECTURE_ALIGNMENT_CORE_TUYA.md §7.12. It is intentionally NOT a
-        LocalTuyaEntity and NOT table-driven; do not "migrate" it into the
-        description flow during core syncs.
+        ARCHITECTURE_ALIGNMENT_CORE_TUYA.md §7.12. These report-driven
+        entities are intentionally NOT LocalTuyaEntity and NOT table-driven;
+        do not "migrate" them into the description flow during core syncs.
 """
 
 import logging
@@ -38,6 +40,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import FINGERBOT_BUTTON_EVENT, LOCALTUYA_DISCOVERY_NEW
 from .coordinator import HassLocalTuyaData, TuyaDevice
 from .core.definitions import get_event_definition
+from .core.quirks import QUIRKS_REGISTRY
 from .entity import LocalTuyaEntity, async_setup_entry
 
 _LOGGER = logging.getLogger(__name__)
@@ -119,24 +122,28 @@ class LocalTuyaEvent(LocalTuyaEntity, EventEntity):
 ATTR_CREDENTIAL_ID = "credential_id"
 
 
-class LocalTuyaBLEUnlockEvent(EventEntity):
-    """Fires whenever a BLE lock reports how it was opened.
+class _LocalTuyaBLEReportEvent(EventEntity):
+    """Base for event entities driven by raw BLE datapoint reports.
 
     Ported from ha_tuya_ble commit bea2520. Deliberately not a
-    LocalTuyaEntity: it is driven by raw datapoint reports rather than the
-    status dispatcher (a repeated unlock value must fire again), and it is
-    also created for products that report unlocks but expose nothing to
-    control, so they get no lock entity.
+    LocalTuyaEntity: the status dispatcher only carries value changes, while
+    these entities fire on every report (a repeated unlock or press must be
+    a new event).
     """
 
     _attr_should_poll = False
-    _attr_translation_key = "unlocked"
 
-    def __init__(self, device: TuyaDevice, config_entry: ConfigEntry) -> None:
-        """Initialize the unlock-attribution event entity."""
+    def __init__(
+        self,
+        device: TuyaDevice,
+        config_entry: ConfigEntry,
+        unique_id_suffix: str,
+        dp_events: dict[int, str],
+    ) -> None:
+        """Initialize the report-driven event entity."""
         self._tuya_device = device
         dev_cfg = device._device_config
-        self._attr_unique_id = f"local_{dev_cfg.id}_unlocked"
+        self._attr_unique_id = f"local_{dev_cfg.id}_{unique_id_suffix}"
         self._attr_has_entity_name = True
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"local_{dev_cfg.id}")},
@@ -144,9 +151,8 @@ class LocalTuyaBLEUnlockEvent(EventEntity):
             manufacturer="Tuya",
             model=f"{dev_cfg.model} ({dev_cfg.id})",
         )
-        capabilities = device.lock_capabilities
-        self._dp_events = dict(capabilities.unlock_records)
-        self._attr_event_types = sorted(set(self._dp_events.values()))
+        self._dp_events = dp_events
+        self._attr_event_types = sorted(set(dp_events.values()))
         # Datapoints whose first report on the current connection was already
         # seen and discarded as replayed history.
         self._seen_replays: set[int] = set()
@@ -157,7 +163,7 @@ class LocalTuyaBLEUnlockEvent(EventEntity):
         return self._tuya_device.connected
 
     async def async_added_to_hass(self) -> None:
-        """Start listening for unlock reports."""
+        """Start listening for datapoint reports."""
         await super().async_added_to_hass()
         ble_device = self._tuya_device.ble_device
         if ble_device is None:
@@ -169,7 +175,7 @@ class LocalTuyaBLEUnlockEvent(EventEntity):
 
     @callback
     def _handle_disconnect(self) -> None:
-        """Expect replayed status again once the lock comes back.
+        """Expect replayed status again once the device comes back.
 
         Every connection begins with a status query, so the replay happens on
         each reconnection and not only at startup.
@@ -177,30 +183,127 @@ class LocalTuyaBLEUnlockEvent(EventEntity):
         self._seen_replays.clear()
 
     @callback
+    def _accepts(self, datapoint) -> bool:
+        """Return whether a reported datapoint may fire an event."""
+        return True
+
+    @callback
+    def _event_type_for(self, datapoint) -> str | None:
+        """Return the event type for a datapoint, or None."""
+        return self._dp_events.get(datapoint.id)
+
+    @callback
+    def _event_data(self, datapoint) -> dict:
+        """Return the event payload."""
+        return {}
+
+    @callback
     def _handle_report(self, datapoints) -> None:
-        """Turn an unlock report into an event."""
+        """Turn datapoint reports into events."""
         for datapoint in datapoints:
-            event_type = self._dp_events.get(datapoint.id)
+            if not self._accepts(datapoint):
+                continue
+            event_type = self._event_type_for(datapoint)
             if event_type is None:
                 continue
 
-            # Connecting asks the lock for its whole status, and the lock
-            # answers with the last value of every datapoint - history rather
-            # than an event, and the receive timestamp cannot tell them apart.
-            # The first report of each datapoint per connection is dropped, at
-            # the cost of missing an unlock in the first seconds of a
+            # Connecting asks the device for its whole status, and it answers
+            # with the last value of every datapoint - history rather than an
+            # event, and the receive timestamp cannot tell them apart. The
+            # first report of each datapoint per connection is dropped, at
+            # the cost of missing a real event in the first seconds of a
             # connection.
             if datapoint.id not in self._seen_replays:
                 self._seen_replays.add(datapoint.id)
                 continue
 
-            # Fired on every report, not only when the value changes: the same
-            # finger opening the door twice has to be two events.
-            self._trigger_event(event_type, {ATTR_CREDENTIAL_ID: datapoint.value})
+            # Fired on every report, not only when the value changes.
+            self._trigger_event(event_type, self._event_data(datapoint))
             self.async_write_ha_state()
 
 
+class LocalTuyaBLEUnlockEvent(_LocalTuyaBLEReportEvent):
+    """Fires whenever a BLE lock reports how it was opened.
+
+    Also created for products that report unlocks but expose nothing to
+    control, so they get no lock entity.
+    """
+
+    _attr_translation_key = "unlocked"
+
+    def __init__(self, device: TuyaDevice, config_entry: ConfigEntry) -> None:
+        """Initialize the unlock-attribution event entity."""
+        capabilities = device.lock_capabilities
+        super().__init__(
+            device,
+            config_entry,
+            "unlocked",
+            dict(capabilities.unlock_records) if capabilities else {},
+        )
+
+    @callback
+    def _event_data(self, datapoint) -> dict:
+        """Describe the credential the lock named."""
+        return {ATTR_CREDENTIAL_ID: datapoint.value}
+
+
+class LocalTuyaFingerbotButtonEvent(_LocalTuyaBLEReportEvent):
+    """Fires whenever a Fingerbot's physical button press is reported.
+
+    The per-report successor of the ``localtuya_fingerbot_button_pressed``
+    bus event (which keeps firing for manually configured event entities);
+    uses the same quirk-resolved button datapoint.
+    """
+
+    _attr_translation_key = "fingerbot_button"
+
+    def __init__(
+        self, device: TuyaDevice, config_entry: ConfigEntry, dp_id: int
+    ) -> None:
+        """Initialize the Fingerbot button event entity."""
+        super().__init__(device, config_entry, f"button_{dp_id}", {dp_id: "pressed"})
+
+    @callback
+    def _accepts(self, datapoint) -> bool:
+        """Only physical presses count; ignore echoes of our own writes."""
+        return datapoint.changed_by_device
+
+    @callback
+    def _event_data(self, datapoint) -> dict:
+        """Match the bus-event payload for automations parity."""
+        return {CONF_DEVICE_ID: self._tuya_device.id}
+
+
 _dp_events_setup = partial(async_setup_entry, DOMAIN, LocalTuyaEvent, flow_schema)
+
+
+def _report_event_entities(
+    device: TuyaDevice, config_entry: ConfigEntry, created: set[str]
+) -> list[EventEntity]:
+    """Create the BLE report-driven entities this device qualifies for."""
+    entities: list[EventEntity] = []
+    unlock_key = f"{device.device_key}#unlock"
+    capabilities = device.lock_capabilities
+    if (
+        capabilities is not None
+        and capabilities.reports_unlocks
+        and unlock_key not in created
+    ):
+        created.add(unlock_key)
+        entities.append(LocalTuyaBLEUnlockEvent(device, config_entry))
+
+    ble_device = device.ble_device
+    quirk = QUIRKS_REGISTRY.get_quirk_for_device(ble_device) if ble_device else None
+    button_key = f"{device.device_key}#button"
+    if quirk is not None and quirk.button_switch_dp is not None:
+        if button_key not in created:
+            created.add(button_key)
+            entities.append(
+                LocalTuyaFingerbotButtonEvent(
+                    device, config_entry, quirk.button_switch_dp
+                )
+            )
+    return entities
 
 
 async def async_setup_entry(
@@ -208,40 +311,27 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up DP-driven events plus BLE lock unlock-attribution events."""
+    """Set up DP-driven events plus BLE report-driven events."""
     await _dp_events_setup(hass, config_entry, async_add_entities)
 
     hass_entry_data: HassLocalTuyaData = hass.data[DOMAIN][config_entry.entry_id]
     created: set[str] = set()
 
-    def _maybe_create(device: TuyaDevice) -> LocalTuyaBLEUnlockEvent | None:
-        if (
-            device.lock_capabilities is None
-            or not device.lock_capabilities.reports_unlocks
-        ):
-            return None
-        if device.device_key in created:
-            return None
-        created.add(device.device_key)
-        return LocalTuyaBLEUnlockEvent(device, config_entry)
-
     initial = []
     for device in hass_entry_data.devices.values():
-        if entity := _maybe_create(device):
-            initial.append(entity)
+        initial.extend(_report_event_entities(device, config_entry, created))
     if initial:
         async_add_entities(initial)
 
     @callback
     def _async_discover_device(device_keys: list[str]) -> None:
-        """Create the event for BLE locks that became available at runtime."""
+        """Create events for BLE devices that became available at runtime."""
         discovered = []
         for key in device_keys:
             device = hass_entry_data.devices.get(key)
             if device is None:
                 continue
-            if entity := _maybe_create(device):
-                discovered.append(entity)
+            discovered.extend(_report_event_entities(device, config_entry, created))
         if discovered:
             async_add_entities(discovered)
 
