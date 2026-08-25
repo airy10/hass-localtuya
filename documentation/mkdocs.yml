@@ -30,6 +30,7 @@ nav:
     - cloud_api.md
   - Development:
     - auto_configure.md
+    - localtuya_quirks.md
   - Others:
       - faq/index.md
       - report_issue.md

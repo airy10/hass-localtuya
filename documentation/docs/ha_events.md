@@ -87,6 +87,14 @@ Examples
 !!! note "Event platform entities"
     Some devices (e.g. doorbells, scene remotes, fingerbots) are exposed as `event` entities (the `Event` platform). For those, subscribe to the entity's `pressed` event type instead of using raw `localtuya_device_dp_triggered`. BLE fingerbots also fire `localtuya_fingerbot_button_pressed` on the HA bus.
 
+!!! note "BLE lock & Fingerbot entities"
+    BLE devices additionally get automatically created event entities that fire on every device report - not only on value changes:
+
+    - **Unlocked by** (`event_type`: `fingerprint`, `password`, `card`, ... with a `credential_id` attribute) - created for BLE locks that report how they were opened, even if they expose no controllable lock.
+    - **Fingerbot button** (`event_type`: `pressed`) - created for known Fingerbot products when their physical button is pressed.
+
+    The first report of each datapoint right after a (re)connect is ignored: locks and similar devices replay their last stored values on connection, which is history rather than an event.
+
 !!! annotate warning "Database flooding"
     If the recorder is enabled, devices like temperature sensors may update frequently (e.g., every second). 
     This can cause excessive events and significantly increase database size. 
