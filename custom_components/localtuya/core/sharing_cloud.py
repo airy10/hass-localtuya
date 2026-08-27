@@ -55,9 +55,24 @@ CONF_REFRESH_TOKEN = "refresh_token"
 # silently (the exception is swallowed there) and the request goes out signed
 # with the stale token -> the server answers "token is expired"/"sign invalid"
 # even though the refresh token is still perfectly valid. Retry a few times
-# with backoff before declaring the session dead and starting a reauth flow.
+# with backoff before classifying the failure.
+#
+# Failure classes matter: network errors must NEVER kill the session (core
+# tuya raises ConfigEntryNotReady instead of demanding re-auth), while genuine
+# auth rejections get one extra chance by rebuilding from the newest tokens in
+# the shared Store - guarding against the single-use refresh-token rotation
+# race between concurrent Managers of the same Smart Life account.
 SHARING_CONNECT_ATTEMPTS = 3
 SHARING_RETRY_DELAYS = (5, 15)
+
+# Server messages that mean the session itself was rejected.
+AUTH_ERROR_MARKERS = ("sign invalid", "token is expired", "invalid refresh token")
+
+
+def is_auth_error(err: Any) -> bool:
+    """Whether an exception/message indicates the session was rejected."""
+    text = str(err or "").lower()
+    return any(marker in text for marker in AUTH_ERROR_MARKERS)
 
 
 def decode_uuid_from_advertisement(service_info: Any) -> str | None:
@@ -269,15 +284,42 @@ class SharingCloud:
         await self._async_save_sessions(sessions)
         _LOGGER.info("Removed stored Smart Life session for %s", user_code)
 
-    async def async_connect(self):
-        """Restore the session and load the device list."""
+    async def async_connect(self) -> tuple[bool | str, str]:
+        """Restore the session and load the device list.
+
+        Returns ``(True, 'ok')``, ``("cloud_unavailable", ...)`` for plain
+        network problems (local control is unaffected, no re-auth needed), or
+        ``("device_list_failed", ...)`` when the session itself was rejected
+        even after repairing from the newest stored tokens.
+        """
         if not await self.async_restore():
             _LOGGER.warning("No persisted sharing session to restore.")
             return "authentication_failed", "no_sharing_session"
-        if (res := await self.async_get_devices_list()) != "ok":
-            return "device_list_failed", res
+
+        manager = await self._get_manager()
+        last_err = await self._update_device_cache_with_retry(manager)
+
+        if last_err is not None:
+            if not is_auth_error(last_err):
+                # Network trouble, NOT an expired session: never demand a QR
+                # re-scan for this. The next on-demand use will simply retry.
+                return "cloud_unavailable", f"session_error: {last_err}"
+            if await self._repair_session_from_store():
+                _LOGGER.info("Smart Life session rebuilt from newest stored tokens")
+                await self._update_entry_tokens(self._auth[CONF_TOKEN_INFO])
+                manager = await self._get_manager()
+                if (
+                    err := await self._update_device_cache_with_retry(manager)
+                ) is not None:
+                    return "device_list_failed", f"session_error: {err}"
+            else:
+                return "device_list_failed", f"session_error: {last_err}"
+
+        self.device_list = {}
+        for device in manager.device_map.values():
+            self.device_list[device.id] = self._device_to_dict(device)
         _LOGGER.info("Sharing cloud connected (%d devices)", len(self.device_list))
-        return True, res
+        return True, "ok"
 
     async def async_get_devices_list(self, force_update: bool = False) -> str | None:
         """Populate ``device_list`` from the sharing account homes."""
@@ -319,8 +361,37 @@ class SharingCloud:
                 )
                 await asyncio.sleep(delay)
 
-        _LOGGER.warning("Sharing session expired/invalid: %s", last_err)
+        if is_auth_error(last_err):
+            _LOGGER.warning("Sharing session rejected: %s", last_err)
+        else:
+            _LOGGER.warning("Sharing cloud unreachable: %s", last_err)
         return f"session_error: {last_err}"
+
+    async def _repair_session_from_store(self) -> bool:
+        """Adopt the newest stored token pair for this user_code.
+
+        Refresh tokens are single-use: whenever two Managers of the same
+        account exist (e.g. two LocalTuya instances, or a config flow racing a
+        setup), the first rotation invalidates the other's copy even though
+        the session is healthy. The Store always holds the latest pair written
+        by any instance's token listener, so rebuilding the Manager from it
+        self-heals those races without any user interaction.
+        """
+        if not self._auth:
+            return False
+        user_code = self._auth.get(CONF_USER_CODE)
+        sessions = await self._async_load_sessions()
+        fresh = sessions.get(user_code)
+        if (
+            not fresh
+            or fresh.get(CONF_TOKEN_INFO) == self._auth.get(CONF_TOKEN_INFO)
+            or not fresh.get(CONF_TOKEN_INFO)
+        ):
+            return False
+        self.user_code = user_code
+        self._auth = fresh
+        self._manager = None  # force a Manager rebuild with the fresh tokens
+        return True
 
     @staticmethod
     def _device_to_dict(device) -> dict[str, Any]:

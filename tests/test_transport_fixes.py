@@ -368,6 +368,145 @@ async def test_sharing_cloud_gives_up_after_final_retry(monkeypatch):
     assert len(calls) == 3
 
 
+def _sharing_for_connect_test(monkeypatch, sessions, managers):
+    """Build a SharingCloud restored-from-entry-blob with faked IO."""
+
+    async def run_job(fn, *args):
+        return fn(*args)
+
+    async def fake_sleep(delay):
+        pass
+
+    monkeypatch.setattr(sharing_cloud_module.asyncio, "sleep", fake_sleep)
+
+    blob = {
+        sharing_cloud_module.CONF_USER_CODE: "uc",
+        sharing_cloud_module.CONF_TERMINAL_ID: "tid",
+        sharing_cloud_module.CONF_ENDPOINT: "https://x",
+        sharing_cloud_module.CONF_TOKEN_INFO: {"access_token": "old"},
+    }
+    sharing = object.__new__(SharingCloud)
+    sharing._hass = SimpleNamespace(
+        async_add_executor_job=run_job,
+        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+    )
+    sharing._store = SimpleNamespace(async_load=AsyncMock(return_value=sessions))
+    sharing._auth = blob
+    sharing.user_code = "uc"
+    sharing.device_list = {}
+    sharing._get_manager = AsyncMock(side_effect=list(managers))
+    return sharing, blob
+
+
+@pytest.mark.asyncio
+async def test_sharing_cloud_connect_network_failure_never_kills_session(monkeypatch):
+    """Boot-time DNS/network trouble must not be treated as session death."""
+
+    def net_err_update():
+        raise TimeoutError("connection to endpoint timed out")
+
+    manager = SimpleNamespace(update_device_cache=net_err_update)
+    sharing, _blob = _sharing_for_connect_test(monkeypatch, {}, [manager])
+
+    status, res = await sharing.async_connect()
+
+    assert status == "cloud_unavailable"
+    assert "timed out" in res
+    # A re-auth flow keys off these markers; a plain network error carries none.
+    assert not sharing_cloud_module.is_auth_error(res)
+
+
+@pytest.mark.asyncio
+async def test_sharing_cloud_connect_repairs_rotated_tokens_from_store(monkeypatch):
+    """A single-use refresh-token rotation race heals from the newest store."""
+
+    def sign_invalid_update():
+        raise RuntimeError("sign invalid rejected")
+
+    stale_manager = SimpleNamespace(update_device_cache=sign_invalid_update)
+    healed_device = SimpleNamespace(
+        id="dev",
+        name="Dev",
+        local_key="k",
+        category="cz",
+        product_id="p",
+        product_name="Prod",
+        model="M1",
+        uuid="u1",
+        online=True,
+        sub=False,
+    )
+    healed_manager = SimpleNamespace(
+        device_map={"dev": healed_device}, update_device_cache=lambda: None
+    )
+
+    fresh_token_info = {"access_token": "rotated-fresh", "refresh_token": "r2"}
+    fresh_blob = {
+        sharing_cloud_module.CONF_USER_CODE: "uc",
+        sharing_cloud_module.CONF_TOKEN_INFO: fresh_token_info,
+    }
+    sharing, blob = _sharing_for_connect_test(
+        monkeypatch, {"uc": fresh_blob}, [stale_manager, healed_manager]
+    )
+
+    status, res = await sharing.async_connect()
+
+    assert (status, res) == (True, "ok")
+    assert sharing._auth[sharing_cloud_module.CONF_TOKEN_INFO] is fresh_token_info
+    assert sharing.device_list["dev"]["local_key"] == "k"
+    assert sharing._get_manager.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_sharing_cloud_connect_reports_dead_session_without_repair(monkeypatch):
+    """No newer stored tokens -> genuine rejection surfaces for re-auth."""
+
+    def sign_invalid_update():
+        raise RuntimeError("sign invalid rejected")
+
+    manager = SimpleNamespace(update_device_cache=sign_invalid_update)
+    # Store holds the SAME token info as the entry blob: nothing fresher.
+    same_blob = {
+        sharing_cloud_module.CONF_USER_CODE: "uc",
+        sharing_cloud_module.CONF_TOKEN_INFO: {"access_token": "old"},
+    }
+    sharing, _blob = _sharing_for_connect_test(
+        monkeypatch, {"uc": same_blob}, [manager]
+    )
+
+    status, res = await sharing.async_connect()
+
+    assert status == "device_list_failed"
+    assert sharing_cloud_module.is_auth_error(res)
+
+
+def test_is_auth_error_classification():
+    assert sharing_cloud_module.is_auth_error(RuntimeError("Sign Invalid resp"))
+    assert sharing_cloud_module.is_auth_error("code 1010: token is expired")
+    assert not sharing_cloud_module.is_auth_error(TimeoutError("connect timeout"))
+    assert not sharing_cloud_module.is_auth_error(None)
+
+
+def test_missing_cloud_specs_skips_disabled_and_cached(monkeypatch):
+    """Startup cloud sync only runs while devices still lack cached specs."""
+    import custom_components.localtuya as lt
+
+    entry = SimpleNamespace(
+        data={
+            "devices": {
+                "d1": {},  # no cached cloud data -> cloud needed
+                "d2": {DEVICE_CLOUD_DATA: {"local_key": "k"}},  # cached
+                "d3": {},  # disabled in HA -> never counted
+            }
+        }
+    )
+    monkeypatch.setattr(
+        lt, "check_if_device_disabled", lambda hass, entry, dev_id: dev_id == "d3"
+    )
+
+    assert lt._missing_cloud_specs(None, entry) == ["d1"]
+
+
 @pytest.mark.asyncio
 async def test_tuya_device_refreshes_after_ble_reconnect(monkeypatch):
     loop = asyncio.get_event_loop()

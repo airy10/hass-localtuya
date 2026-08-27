@@ -49,7 +49,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .core.sharing_cloud import SharingCloud
+from .core.sharing_cloud import SharingCloud, is_auth_error
 
 from .const import get_device_key
 from .core.quirks import QUIRKS_REGISTRY
@@ -372,7 +372,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     if entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING:
         tuya_api = SharingCloud(hass, entry.data.get(CONF_SHARING_DATA))
-        no_cloud = False
+        # The Smart Life session is persisted, so it survives restarts without
+        # any user action. Cloud is only a helper (specs hydration, discovery,
+        # auto-config): touch it at startup ONLY while some enabled device
+        # still lacks its cached cloud data. Local control never needs it.
+        # An entry with no devices yet skips cloud entirely - the options-
+        # flow / add-device flows populate ``device_list`` on demand.
+        no_cloud = not _missing_cloud_specs(hass, entry)
+        if no_cloud:
+            _LOGGER.info(
+                "%s: All devices have cached cloud specs; skipping the "
+                "Smart Life cloud sync (cloud is only used on demand to "
+                "discover/auto-configure devices)",
+                entry.title,
+            )
     else:
         region = entry.data[CONF_REGION]
         client_id = entry.data[CONF_CLIENT_ID]
@@ -468,15 +481,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
+def _missing_cloud_specs(hass: HomeAssistant, entry: ConfigEntry) -> list[str]:
+    """Device ids of this entry still lacking a cached cloud-spec snapshot.
+
+    Used to decide whether the startup Smart Life cloud sync is needed at all:
+    once every device has its ``DEVICE_CLOUD_DATA`` snapshot persisted, local
+    control works entirely offline.
+    """
+    return [
+        dev_id
+        for dev_id, dev_cfg in entry.data.get(CONF_DEVICES, {}).items()
+        if DEVICE_CLOUD_DATA not in dev_cfg
+        and not check_if_device_disabled(hass, entry, dev_id)
+    ]
+
+
 async def _async_connect_cloud(
     hass: HomeAssistant, entry: ConfigEntry, tuya_api: Any
 ) -> None:
     """Connect to the cloud API and start a reauth flow on session expiry."""
     result = await tuya_api.async_connect()
+
+    if result[0] == "cloud_unavailable":
+        # Plain network problem (the SDK also swallows boot-time refresh
+        # failures inside itself). The sharing session stays valid - never
+        # demand a QR re-scan for this.
+        _LOGGER.warning(
+            "%s: Tuya cloud unreachable (%s); continuing with local control "
+            "only. The cloud will be retried when device discovery or "
+            "auto-configuration needs it",
+            entry.title,
+            result[1],
+        )
+        return
+
     if (
         result[0] == "device_list_failed"
         and entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING
-        and any(word in str(result[1]) for word in ("sign invalid", "token is expired"))
+        # Single source of truth for "session was rejected": keeps this
+        # predicate in sync with async_connect's classifier (e.g. also fires
+        # on "invalid refresh token").
+        and is_auth_error(result[1])
     ):
         _LOGGER.warning(
             "%s: Smart Life sharing session expired, re-authentication required",
