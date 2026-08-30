@@ -254,8 +254,18 @@ class BluetoothTransport(Transport):
         for funcs in (self._device.function, self._device.status_range):
             for f in funcs.values():
                 if f.dp_id == dp_id:
-                    return _DPTYPE_TO_BLE.get(f.type)
-        return None
+                    mapped = _DPTYPE_TO_BLE.get(f.type)
+                    if mapped is not None:
+                        return mapped
+                    # Fallback for DPs whose cloud spec lacks a type (e.g. colour_data
+                    # with only maxlen) - treat as STRING so hex colour payloads still
+                    # round-trip as DT_STRING ascii. Prevents type None -> len(None) crash.
+                    if f.code and "colour" in f.code.lower():
+                        return TuyaBLEDataPointType.DT_STRING
+                    return TuyaBLEDataPointType.DT_STRING
+        # Unknown DP id (no cloud spec) - default to STRING so a raw hex payload
+        # (colour_data v2 12-char) is still sent as ascii rather than crashing.
+        return TuyaBLEDataPointType.DT_STRING
 
     @property
     def is_connected(self) -> bool:

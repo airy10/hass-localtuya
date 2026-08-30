@@ -178,17 +178,51 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
         getattr(device, "color_data_spec", None)
     )
 
+    def _resolve_with_raw_fallback(dpcode, decorator=None, **kwargs):
+        wrapper = resolve(device, dpcode, decorator, **kwargs)  # type: ignore[arg-type]
+        if wrapper is not None:
+            return wrapper
+        if dpcode is None or decorator is None:
+            return None
+        from .dp_wrappers import RawDPWrapper
+
+        codes = dpcode if isinstance(dpcode, tuple) else (dpcode,)
+        for code in codes:
+            for source in (
+                getattr(device, "function", {}) or {},
+                getattr(device, "status_range", {}) or {},
+            ):
+                spec = source.get(code)  # type: ignore[attr-defined]
+                if spec is None:
+                    continue
+                dp_id = (
+                    spec.get("dp_id")
+                    if isinstance(spec, dict)
+                    else getattr(spec, "dp_id", None)
+                )
+                if dp_id is None:
+                    continue
+                raw = RawDPWrapper(dp_id)
+                raw.dpcode = code  # type: ignore[attr-defined]
+                return decorator(raw, **kwargs)
+            status = getattr(device, "status", {}) or {}
+            if code in status:
+                for dp_id_str, val in status.items():
+                    if dp_id_str == code:
+                        raw = RawDPWrapper(code)
+                        raw.dpcode = code  # type: ignore[attr-defined]
+                        return decorator(raw, **kwargs)
+        return None
+
     return LightDefinition(
         switch_wrapper=switch,
-        brightness_wrapper=resolve(
-            device,
+        brightness_wrapper=_resolve_with_raw_fallback(
             conf.get("brightness"),
             BrightnessWrapper,
             lower=lower,
             upper=upper,
         ),
-        color_data_wrapper=resolve(
-            device,
+        color_data_wrapper=_resolve_with_raw_fallback(
             conf.get("color"),
             StringColorWrapper,
             color_type_data=color_type_data,
@@ -196,8 +230,7 @@ def get_light_definition(device: Any, description: Any) -> LightDefinition | Non
             upper_brightness=upper,
         ),
         color_mode_wrapper=resolve(device, conf.get("color_mode")),
-        color_temp_wrapper=resolve(
-            device,
+        color_temp_wrapper=_resolve_with_raw_fallback(
             conf.get("color_temp"),
             ColorTempWrapper,
             min_kelvin=min_kelvin,

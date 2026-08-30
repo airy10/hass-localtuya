@@ -541,18 +541,56 @@ async def _async_connect_cloud(
         for dev_id, dev_cfg in entry.data.get(CONF_DEVICES, {}).items()
         if DEVICE_CLOUD_DATA not in dev_cfg and dev_id in tuya_api.device_list
     ]
-    if not missing:
-        return
-    await asyncio.gather(
-        *(tuya_api.async_get_device_functions(dev_id) for dev_id in missing),
-        return_exceptions=True,
-    )
-    new_devices = dict(entry.data[CONF_DEVICES])
-    for dev_id in missing:
-        if cloud_spec := tuya_api.device_list.get(dev_id):
-            new_devices[dev_id] = {**new_devices[dev_id], DEVICE_CLOUD_DATA: cloud_spec}
-    new_data = {**entry.data, CONF_DEVICES: new_devices}
-    hass.config_entries.async_update_entry(entry, data=new_data)
+    if missing:
+        await asyncio.gather(
+            *(tuya_api.async_get_device_functions(dev_id) for dev_id in missing),
+            return_exceptions=True,
+        )
+        new_devices = dict(entry.data[CONF_DEVICES])
+        for dev_id in missing:
+            if cloud_spec := tuya_api.device_list.get(dev_id):
+                new_devices[dev_id] = {
+                    **new_devices[dev_id],
+                    DEVICE_CLOUD_DATA: cloud_spec,
+                }
+        new_data = {**entry.data, CONF_DEVICES: new_devices}
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        # Refresh local view after the first persist so the legacy-entity migration below sees the new specs
+        entry = hass.config_entries.async_get_entry(entry.entry_id) or entry
+
+    legacy_ble_to_migrate: list[str] = []
+    for dev_id, dev_cfg in entry.data.get(CONF_DEVICES, {}).items():
+        if not dev_cfg.get(DEVICE_CLOUD_DATA) or not dev_cfg.get(CONF_ENTITIES):
+            continue
+        transport = dev_cfg.get("transport") or (dev_cfg.get("ble_address") and "ble")
+        if transport != "ble" and not dev_cfg.get("ble_address"):
+            continue
+        manual_dps = str(dev_cfg.get("manual_dps", ""))
+        dps_strings = dev_cfg.get("dps_strings", [])
+        has_legacy_marker = "0" in manual_dps.split(",") or any(
+            "cloud pull" in str(s) for s in dps_strings
+        )
+        if not has_legacy_marker:
+            continue
+        cloud_cat = (dev_cfg.get(DEVICE_CLOUD_DATA, {}) or {}).get("category")
+        if not cloud_cat:
+            continue
+        from .core.ha_entities import DATA_PLATFORMS
+        from homeassistant.const import Platform as HAPlatform
+
+        for plat, table in DATA_PLATFORMS.items():
+            if plat == HAPlatform.LIGHT and cloud_cat in table:
+                legacy_ble_to_migrate.append(dev_id)
+                break
+
+    if legacy_ble_to_migrate:
+        new_devices = dict(entry.data[CONF_DEVICES])
+        for dev_id in legacy_ble_to_migrate:
+            cfg = dict(new_devices[dev_id])
+            cfg[CONF_ENTITIES] = []
+            new_devices[dev_id] = cfg
+        new_data = {**entry.data, CONF_DEVICES: new_devices}
+        hass.config_entries.async_update_entry(entry, data=new_data)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

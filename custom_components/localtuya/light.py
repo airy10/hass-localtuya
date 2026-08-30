@@ -379,8 +379,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if self._color_data_wrapper is not None:
             color_data = self.dp_value(CONF_COLOR)
-            # Write-only devices use the base64 raw color format.
             self._color_data_wrapper._use_raw = bool(is_write_only and not color_data)
+            if getattr(self._device, "ble_device", None) is not None:
+                if isinstance(color_data, str) and len(color_data) == 12:
+                    self._color_data_wrapper._use_raw = False
+                elif (
+                    self._device.category in ("dd", "dj")
+                    and self._color_data_wrapper._use_raw
+                ):
+                    self._color_data_wrapper._use_raw = False
 
             # Like the reference component, derive the HSV color type from the
             # cloud colour_data spec (per-channel min/max) so hue/sat remapping

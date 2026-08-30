@@ -521,12 +521,10 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
     async def async_step_configure_cloud(self, user_input=None):
         """Reconfigure the cloud account (QR sharing re-scan or legacy IoT)."""
-        if self.config_entry.data.get(CONF_AUTH_METHOD) == AUTH_METHOD_SHARING:
-            return self.async_show_menu(
-                step_id="configure_cloud",
-                menu_options=["qr_login", "configure_cloud_iot"],
-            )
-        return await self.async_step_configure_cloud_iot(user_input=user_input)
+        return self.async_show_menu(
+            step_id="configure_cloud",
+            menu_options=["qr_login", "configure_cloud_iot"],
+        )
 
     async def async_step_qr_login(self, user_input=None):
         """Ask for the Smart Life user code to request a pairing QR code."""
