@@ -454,7 +454,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         ):
             brightness = int(kwargs[ATTR_BRIGHTNESS])
 
-            if self.is_color_mode and self._color_data_wrapper is not None:
+            if self._color_data_wrapper is not None and (
+                self.is_color_mode or not self._device.white_mode_supported
+            ):
                 hsv = self._read_wrapper(self._color_data_wrapper)
                 hs = hsv[:2] if hsv is not None else (0, 0)
                 commands.extend(
@@ -539,11 +541,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @override
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        # If the light is currently in color mode,
-        # extract the brightness from the color data
-        if self.is_color_mode and self._color_data_wrapper:
+        # Colour_data v is the effective brightness for dd strips with no white
+        # mode (white_mode_supported False) - keep getter aligned with setter
+        # which also routes brightness via colour_data in that case.
+        if self._color_data_wrapper and (
+            self.is_color_mode or not self._device.white_mode_supported
+        ):
             hsv_data = self._read_wrapper(self._color_data_wrapper)
-            return None if hsv_data is None else round(hsv_data[2])
+            if hsv_data is not None:
+                return round(hsv_data[2])
 
         # Only color/white modes report brightness; scene/music modes have no
         # meaningful value (localtuya has modes core does not).
