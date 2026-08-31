@@ -550,7 +550,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         """Display the QR code and wait for it to be scanned and authorized."""
         if user_input is not None:
             if await self._sharing.async_login():
-                return await self._update_sharing_entry()
+                return self._update_sharing_entry()
             # Not authorized yet: request a fresh QR code and show it again.
             await self._sharing.async_get_qr_code(self._sharing.user_code)
 

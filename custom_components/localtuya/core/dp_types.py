@@ -443,6 +443,12 @@ class StringTypeInformation(TypeInformation[str]):
 
     _DPTYPE = DPType.STRING
 
+    def prepare_set_value(self, device: Any, value: Any) -> str:
+        if not isinstance(value, str):
+            msg = f"Invalid string value `{value}` ({type(value).__name__})"
+            raise PrepareSetValueError(msg)
+        return value
+
     def read_device_value(self, device: Any) -> str | None:
         """Read the device value for this datapoint."""
         return device.status.get(self.dpcode)

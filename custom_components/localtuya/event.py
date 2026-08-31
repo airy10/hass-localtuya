@@ -29,7 +29,8 @@ from functools import partial
 from typing import override
 
 import voluptuous as vol
-from homeassistant.components.event import DOMAIN, EventDeviceClass, EventEntity
+from homeassistant.components.event import DOMAIN
+from homeassistant.components.event import EventDeviceClass, EventEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.core import HomeAssistant, callback
@@ -37,8 +38,11 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import DOMAIN as LOCALTUYA_DOMAIN
 from .const import FINGERBOT_BUTTON_EVENT, LOCALTUYA_DISCOVERY_NEW
 from .coordinator import HassLocalTuyaData, TuyaDevice
+
+EVENT_DOMAIN = DOMAIN
 from .core.definitions import get_event_definition
 from .core.quirks import QUIRKS_REGISTRY
 from .entity import LocalTuyaEntity, async_setup_entry
@@ -146,7 +150,7 @@ class _LocalTuyaBLEReportEvent(EventEntity):
         self._attr_unique_id = f"local_{dev_cfg.id}_{unique_id_suffix}"
         self._attr_has_entity_name = True
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"local_{dev_cfg.id}")},
+            identifiers={(LOCALTUYA_DOMAIN, f"local_{dev_cfg.id}")},
             name=dev_cfg.name,
             manufacturer="Tuya",
             model=f"{dev_cfg.model} ({dev_cfg.id})",
@@ -274,7 +278,7 @@ class LocalTuyaFingerbotButtonEvent(_LocalTuyaBLEReportEvent):
         return {CONF_DEVICE_ID: self._tuya_device.id}
 
 
-_dp_events_setup = partial(async_setup_entry, DOMAIN, LocalTuyaEvent, flow_schema)
+_dp_events_setup = partial(async_setup_entry, EVENT_DOMAIN, LocalTuyaEvent, flow_schema)
 
 
 def _report_event_entities(
@@ -314,7 +318,9 @@ async def async_setup_entry(
     """Set up DP-driven events plus BLE report-driven events."""
     await _dp_events_setup(hass, config_entry, async_add_entities)
 
-    hass_entry_data: HassLocalTuyaData = hass.data[DOMAIN][config_entry.entry_id]
+    hass_entry_data: HassLocalTuyaData = hass.data[LOCALTUYA_DOMAIN][
+        config_entry.entry_id
+    ]
     created: set[str] = set()
 
     initial = []
