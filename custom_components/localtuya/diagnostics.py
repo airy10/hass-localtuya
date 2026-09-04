@@ -9,7 +9,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_DEVICES
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import AnyDeviceEntry
+from homeassistant.helpers.device_registry import DeviceEntry
 
 from . import HassLocalTuyaData
 from .const import (
@@ -80,7 +80,7 @@ async def async_get_config_entry_diagnostics(
 
 
 async def async_get_device_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry, device: AnyDeviceEntry
+    hass: HomeAssistant, entry: ConfigEntry, device: DeviceEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a device entry."""
     data = {}
