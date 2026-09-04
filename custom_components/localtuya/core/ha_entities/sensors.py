@@ -2796,9 +2796,19 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
 # https://developer.tuya.com/en/docs/iot/dlq?id=Kb0kidk9enyh8
 SENSORS[DeviceCategory.DLQ] = SENSORS[DeviceCategory.ZNDB]
 
-# Socket (duplicate of `kg`)
+# Socket (duplicate of `kg`, plus two-channel meter totals)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
-SENSORS[DeviceCategory.CZ] = SENSORS[DeviceCategory.KG]
+SENSORS[DeviceCategory.CZ] = (
+    *SENSORS[DeviceCategory.KG],
+    LocalTuyaEntity(
+        translation_key="total_energy",
+        id=DPCode.ALL_ENERGY,
+        name="Total Energy",
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.001),
+    ),
+)
 
 # Power Socket (duplicate of `kg`)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
