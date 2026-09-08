@@ -955,6 +955,27 @@ SELECTS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             ),
         ),
     ),
+    # Circuit breaker (added to HA Core Tuya on 2026-09-07)
+    DeviceCategory.ZNJDQ: (
+        LocalTuyaEntity(
+            translation_key="relay_status",
+            id=DPCode.RELAY_STATUS,
+            name="Relay Status",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector(
+                {"on": "ON", "off": "OFF", "memory": "Last State"}
+            ),
+        ),
+        LocalTuyaEntity(
+            translation_key="light_mode",
+            id=DPCode.LIGHT_MODE,
+            name="Light Mode",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_selector(
+                {"relay": "State", "pos": "Position", "none": "OFF"}
+            ),
+        ),
+    ),
     # Dimmer
     # https://developer.tuya.com/en/docs/iot/tgq?id=Kaof8ke9il4k4
     DeviceCategory.TGQ: (

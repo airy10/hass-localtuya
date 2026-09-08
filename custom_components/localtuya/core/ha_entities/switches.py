@@ -1445,6 +1445,21 @@ SWITCHES: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             name="Switch 8",
         ),
     ),
+    # Circuit breaker (added to HA Core Tuya on 2026-09-07)
+    DeviceCategory.ZNJDQ: (
+        LocalTuyaEntity(
+            translation_key="switch_1",
+            id=DPCode.SWITCH_1,
+            name="Switch 1",
+        ),
+        LocalTuyaEntity(
+            translation_key="child_lock",
+            id=DPCode.CHILD_LOCK,
+            name="Child Lock",
+            icon="mdi:account-lock",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Tower fan
     DeviceCategory.KS: (
         LocalTuyaEntity(

@@ -203,10 +203,10 @@ branching, no wrapper). Target alignment, per platform:
    derivation (Phase 3) — the three most visible improvements.
 4. Runtime discovery signal (Phase 4) for BLE re-pairing UX.
 
-> Note on SDK versions: core `manifest.json` pins `tuya-device-handlers==0.0.26` and
-> `tuya-device-sharing-sdk==0.2.14`; the venv has 0.0.24 / 0.2.10. Our component pins
-> `tuya-device-sharing-sdk~=0.2.4`. If we reuse `tuya_device_handlers` classes directly,
-> align the pinned versions first.
+> Note on SDK versions: the inspected Core checkout pins
+> `tuya-device-handlers==0.0.27` and `tuya-device-sharing-sdk==0.2.15`; LocalTuya
+> vendors the relevant handler layer in `core/` and does not import that package
+> at runtime. The sharing SDK remains separately pinned by this component.
 
 ---
 
@@ -612,19 +612,28 @@ diffed against core and closed the last divergences:
 
 ---
 
-## 8. Next work
+### 7.13 Latest Core Tuya table sync — 2026-09-07 (DONE)
 
-The definition-driven runtime (Phases 0–7) is complete: the now-unused
-`gen_localtuya_entities` flattening helper has been removed, and the BLE
-per-product path has been unified with the shared category-table resolver
-(`entity.py::_entity_specs_for_device` — BLE per-product overrides first,
-then `_described_entity_specs` for both transports). The manual `dps` path is
-intentionally kept as the fallback/escape hatch.
+The direct comparison with the checked-out Home Assistant Core Tuya component
+identified one applicable missing category: `ZNJDQ` circuit breaker. LocalTuya
+now includes its `SWITCH_1` and `CHILD_LOCK` switch descriptions,
+`RELAY_STATUS` and `LIGHT_MODE` selects, and `CUR_CURRENT`, `CUR_POWER`,
+`CUR_VOLTAGE`, and `ADD_ELE` sensors. `tests/test_core_backports.py` protects
+all three table groups.
 
-The one remaining quirk-related gap is **custom-quirk loading**: core can load
-user quirk files from `config/tuya_quirks/`; ours is a fixed in-code registry.
-Porting that loader is optional and only matters for users who want to patch a
-product's spec without editing the component.
+The Core `CZ`/`KG` dual-channel meter additions were already present locally,
+including combined and per-channel energy data, so no duplicate change was
+made. Core's `tuya-device-handlers` dependency is at `0.0.27`; LocalTuya
+continues to use its vendored equivalents rather than adding that package as a
+runtime dependency.
+
+Intentional non-backports are cloud-only functionality that does not map to
+LocalTuya's BLE/Ethernet transport, notably camera stream allocation and
+cloud feeder/scene service behavior. The remaining architectural follow-up is
+user-authored quirk loading: LocalTuya now loads Python modules from
+`<config>/localtuya_quirks`, but it does not yet support Core's exact
+`<config>/tuya_quirks` location or a YAML quirk schema.
+
 ### 7.12 BLE unlock attribution — ported from ha_tuya_ble (DONE)
 
 Port of ha_tuya_ble commit `bea2520` ("report who opened the lock"), adapted

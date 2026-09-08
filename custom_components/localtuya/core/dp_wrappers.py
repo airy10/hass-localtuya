@@ -1,7 +1,8 @@
 """Tuya DP wrappers (vendored from HA core tuya ``device_wrapper`` package).
 
 VENDORED from ``tuya_device_handlers/device_wrapper/`` (``base.py`` +
-``common.py``; pinned in core manifest as ``tuya-device-handlers==0.0.26``).
+``common.py``; pinned in the inspected Core manifest as
+``tuya-device-handlers==0.0.27``).
 We intentionally do NOT import that package at runtime: the core component
 pins its own release and its internals may change without notice.  This
 module is a transport-agnostic copy so our entity logic can mirror the core

@@ -1,8 +1,8 @@
 """DP type information (capability specs) for Tuya datapoints.
 
 VENDORED from the HA core ``tuya`` integration (libs ``tuya_device_handlers``
-package, ``type_information.py``; pinned in core manifest as
-``tuya-device-handlers==0.0.26``).  We intentionally do NOT import that
+package, ``type_information.py``; pinned in the inspected Core manifest as
+``tuya-device-handlers==0.0.27``).  We intentionally do NOT import that
 package at runtime: the core component pins its own release and its internals
 may change without notice.  This module is a transport-agnostic copy so our
 entity logic can mirror the core integration without breaking when the core

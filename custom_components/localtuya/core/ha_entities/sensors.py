@@ -2796,6 +2796,42 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
 # https://developer.tuya.com/en/docs/iot/dlq?id=Kb0kidk9enyh8
 SENSORS[DeviceCategory.DLQ] = SENSORS[DeviceCategory.ZNDB]
 
+# Circuit breaker (added to HA Core Tuya on 2026-09-07)
+SENSORS[DeviceCategory.ZNJDQ] = (
+    LocalTuyaEntity(
+        translation_key="current",
+        id=DPCode.CUR_CURRENT,
+        name="Current",
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        custom_configs=localtuya_sensor(UnitOfElectricCurrent.AMPERE),
+    ),
+    LocalTuyaEntity(
+        translation_key="power",
+        id=DPCode.CUR_POWER,
+        name="Power",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        custom_configs=localtuya_sensor(UnitOfPower.WATT),
+    ),
+    LocalTuyaEntity(
+        translation_key="voltage",
+        id=DPCode.CUR_VOLTAGE,
+        name="Voltage",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        custom_configs=localtuya_sensor(UnitOfElectricPotential.VOLT),
+    ),
+    LocalTuyaEntity(
+        translation_key="total_energy",
+        id=DPCode.ADD_ELE,
+        name="Total Energy",
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR),
+    ),
+)
+
 # Socket (duplicate of `kg`, plus two-channel meter totals)
 # https://developer.tuya.com/en/docs/iot/s?id=K9gf7o5prgf7s
 SENSORS[DeviceCategory.CZ] = (

@@ -473,6 +473,8 @@ class DeviceCategory(StrEnum):
 
     https://developer.tuya.com/en/docs/iot/smart-meter?id=Kaiuz4gv6ack7
     """
+    ZNJDQ = "znjdq"
+    """Circuit breaker"""
     ZNFH = "znfh"
     """Bento box"""
     ZNSB = "znsb"

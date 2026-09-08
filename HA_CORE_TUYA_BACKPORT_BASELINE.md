@@ -1,16 +1,29 @@
 # Home Assistant Core Tuya Backport Baseline
 
-Last inspected: 2026-09-04
+Last inspected: 2026-09-07
 
 - Home Assistant core checkout: `$HOME/Sources/Others/homeassistant-core`
-- Core commit inspected: `568136f8406f2cd04234e3d0f436ce2983a4564a`
-  (`Add local Powerwall control for Teslemetry energy sites (#176969)`)
-- Latest Tuya-specific commit inspected in that checkout:
-  `5eaeb20bb3fdeb341d279cf2113ce29af38a32e8`
-  (`Add Tuya two-channel energy meter sensors and numbers (#178415)`)
-- LocalTuya baseline: `6f7d71b2d51de8fd3b570cd1697fe698d565ebe1`
+- Reference checkout was compared directly against LocalTuya's category tables,
+  definitions, wrappers, transports, diagnostics, and config flow.
+- Core's Tuya dependency is now `tuya-device-handlers==0.0.27` in the inspected
+  checkout (LocalTuya does not add it as a runtime dependency because the
+  relevant type-information/wrapper layer is vendored in `core/`).
+- LocalTuya baseline: the current working tree after the existing wrapper,
+  definition-driven runtime, persistence, discovery, and quirk work.
 
-The Tuya component history was reviewed from the last LocalTuya core-table
-sync through the latest Tuya-specific changes at the core commit above.
-Applicable backports and intentional non-backports should be recorded in the
-same change or its final summary.
+## Applicable 2026-09-07 backport
+
+The current Core tables add the `ZNJDQ` circuit-breaker category. LocalTuya now
+covers the matching switch, relay-status/light-mode selects, and current,
+power, voltage, and total-energy sensors. The required `DPCode` values were
+already present locally, so this was a table-only backport with a regression
+test in `tests/test_core_backports.py`.
+
+The newer two-channel `CZ`/`KG` energy-meter work is already represented in
+LocalTuya and was not duplicated. Core-only cloud features such as camera
+stream allocation and feeder-scene services remain intentionally out of scope
+for the local BLE/Ethernet transport.
+
+Future comparisons should update this file with the inspection date, Core
+revision/dependency versions, applicable table changes, and any intentional
+non-backports.
