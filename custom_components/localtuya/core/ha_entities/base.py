@@ -712,6 +712,7 @@ class DPCode(StrEnum):
     CHARGE_CARD_NO2 = "charge_card_no2"
     CHARGE_ELECTRIC_QUANTITY = "charge_electric_quantity"
     CHARGE_ENERGY_ONCE = "charge_energy_once"
+    CHARGE_CUR_SET = "charge_cur_set"
     CHARGE_MONEY = "charge_money"
     CHARGE_PATTERN = "charge_pattern"
     CHARGE_POWER1 = "charge_power1"

@@ -538,6 +538,16 @@ class ColorTempWrapper(DecoratorWrapper[int]):
         self._upper = upper
         self._reverse = reverse
 
+    @property
+    def min_kelvin(self) -> int:
+        """Return the minimum Kelvin value exposed by this wrapper."""
+        return self._min_kelvin
+
+    @property
+    def max_kelvin(self) -> int:
+        """Return the maximum Kelvin value exposed by this wrapper."""
+        return self._max_kelvin
+
     def _to_ha(self, raw: Any) -> int:
         return map_range(
             raw,

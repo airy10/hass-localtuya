@@ -1053,6 +1053,15 @@ NUMBERS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
     # EV Charcher
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     DeviceCategory.QCCDZ: (
+        # Core Tuya's standard QCCDZ charging-current control. Existing
+        # charger-specific controls remain below this entry.
+        LocalTuyaEntity(
+            translation_key="charging_current",
+            id=DPCode.CHARGE_CUR_SET,
+            name="Charging current",
+            device_class=NumberDeviceClass.CURRENT,
+            custom_configs=localtuya_numbers(1, 255, unit=UnitOfElectricCurrent.AMPERE),
+        ),
         LocalTuyaEntity(
             translation_key="set_delay_time",
             id=DPCode.SETDELAYTIME,

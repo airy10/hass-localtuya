@@ -337,6 +337,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             else:
                 self._color_data_wrapper = None
 
+        # Match Core Tuya's capability reporting: when the resolved color
+        # temperature wrapper knows the device range, expose that range rather
+        # than only the configured fallback values. Manual config values remain
+        # the fallback for spec-less/local-only devices.
+        if isinstance(self._color_temp_wrapper, ColorTempWrapper):
+            self._attr_min_color_temp_kelvin = self._color_temp_wrapper.min_kelvin
+            self._attr_max_color_temp_kelvin = self._color_temp_wrapper.max_kelvin
+
         # Work mode is read/written as a raw string (config-driven string
         # comparison), so it always resolves to a raw wrapper by dp_id.
         color_mode_dp = self._config.get(CONF_COLOR_MODE)

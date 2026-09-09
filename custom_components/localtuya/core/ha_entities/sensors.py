@@ -1025,6 +1025,33 @@ SENSORS: dict[DeviceCategory, tuple[LocalTuyaEntity, ...]] = {
             state_class=SensorStateClass.TOTAL,
             custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.01),
         ),
+        # Core Tuya's standard QCCDZ descriptions. Keep the existing
+        # charger-specific DPs above for LocalTuya compatibility.
+        LocalTuyaEntity(
+            translation_key="total_energy",
+            id=DPCode.FORWARD_ENERGY_TOTAL,
+            name="Total Energy",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR),
+        ),
+        LocalTuyaEntity(
+            translation_key="total_power",
+            id=DPCode.POWER_TOTAL,
+            name="Total Power",
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfPower.KILO_WATT),
+        ),
+        LocalTuyaEntity(
+            translation_key="temperature",
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
         LocalTuyaEntity(
             translation_key="device_kw",
             id=DPCode.DEVICEKW,
